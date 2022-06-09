@@ -224,7 +224,7 @@ void RtcpEncoderNode::ProcessTimer()
         return;
     }
 
-    mRtpSession->OnTimer();
+    mRtpSession->OnRtpStatsTimerExpired();
 
     mRtcpXrCounter++;
 
