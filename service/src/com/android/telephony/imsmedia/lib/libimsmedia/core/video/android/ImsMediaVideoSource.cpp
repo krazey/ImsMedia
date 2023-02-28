@@ -453,7 +453,7 @@ void ImsMediaVideoSource::changeBitrate(const uint32_t bitrate)
     }
 
     AMediaFormat* params = AMediaFormat_new();
-    AMediaFormat_setInt32(params, AMEDIAFORMAT_KEY_BIT_RATE, bitrate);
+    AMediaFormat_setInt32(params, AMEDIACODEC_KEY_VIDEO_BITRATE, bitrate);
     media_status_t status = AMediaCodec_setParameters(mCodec, params);
 
     if (status != AMEDIA_OK)
