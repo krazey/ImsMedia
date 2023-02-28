@@ -108,7 +108,7 @@ BaseNode* StreamScheduler::DetermineProcessingNode()
 
     for (auto& node : mlistRegisteredNode)
     {
-        if (node != nullptr && !node->IsRunTime())
+        if (node != nullptr && !node->IsRunTime() && !node->IsSourceNode())
         {
             uint32_t nDataInNode = node->GetDataCount();
 
@@ -125,6 +125,16 @@ BaseNode* StreamScheduler::DetermineProcessingNode()
 
 void StreamScheduler::RunRegisteredNode()
 {
+    // run source nodes
+    for (auto& node : mlistRegisteredNode)
+    {
+        if (node != nullptr && node->GetState() == kNodeStateRunning && !node->IsRunTime() &&
+                node->IsSourceNode())
+        {
+            node->ProcessData();
+        }
+    }
+
     for (;;)
     {
         BaseNode* pNode = DetermineProcessingNode();
