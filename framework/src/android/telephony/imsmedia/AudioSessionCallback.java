@@ -268,20 +268,11 @@ public class AudioSessionCallback extends ImsMediaManager.SessionCallback {
     }
 
     /**
-     * Notifies media inactivity observed as per thresholds set by
-     * setMediaQualityThreshold() API
-     *
-     * @param packetType either RTP or RTCP
-     */
-    public void notifyMediaInactivity(final int packetType) {
-         // Base Implementation
-    }
-
-    /**
      * Notifies media quality status observed as per thresholds set by
      * setMediaQualityThreshold() API
      *
-     * @param packetType either RTP or RTCP
+     * @param status The object of MediaQualityStatus with the rtp and
+     *        the rtcp statistics.
      */
     public void notifyMediaQualityStatus(final MediaQualityStatus status) {
          // Base Implementation
