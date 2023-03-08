@@ -480,8 +480,6 @@ bool RtpEncoderNode::ProcessAudioData(ImsMediaSubType subtype, uint8_t* data, ui
                 }
                 else if (timeDiff == 0)
                 {
-                    IMLOGD_PACKET2(IM_PACKET_LOG_RTP, "[ProcessAudioData] skip, prev[%u] curr[%u]",
-                            mPrevTimestamp, currentTimestamp);
                     return false;
                 }
                 else
