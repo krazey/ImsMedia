@@ -44,7 +44,13 @@ void BaseJitterBuffer::SetSessionCallback(BaseSessionCallback* callback)
 
 void BaseJitterBuffer::SetSsrc(uint32_t ssrc)
 {
-    IMLOGD1("[SetSsrc] ssrc[%x]", ssrc);
+    IMLOGI1("[SetSsrc] ssrc[%x]", ssrc);
+
+    if (mSsrc != 0 && ssrc != mSsrc)
+    {
+        Reset();
+    }
+
     mSsrc = ssrc;
 }
 
@@ -76,6 +82,7 @@ uint32_t BaseJitterBuffer::GetCount()
 
 void BaseJitterBuffer::Reset()
 {
+    mFirstFrameReceived = false;
     mNewInputData = false;
     mLastPlayedSeqNum = 0;
     mLastPlayedTimestamp = 0;

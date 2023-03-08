@@ -36,7 +36,8 @@ public:
             uint32_t* pnTimestamp, bool* pbMark, uint32_t* pnSeqNum, uint32_t currentTime);
 
 private:
-    bool IsSID(uint8_t* pbBuffer, uint32_t nBufferSize);
+    bool IsSID(uint32_t nBufferSize);
+    bool Resync(uint32_t currentTime);
     void CollectRxRtpStatus(int32_t seq, kRtpPacketStatus status);
     void CollectJitterBufferStatus(int32_t currSize, int32_t maxSize);
 
@@ -48,7 +49,6 @@ private:
     bool mEnforceUpdate;
     uint32_t mCannotGetCount;
     uint32_t mCurrPlayingTS;
-    uint16_t mCurrPlayingSeq;
     uint32_t mBaseTimestamp;
     uint32_t mBaseArrivalTime;
     uint32_t mCheckUpdateJitterPacketCnt;
