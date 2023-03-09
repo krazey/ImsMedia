@@ -50,7 +50,7 @@ public:
          * RTCP XR type Loss RLE Report Block as specified in
          * RFC 3611 section 4.1
          */
-        FLAG_RTCPXR_LOSS_RLE_REPORT_BLOCK = 1 < 0,
+        FLAG_RTCPXR_LOSS_RLE_REPORT_BLOCK = 1 << 0,
         /**
          * RTCP XR type Duplicate RLE Report Block as specified in
          * RFC 3611 section 4.2
