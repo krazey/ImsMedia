@@ -48,6 +48,8 @@ void JitterNetworkAnalyser::Reset()
     mNetworkStatus = NETWORK_STATUS_NORMAL;
     mGoodStatusEnteringTime = 0;
     mBadStatusChangedTime = 0;
+
+    std::lock_guard<std::mutex> guard(mMutex);
     mListJitters.clear();
 }
 
@@ -79,6 +81,8 @@ int32_t JitterNetworkAnalyser::CalculateTransitTimeDifference(
     int32_t inputTimestampGap = timestamp - mBasePacketTime;
     int32_t inputTimeGap = arrivalTime - mBaseArrivalTime;
     int32_t jitter = inputTimeGap - inputTimestampGap;
+
+    std::lock_guard<std::mutex> guard(mMutex);
     mListJitters.push_back(jitter);
 
     if (mListJitters.size() > MAX_JITTER_LIST_SIZE)
@@ -91,6 +95,8 @@ int32_t JitterNetworkAnalyser::CalculateTransitTimeDifference(
 
 double JitterNetworkAnalyser::CalculateDeviation(double* pMean)
 {
+    std::lock_guard<std::mutex> guard(mMutex);
+
     if (mListJitters.empty())
     {
         *pMean = 0;
@@ -114,6 +120,8 @@ double JitterNetworkAnalyser::CalculateDeviation(double* pMean)
 
 int32_t JitterNetworkAnalyser::GetMaxJitterValue()
 {
+    std::lock_guard<std::mutex> guard(mMutex);
+
     if (mListJitters.empty())
     {
         return 0;

@@ -19,6 +19,7 @@
 
 #include <stdint.h>
 #include <list>
+#include <mutex>
 
 enum NETWORK_STATUS
 {
@@ -67,6 +68,7 @@ private:
     double CalculateDeviation(double* pMean);
     int32_t GetMaxJitterValue();
 
+    std::mutex mMutex;
     uint32_t mMinJitterBufferSize;
     uint32_t mMaxJitterBufferSize;
     uint32_t mBasePacketTime;
