@@ -82,6 +82,21 @@ public:
     void SetEvsPayloadHeaderMode(int32_t EvsPayloadHeaderMode);
 
     /**
+     * @brief Set Whether discontinuous transmission is enabled or not
+     *
+     * @params isDtxEnabled, if set to true then enable discontinuous transmission
+     */
+    void SetDtxEnabled(bool isDtxEnabled);
+
+    /**
+     * @brief Setting octet-align for AMR/AMR-WB
+     *
+     * @params isOctetAligned, If it's set to true then all fields in the AMR/AMR-WB header
+     * shall be aligned to octet boundaries by adding padding bits.
+     */
+    void SetOctetAligned(bool isOctetAligned);
+
+    /**
      * @brief Starts audio player to play the decoded audio frame and ndk audio decoder to decode
      * the given data
      *
@@ -127,8 +142,10 @@ private:
     std::mutex mMutex;
     int32_t mEvsBitRate;
     kRtpPyaloadHeaderMode mEvsCodecHeaderMode;
-    bool mFirstFrame;
+    bool mIsFirstFrame;
     bool mIsEvsInitialized;
+    bool mIsDtxEnabled;
+    bool mIsOctetAligned;
 };
 
 #endif

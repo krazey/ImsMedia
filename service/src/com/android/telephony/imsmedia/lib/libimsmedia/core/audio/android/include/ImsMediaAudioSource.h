@@ -102,6 +102,21 @@ public:
     void SetMediaDirection(int32_t direction);
 
     /**
+     * @brief Set Whether discontinuous transmission is enabled or not
+     *
+     * @params isDtxEnabled, if set to true then enable discontinuous transmission
+     */
+    void SetDtxEnabled(bool isDtxEnabled);
+
+    /**
+     * @brief Setting octet-align for AMR/AMR-WB
+     *
+     * @params isOctetAligned, If it's set to true then all fields in the AMR/AMR-WB header
+     * shall be aligned to octet boundaries by adding padding bits.
+     */
+    void SetOctetAligned(bool isOctetAligned);
+
+    /**
      * @brief Starts aaudio and ndk audio codec to get the audio frame and encode the audio frames
      * with given configuration
      *
@@ -149,6 +164,8 @@ private:
     ImsMediaCondition mConditionExit;
     bool mIsEvsInitialized;
     int32_t mMediaDirection;
+    bool mIsDtxEnabled;
+    bool mIsOctetAligned;
 };
 
 #endif

@@ -29,6 +29,8 @@ IAudioPlayerNode::IAudioPlayerNode(BaseSessionCallback* callback) :
     std::unique_ptr<ImsMediaAudioPlayer> track(new ImsMediaAudioPlayer());
     mAudioPlayer = std::move(track);
     mConfig = nullptr;
+    mIsOctetAligned = false;
+    mIsDtxEnabled = false;
 }
 
 IAudioPlayerNode::~IAudioPlayerNode()
@@ -59,6 +61,8 @@ ImsMediaResult IAudioPlayerNode::ProcessStart()
     {
         mAudioPlayer->SetCodec(mCodecType);
         mAudioPlayer->SetSamplingRate(mSamplingRate * 1000);
+        mAudioPlayer->SetDtxEnabled(mIsDtxEnabled);
+        mAudioPlayer->SetOctetAligned(mIsOctetAligned);
 
         if (mCodecType == kAudioCodecEvs)
         {
@@ -130,6 +134,7 @@ void IAudioPlayerNode::SetConfig(void* config)
     if (mCodecType == kAudioCodecAmr || mCodecType == kAudioCodecAmrWb)
     {
         mMode = mConfig->getAmrParams().getAmrMode();
+        mIsOctetAligned = mConfig->getAmrParams().getOctetAligned();
     }
     else if (mCodecType == kAudioCodecEvs)
     {
@@ -141,6 +146,7 @@ void IAudioPlayerNode::SetConfig(void* config)
     }
 
     mSamplingRate = mConfig->getSamplingRateKHz();
+    mIsDtxEnabled = mConfig->getDtxEnabled();
     SetJitterBufferSize(4, 4, 9);
     SetJitterOptions(
             80, 1, (double)25 / 10, false /** TODO: when enable DTX, set this true on condition*/
@@ -161,7 +167,9 @@ bool IAudioPlayerNode::IsSameConfig(void* config)
         if (mCodecType == kAudioCodecAmr || mCodecType == kAudioCodecAmrWb)
         {
             return (mMode == pConfig->getAmrParams().getAmrMode() &&
-                    mSamplingRate == pConfig->getSamplingRateKHz());
+                    mSamplingRate == pConfig->getSamplingRateKHz() &&
+                    mIsDtxEnabled == pConfig->getDtxEnabled() &&
+                    mIsOctetAligned == pConfig->getAmrParams().getOctetAligned());
         }
         else if (mCodecType == kAudioCodecEvs)
         {
@@ -171,7 +179,8 @@ bool IAudioPlayerNode::IsSameConfig(void* config)
                                     pConfig->getEvsParams().getEvsBandwidth()) &&
                     mEvsChannelAwOffset == pConfig->getEvsParams().getChannelAwareMode() &&
                     mSamplingRate == pConfig->getSamplingRateKHz() &&
-                    mEvsPayloadHeaderMode == pConfig->getEvsParams().getUseHeaderFullOnly());
+                    mEvsPayloadHeaderMode == pConfig->getEvsParams().getUseHeaderFullOnly() &&
+                    mIsDtxEnabled == pConfig->getDtxEnabled());
         }
     }
 

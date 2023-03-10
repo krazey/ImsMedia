@@ -68,6 +68,8 @@ public:
     int8_t mSamplingRate;
     int8_t mEvsChAwOffset;
     int32_t mMediaDirection;
+    bool mIsDtxEnabled;
+    bool mIsOctetAligned;
 };
 
 #endif

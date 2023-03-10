@@ -50,6 +50,8 @@ ImsMediaAudioSource::ImsMediaAudioSource()
     mEvsChAwOffset = 0;
     mIsEvsInitialized = false;
     mMediaDirection = 0;
+    mIsDtxEnabled = false;
+    mIsOctetAligned = false;
 }
 
 ImsMediaAudioSource::~ImsMediaAudioSource() {}
@@ -102,6 +104,16 @@ void ImsMediaAudioSource::SetEvsBandwidth(int32_t evsBandwidth)
 void ImsMediaAudioSource::SetMediaDirection(int32_t direction)
 {
     mMediaDirection = direction;
+}
+
+void ImsMediaAudioSource::SetDtxEnabled(bool isDtxEnabled)
+{
+    mIsDtxEnabled = isDtxEnabled;
+}
+
+void ImsMediaAudioSource::SetOctetAligned(bool isOctetAligned)
+{
+    mIsOctetAligned = isOctetAligned;
 }
 
 bool ImsMediaAudioSource::Start()

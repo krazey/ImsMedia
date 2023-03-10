@@ -54,6 +54,8 @@ private:
     kEvsBandwidth mEvsBandwidth;
     int8_t mSamplingRate;
     int32_t mEvsPayloadHeaderMode;
+    bool mIsDtxEnabled;
+    bool mIsOctetAligned;
 };
 
 #endif
