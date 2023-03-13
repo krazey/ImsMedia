@@ -101,14 +101,12 @@ public:
         sessionOutputs.clear();
         targets.clear();
         request = nullptr;
-        sessionSequenceId = -1;
     }
     std::vector<ANativeWindow*> outputNativeWindows;
     std::vector<ACaptureSessionOutput*> sessionOutputs;
     std::vector<ACameraOutputTarget*> targets;
     ACaptureRequest* request;
     ACameraDevice_request_template requestTemplate;
-    int sessionSequenceId;
 };
 
 enum kCameraMode

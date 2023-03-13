@@ -191,7 +191,6 @@ bool ImsMediaCamera::OpenCamera()
         return false;
     }
 
-    // Create back facing camera device
     camera_status_t status = ACameraManager_openCamera(mManager, mActiveCameraId.c_str(),
             GetDeviceListener(), &gCameraIds[mActiveCameraId].mDevice);
 
@@ -220,6 +219,7 @@ bool ImsMediaCamera::OpenCamera()
     if (status == ACAMERA_OK)
     {
         mExposureRange.min = val.data.i64[0];
+
         if (mExposureRange.min < kMinExposureTime)
         {
             mExposureRange.min = kMinExposureTime;
@@ -285,7 +285,7 @@ bool ImsMediaCamera::CreateSession(ANativeWindow* preview, ANativeWindow* record
         return false;
     }
 
-    if (MatchCaptureSizeRequest(preview) == false)
+    if (!MatchCaptureSizeRequest(preview))
     {
         IMLOGE0("[CreateSession] resolution is not matched");
         return false;
@@ -339,7 +339,7 @@ bool ImsMediaCamera::CreateSession(ANativeWindow* preview, ANativeWindow* record
         }
     }
 
-    if (gCameraIds[mActiveCameraId].mAvailable == false)
+    if (!gCameraIds[mActiveCameraId].mAvailable)
     {
         gCondition.wait_timeout(MAX_WAIT_CAMERA);
     }
@@ -395,39 +395,41 @@ bool ImsMediaCamera::DeleteSession()
         mCaptureSession = nullptr;
     }
 
-    for (int idxTarget = 0; idxTarget < mCaptureRequest.outputNativeWindows.size(); idxTarget++)
-    {
-        if (mCaptureRequest.outputNativeWindows[idxTarget] == nullptr)
-        {
-            continue;
-        }
-
-        status = ACaptureRequest_removeTarget(
-                mCaptureRequest.request, mCaptureRequest.targets[idxTarget]);
-
-        if (status != ACAMERA_OK)
-        {
-            IMLOGE1("[DeleteSession] error ACaptureRequest_removeTarget[%s]", GetErrorStr(status));
-        }
-
-        ACameraOutputTarget_free(mCaptureRequest.targets[idxTarget]);
-        status = ACaptureSessionOutputContainer_remove(
-                mSessionOutputContainer, mCaptureRequest.sessionOutputs[idxTarget]);
-
-        if (status != ACAMERA_OK)
-        {
-            IMLOGE1("[DeleteSession] error ACaptureSessionOutputContainer_remove[%s]",
-                    GetErrorStr(status));
-        }
-
-        ACaptureSessionOutput_free(mCaptureRequest.sessionOutputs[idxTarget]);
-        ANativeWindow_release(mCaptureRequest.outputNativeWindows[idxTarget]);
-    }
-
     if (mCaptureRequest.request != nullptr)
     {
+        for (int idxTarget = 0; idxTarget < mCaptureRequest.outputNativeWindows.size(); idxTarget++)
+        {
+            if (mCaptureRequest.outputNativeWindows[idxTarget] == nullptr)
+            {
+                continue;
+            }
+
+            status = ACaptureRequest_removeTarget(
+                    mCaptureRequest.request, mCaptureRequest.targets[idxTarget]);
+
+            if (status != ACAMERA_OK)
+            {
+                IMLOGE1("[DeleteSession] error ACaptureRequest_removeTarget[%s]",
+                        GetErrorStr(status));
+            }
+
+            ACameraOutputTarget_free(mCaptureRequest.targets[idxTarget]);
+            status = ACaptureSessionOutputContainer_remove(
+                    mSessionOutputContainer, mCaptureRequest.sessionOutputs[idxTarget]);
+
+            if (status != ACAMERA_OK)
+            {
+                IMLOGE1("[DeleteSession] error ACaptureSessionOutputContainer_remove[%s]",
+                        GetErrorStr(status));
+            }
+
+            ACaptureSessionOutput_free(mCaptureRequest.sessionOutputs[idxTarget]);
+            ANativeWindow_release(mCaptureRequest.outputNativeWindows[idxTarget]);
+        }
+
         IMLOGD0("[DeleteSession] free request");
         ACaptureRequest_free(mCaptureRequest.request);
+        mCaptureRequest.request = nullptr;
     }
 
     mCaptureRequest.outputNativeWindows.resize(0);
@@ -438,6 +440,7 @@ bool ImsMediaCamera::DeleteSession()
     {
         IMLOGD0("[DeleteSession] free container");
         ACaptureSessionOutputContainer_free(mSessionOutputContainer);
+        mSessionOutputContainer = nullptr;
     }
 
     return true;
@@ -575,7 +578,6 @@ void ImsMediaCamera::OnDeviceState(ACameraDevice* dev)
     IMLOGW1("[OnDeviceState] device %s is disconnected", id.c_str());
     gCameraIds[id].mAvailable = false;
     ACameraDevice_close(gCameraIds[id].mDevice);
-    gCameraIds.erase(id);
 }
 
 /*

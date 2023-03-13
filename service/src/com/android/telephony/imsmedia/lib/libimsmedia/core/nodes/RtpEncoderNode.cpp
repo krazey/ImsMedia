@@ -527,8 +527,8 @@ void RtpEncoderNode::ProcessVideoData(
 
     if (mCvoValue > 0 && mark && subtype == MEDIASUBTYPE_VIDEO_IDR_FRAME)
     {
-        mRtpSession->SendRtpPacket(
-                mRtpPayloadTx, data, size, timestamp, mark, 0, &mListRtpExtension.front());
+        mRtpSession->SendRtpPacket(mRtpPayloadTx, data, size, timestamp, mark, 0,
+                mListRtpExtension.empty() ? nullptr : &mListRtpExtension.front());
     }
     else
     {
