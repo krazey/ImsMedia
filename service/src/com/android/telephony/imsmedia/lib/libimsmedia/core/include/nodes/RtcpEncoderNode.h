@@ -45,7 +45,7 @@ public:
     /**
      * @brief The methods operates when the timer is expired
      */
-    void ProcessTimer();
+    virtual void ProcessTimer();
 
     /**
      * @brief Set the local ip address and port number
