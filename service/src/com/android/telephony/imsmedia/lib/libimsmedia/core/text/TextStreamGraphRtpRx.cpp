@@ -89,7 +89,7 @@ ImsMediaResult TextStreamGraphRtpRx::update(RtpConfig* config)
 
     if (*mConfig == *pConfig)
     {
-        IMLOGD0("[update] no update");
+        IMLOGI0("[update] no update");
         return RESULT_SUCCESS;
     }
 

@@ -23,7 +23,7 @@
 using namespace android::telephony::imsmedia;
 
 // RtpConfig
-const int32_t kMediaDirection = RtpConfig::MEDIA_DIRECTION_NO_FLOW;
+const int32_t kMediaDirection = RtpConfig::MEDIA_DIRECTION_INACTIVE;
 const android::String8 kRemoteAddress("127.0.0.1");
 const int32_t kRemotePort = 10000;
 const int8_t kDscp = 0;
@@ -130,13 +130,11 @@ TEST_F(TextStreamGraphRtcpTest, TestRtcpStreamAndUpdate)
     EXPECT_EQ(graph->update(&config), RESULT_SUCCESS);
     EXPECT_EQ(graph->getState(), kStreamStateRunning);
 
-    rtcp.setIntervalSec(0);
-    config.setRtcpConfig(rtcp);
+    config.setMediaDirection(RtpConfig::MEDIA_DIRECTION_NO_FLOW);
     EXPECT_EQ(graph->update(&config), RESULT_SUCCESS);
     EXPECT_EQ(graph->getState(), kStreamStateCreated);
 
-    rtcp.setIntervalSec(5);
-    config.setRtcpConfig(rtcp);
+    config.setMediaDirection(RtpConfig::MEDIA_DIRECTION_INACTIVE);
     EXPECT_EQ(graph->update(&config), RESULT_SUCCESS);
     EXPECT_EQ(graph->getState(), kStreamStateRunning);
 

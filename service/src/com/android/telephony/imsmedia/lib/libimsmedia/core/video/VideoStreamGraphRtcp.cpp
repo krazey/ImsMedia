@@ -94,7 +94,7 @@ ImsMediaResult VideoStreamGraphRtcp::update(RtpConfig* config)
 
     if (*reinterpret_cast<VideoConfig*>(mConfig) == *pConfig)
     {
-        IMLOGD0("[update] no update");
+        IMLOGI0("[update] no update");
         return RESULT_SUCCESS;
     }
 
@@ -104,6 +104,12 @@ ImsMediaResult VideoStreamGraphRtcp::update(RtpConfig* config)
     }
 
     mConfig = new VideoConfig(pConfig);
+
+    if (mConfig->getMediaDirection() == RtpConfig::MEDIA_DIRECTION_NO_FLOW)
+    {
+        IMLOGI0("[update] pause RTCP");
+        return stop();
+    }
 
     ImsMediaResult ret = ImsMediaResult::RESULT_NOT_READY;
     // stop scheduler
@@ -125,7 +131,8 @@ ImsMediaResult VideoStreamGraphRtcp::update(RtpConfig* config)
         }
     }
 
-    if (mGraphState == kStreamStateCreated && mConfig->getRtcpConfig().getIntervalSec() != 0)
+    if (mGraphState == kStreamStateCreated &&
+            mConfig->getMediaDirection() != RtpConfig::MEDIA_DIRECTION_NO_FLOW)
     {
         IMLOGI0("[update] resume RTCP");
         return start();
@@ -138,6 +145,24 @@ ImsMediaResult VideoStreamGraphRtcp::update(RtpConfig* config)
     }
 
     return ret;
+}
+
+ImsMediaResult VideoStreamGraphRtcp::start()
+{
+    IMLOGI1("[start] state[%d]", mGraphState);
+
+    if (mConfig == nullptr)
+    {
+        return RESULT_INVALID_PARAM;
+    }
+
+    if (mConfig->getMediaDirection() != RtpConfig::MEDIA_DIRECTION_NO_FLOW)
+    {
+        return BaseStreamGraph::start();
+    }
+
+    // not started
+    return RESULT_SUCCESS;
 }
 
 bool VideoStreamGraphRtcp::setMediaQualityThreshold(MediaQualityThreshold* threshold)

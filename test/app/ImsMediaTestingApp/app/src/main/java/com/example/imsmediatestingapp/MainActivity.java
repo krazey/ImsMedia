@@ -1765,27 +1765,37 @@ public class MainActivity extends AppCompatActivity {
         PopupMenu mediaDirectionMenu = new PopupMenu(this, findViewById(R.id.mediaDirectionButton));
         mediaDirectionMenu.getMenuInflater()
                 .inflate(R.menu.media_direction_menu, mediaDirectionMenu.getMenu());
+        int[] direction = { 0 };
         mediaDirectionMenu.setOnMenuItemClickListener(item -> {
             switch (item.getItemId()) {
                 case R.id.noFlowDirectionMenuItem:
-                    mAudioConfig.setMediaDirection(AudioConfig.MEDIA_DIRECTION_NO_FLOW);
+                    direction[0] = RtpConfig.MEDIA_DIRECTION_NO_FLOW;
                     break;
                 case R.id.sendReceiveDirectionMenuItem:
-                    mAudioConfig.setMediaDirection(AudioConfig.MEDIA_DIRECTION_SEND_RECEIVE);
+                    direction[0] = RtpConfig.MEDIA_DIRECTION_SEND_RECEIVE;
                     break;
                 case R.id.receiveOnlyDirectionMenuItem:
-                    mAudioConfig.setMediaDirection(AudioConfig.MEDIA_DIRECTION_RECEIVE_ONLY);
+                    direction[0] = RtpConfig.MEDIA_DIRECTION_RECEIVE_ONLY;
                     break;
                 case R.id.sendOnlyDirectionMenuItem:
-                    mAudioConfig.setMediaDirection(AudioConfig.MEDIA_DIRECTION_SEND_ONLY);
+                    direction[0] = RtpConfig.MEDIA_DIRECTION_SEND_ONLY;
                     break;
                 case R.id.inactiveDirectionMenuItem:
-                    mAudioConfig.setMediaDirection(AudioConfig.MEDIA_DIRECTION_INACTIVE);
+                    direction[0] = RtpConfig.MEDIA_DIRECTION_INACTIVE;
                     break;
                 default:
                     return false;
             }
+            mAudioConfig.setMediaDirection(direction[0]);
             mAudioSession.modifySession(mAudioConfig);
+            if (mIsVideoSessionOpened) {
+                mVideoConfig.setMediaDirection(direction[0]);
+                mVideoSession.modifySession(mVideoConfig);
+            }
+            if (mIsTextSessionOpened) {
+                mTextConfig.setMediaDirection(direction[0]);
+                mTextSession.modifySession(mTextConfig);
+            }
             return true;
         });
         mediaDirectionMenu.show();

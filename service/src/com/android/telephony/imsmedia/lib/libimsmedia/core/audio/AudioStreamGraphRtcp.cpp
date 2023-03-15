@@ -92,7 +92,7 @@ ImsMediaResult AudioStreamGraphRtcp::update(RtpConfig* config)
 
     if (*reinterpret_cast<AudioConfig*>(mConfig) == *pConfig)
     {
-        IMLOGD0("[update] no update");
+        IMLOGI0("[update] no update");
         return RESULT_SUCCESS;
     }
 
@@ -104,7 +104,7 @@ ImsMediaResult AudioStreamGraphRtcp::update(RtpConfig* config)
 
     if (mConfig->getMediaDirection() == RtpConfig::MEDIA_DIRECTION_NO_FLOW)
     {
-        IMLOGD0("[update] pause RTCP");
+        IMLOGI0("[update] pause RTCP");
         return stop();
     }
 
@@ -136,6 +136,22 @@ ImsMediaResult AudioStreamGraphRtcp::update(RtpConfig* config)
     }
 
     return ret;
+}
+
+ImsMediaResult AudioStreamGraphRtcp::start()
+{
+    if (mConfig == nullptr)
+    {
+        return RESULT_NOT_READY;
+    }
+
+    if (mConfig->getMediaDirection() != RtpConfig::MEDIA_DIRECTION_NO_FLOW)
+    {
+        return BaseStreamGraph::start();
+    }
+
+    // not started
+    return RESULT_SUCCESS;
 }
 
 bool AudioStreamGraphRtcp::OnEvent(int32_t type, uint64_t param1, uint64_t param2)

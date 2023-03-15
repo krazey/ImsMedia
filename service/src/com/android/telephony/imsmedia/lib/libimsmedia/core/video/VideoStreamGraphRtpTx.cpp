@@ -106,7 +106,7 @@ ImsMediaResult VideoStreamGraphRtpTx::update(RtpConfig* config)
 
     if (*reinterpret_cast<VideoConfig*>(mConfig) == *pConfig)
     {
-        IMLOGD0("[update] no update");
+        IMLOGI0("[update] no update");
         return RESULT_SUCCESS;
     }
 
