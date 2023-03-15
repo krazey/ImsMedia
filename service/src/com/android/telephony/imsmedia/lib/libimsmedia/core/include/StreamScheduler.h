@@ -37,7 +37,6 @@ public:
     virtual void* run();
 
 private:
-    BaseNode* DetermineProcessingNode();
     void RunRegisteredNode();
     std::list<BaseNode*> mlistRegisteredNode;
     ImsMediaCondition mConditionMain;

@@ -19,11 +19,12 @@
 #include <stdint.h>
 #include <chrono>
 #include <thread>
+#include <algorithm>
 
 using namespace std::chrono;
 
-#define RUN_WAIT_TIMEOUT  6
-#define STOP_WAIT_TIMEOUT 1000
+#define RUN_WAIT_TIMEOUT_MS  1
+#define STOP_WAIT_TIMEOUT_MS 1000
 
 StreamScheduler::StreamScheduler() {}
 
@@ -85,7 +86,7 @@ void StreamScheduler::Stop()
     {
         StopThread();
         Awake();
-        mConditionExit.wait_timeout(STOP_WAIT_TIMEOUT);
+        mConditionExit.wait_timeout(STOP_WAIT_TIMEOUT_MS);
     }
 
     IMLOGD1("[Stop] [%p] exit", this);
@@ -96,63 +97,48 @@ void StreamScheduler::Awake()
     mConditionMain.signal();
 }
 
-BaseNode* StreamScheduler::DetermineProcessingNode()
+void StreamScheduler::RunRegisteredNode()
 {
-    if (IsThreadStopped())
-    {
-        return nullptr;
-    }
-
-    BaseNode* pRetNode = nullptr;
-    uint32_t nMaxDataInNode = 0;
+    // the list to contain non-source type node
+    std::list<BaseNode*> listNodesToRun;
 
     for (auto& node : mlistRegisteredNode)
     {
-        if (node != nullptr && !node->IsRunTime() && !node->IsSourceNode())
+        if (node != nullptr && node->GetState() == kNodeStateRunning && !node->IsRunTime())
         {
-            uint32_t nDataInNode = node->GetDataCount();
-
-            if (nDataInNode > 0 && nDataInNode >= nMaxDataInNode)
+            if (node->IsSourceNode())  // process the source node
             {
-                pRetNode = node;
-                nMaxDataInNode = nDataInNode;
+                node->ProcessData();
+            }
+            else if (node->GetDataCount() > 0)
+            {
+                listNodesToRun.push_back(node);  // store node to run
             }
         }
     }
 
-    return pRetNode;
-}
-
-void StreamScheduler::RunRegisteredNode()
-{
-    // run source nodes
-    for (auto& node : mlistRegisteredNode)
+    while (!listNodesToRun.empty())
     {
-        if (node != nullptr && node->GetState() == kNodeStateRunning && !node->IsRunTime() &&
-                node->IsSourceNode())
-        {
-            node->ProcessData();
-        }
-    }
+        std::list<BaseNode*>::iterator maxNode =
+                std::max_element(listNodesToRun.begin(), listNodesToRun.end(),
+                        [=](BaseNode* a, BaseNode* b)
+                        {
+                            return a->GetDataCount() < b->GetDataCount();
+                        });
 
-    for (;;)
-    {
-        BaseNode* pNode = DetermineProcessingNode();
-
-        if (pNode == nullptr)
+        if (maxNode == listNodesToRun.end())
         {
             break;
         }
 
-        if (pNode->GetState() == kNodeStateRunning)
-        {
-            pNode->ProcessData();
-        }
+        (*maxNode)->ProcessData();  // process the non runtime node
 
         if (IsThreadStopped())
         {
             break;
         }
+
+        listNodesToRun.remove(*maxNode);
     };
 }
 
@@ -188,7 +174,7 @@ void* StreamScheduler::run()
             break;
         }
 
-        mConditionMain.wait_timeout(RUN_WAIT_TIMEOUT / 2);
+        mConditionMain.wait_timeout(RUN_WAIT_TIMEOUT_MS);
     }
 
     mConditionExit.signal();
