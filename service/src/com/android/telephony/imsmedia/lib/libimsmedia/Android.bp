@@ -23,7 +23,7 @@ soong_config_module_type {
     module_type: "cc_defaults",
     config_namespace: "audio_lib",
     variables: ["audio_type"],
-    properties: ["static_libs","header_libs"],
+    properties: ["defaults","static_libs","header_libs"],
 }
 
 soong_config_string_variable {
@@ -36,6 +36,9 @@ audio_cc_defaults {
     soong_config_variables: {
         audio_type: {
             oem_audio: {
+                defaults: [
+                    "libimsmedia_oem_audio_codec_defaults",
+                ],
                 static_libs: [
                     "libimsmedia_oem_audio_codec",
                 ],
