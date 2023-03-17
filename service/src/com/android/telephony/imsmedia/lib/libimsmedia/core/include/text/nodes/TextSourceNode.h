@@ -45,7 +45,7 @@ public:
     void SendRtt(const android::String8* text);
 
 private:
-    void SendBOM();
+    void SendBom();
 
     int32_t mCodecType;
     int8_t mRedundantLevel;
@@ -54,9 +54,6 @@ private:
     int32_t mBitrate;
     bool mBomEnabled;
     bool mSentBOM;
-    std::list<uint32_t> mListTextSourceSize;
-    std::list<uint8_t*> mListTextSource;
-    uint8_t mTextToSend[MAX_RTT_LEN];
     std::mutex mMutex;
 };
 

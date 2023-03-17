@@ -30,17 +30,7 @@ TextSourceNode::TextSourceNode(BaseSessionCallback* callback) :
     mSentBOM = false;
 }
 
-TextSourceNode::~TextSourceNode()
-{
-    while (mListTextSource.size() > 0)
-    {
-        uint8_t* text = mListTextSource.front();
-        delete text;
-        mListTextSource.pop_front();
-    }
-
-    mListTextSourceSize.clear();
-}
+TextSourceNode::~TextSourceNode() {}
 
 kBaseNodeId TextSourceNode::GetNodeId()
 {
@@ -49,7 +39,7 @@ kBaseNodeId TextSourceNode::GetNodeId()
 
 ImsMediaResult TextSourceNode::Start()
 {
-    IMLOGD2("[Start] codec[%d], Redundant Level[%d]", mCodecType, mRedundantLevel);
+    IMLOGD2("[Start] codec[%d], redundant level[%d]", mCodecType, mRedundantLevel);
 
     if (mCodecType == TextConfig::TEXT_CODEC_NONE)
     {
@@ -117,52 +107,27 @@ void TextSourceNode::ProcessData()
         return;
     }
 
-    std::lock_guard<std::mutex> guard(mMutex);
-
-    if (mBomEnabled == true && mSentBOM == false)
+    if (mBomEnabled && !mSentBOM)
     {
-        SendBOM();
+        SendBom();
         mSentBOM = true;
     }
 
-    uint32_t nLoopCount = 1;
+    std::lock_guard<std::mutex> guard(mMutex);
 
-    if (mListTextSource.size() >= T140_MAX_CHUNK)
+    ImsMediaSubType subtype = MEDIASUBTYPE_UNDEFINED;
+    ImsMediaSubType datatype = MEDIASUBTYPE_UNDEFINED;
+    uint8_t* data = NULL;
+    uint32_t size = 0;
+    uint32_t timestamp = 0;
+    bool mark = false;
+    uint32_t seq = 0;
+
+    if (GetData(&subtype, &data, &size, &timestamp, &mark, &seq, &datatype))
     {
-        nLoopCount = T140_MAX_CHUNK;
-    }
-
-    uint32_t nSendingDataSize = 0;
-    memset(mTextToSend, 0, MAX_RTT_LEN);
-
-    for (uint32_t i = 0;
-            (i < nLoopCount && !mListTextSource.empty() && !mListTextSourceSize.empty()); i++)
-    {
-        // get first node data
-        uint8_t* pData = mListTextSource.front();
-        uint32_t nDataSize = mListTextSourceSize.front();
-
-        if (pData == nullptr || nDataSize == 0)
-        {
-            continue;
-        }
-
-        memcpy(mTextToSend + nSendingDataSize, pData, nDataSize);
-        nSendingDataSize += nDataSize;
-
-        free(pData);
-        mListTextSourceSize.pop_front();
-        mListTextSource.pop_front();
-    }
-
-    if (nSendingDataSize > 0)
-    {
-        // send it one char
-        IMLOGD_PACKET1(IM_PACKET_LOG_TEXT, "[ProcessData] send[%s]", mTextToSend);
-
         mTimeLastSent = ImsMediaTimer::GetTimeInMilliSeconds();
-        SendDataToRearNode(MEDIASUBTYPE_BITSTREAM_T140, mTextToSend, nSendingDataSize,
-                mTimeLastSent, false, 0);
+        SendDataToRearNode(MEDIASUBTYPE_BITSTREAM_T140, data, size, mTimeLastSent, false, 0);
+        DeleteData();
 
         mRedundantCount = mRedundantLevel;
 
@@ -178,7 +143,7 @@ void TextSourceNode::ProcessData()
          * after the selected buffering time, an empty T140block SHOULD be transmitted.  This
          * situation is regarded as the beginning of an idle period.
          */
-        IMLOGD1("[ProcessData] send empty, nRedCount[%d]", mRedundantCount);
+        IMLOGD1("[ProcessData] send empty, redundant count[%d]", mRedundantCount);
         // send default if there is no data to send
         SendDataToRearNode(MEDIASUBTYPE_BITSTREAM_T140, nullptr, 0,
                 ImsMediaTimer::GetTimeInMilliSeconds(), false, 0);
@@ -188,72 +153,26 @@ void TextSourceNode::ProcessData()
 
 void TextSourceNode::SendRtt(const android::String8* text)
 {
-    if (text == nullptr || text->length() == 0)
+    if (text == NULL || text->length() == 0 || text->length() > MAX_RTT_LEN)
     {
         IMLOGE0("[SendRtt] invalid data");
         return;
     }
 
-    IMLOGD2("[SendRtt] size[%u], listSize[%d]", text->length(), mListTextSource.size());
+    IMLOGD2("[SendRtt] size[%u], listSize[%d]", text->length(), mDataQueue.GetCount());
+
+    uint8_t tempBuffer[MAX_RTT_LEN] = {'\0'};
+    memcpy(tempBuffer, text->string(), text->length());
+
     std::lock_guard<std::mutex> guard(mMutex);
-
-    uint8_t* pData = (uint8_t*)text->string();
-    uint32_t nSize = text->length();
-    uint32_t nChunkSize = 0;
-
-    while (nSize > 0)
-    {
-        // split with UTF-8
-        if (pData[0] >= 0xC2 && pData[0] <= 0xDF && nSize >= 2)
-        {
-            nChunkSize = 2;
-        }
-        else if (pData[0] >= 0xE0 && pData[0] <= 0xEF && nSize >= 3)
-        {
-            nChunkSize = 3;
-        }
-        else if (pData[0] >= 0xF0 && pData[0] <= 0xFF && nSize >= 4)
-        {
-            nChunkSize = 4;
-        }
-        else  // 1byte
-        {
-            nChunkSize = 1;
-        }
-
-        uint8_t* buffer = (uint8_t*)calloc(nChunkSize, sizeof(uint8_t));
-
-        if (buffer == nullptr)
-        {
-            IMLOGE0("[SendRtt] allocated data is null");
-            return;
-        }
-
-        memcpy(buffer, pData, nChunkSize);
-        mListTextSource.push_back(buffer);
-        mListTextSourceSize.push_back(nChunkSize);
-        pData += nChunkSize;
-        nSize -= nChunkSize;
-    }
+    AddData(tempBuffer, text->length(), 0, false, 0);
 }
 
-void TextSourceNode::SendBOM()
+void TextSourceNode::SendBom()
 {
-    const uint32_t sizeofBom = 3;
-    uint8_t* buffer = (uint8_t*)calloc(sizeofBom, sizeof(uint8_t));
-
-    if (buffer == nullptr)
-    {
-        IMLOGE0("[SendBOM] allocated data is null");
-        return;
-    }
-
-    // send BOM - The BOM character shall be 0xEFBBBF for UTF-8
-    buffer[0] = 0xef;
-    buffer[1] = 0xbb;
-    buffer[2] = 0xbf;
-
     IMLOGD0("[ProcessData] send BOM");
-    mListTextSource.push_front(buffer);
-    mListTextSourceSize.push_front(sizeofBom);
+    uint8_t bom[3] = {0xEF, 0xBB, 0xBF};
+
+    std::lock_guard<std::mutex> guard(mMutex);
+    AddData(bom, sizeof(bom), 0, false, 0, MEDIASUBTYPE_UNDEFINED, MEDIASUBTYPE_UNDEFINED, 0, 0);
 }

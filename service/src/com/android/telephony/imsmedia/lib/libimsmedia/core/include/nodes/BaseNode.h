@@ -237,6 +237,26 @@ public:
             uint32_t* arrivalTime = nullptr);
 
     /**
+     * @brief This method is to add data frame to the queue in the node
+     *
+     * @param data The data buffer
+     * @param size The size of data
+     * @param timestamp The timestamp of data, it can be milliseconds unit or rtp timestamp unit
+     * @param mark It is true when the data has marker bit set
+     * @param seq The sequence number of data. it is 0 when there is no valid sequence number set
+     * @param subtype The subtype of data stored in the queue. It can be various subtype according
+     * to the characteristics of the given data
+     * @param dataType The additional data type for the video frames
+     * @param arrivalTime The arrival time of the packet
+     * @param index The index of the queue to add, if it is not set, add the frame to the end of
+     * the queue
+     */
+    virtual void AddData(uint8_t* data, uint32_t size, uint32_t timestamp, bool mark, uint32_t seq,
+            ImsMediaSubType subtype = ImsMediaSubType::MEDIASUBTYPE_UNDEFINED,
+            ImsMediaSubType dataType = ImsMediaSubType::MEDIASUBTYPE_UNDEFINED,
+            uint32_t arrivalTime = 0, int32_t index = -1);
+
+    /**
      * @brief Deletes the data stored in the front of the data queue
      *
      */

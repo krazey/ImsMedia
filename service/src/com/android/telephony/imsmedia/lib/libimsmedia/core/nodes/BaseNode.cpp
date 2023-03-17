@@ -268,6 +268,21 @@ bool BaseNode::GetData(ImsMediaSubType* psubtype, uint8_t** ppData, uint32_t* pn
     }
 }
 
+void BaseNode::AddData(uint8_t* data, uint32_t size, uint32_t timestamp, bool mark, uint32_t seq,
+        ImsMediaSubType subtype, ImsMediaSubType dataType, uint32_t arrivalTime, int32_t index)
+{
+    DataEntry entry = DataEntry();
+    entry.pbBuffer = data;
+    entry.nBufferSize = size;
+    entry.nTimestamp = timestamp;
+    entry.bMark = mark;
+    entry.nSeqNum = seq;
+    entry.eDataType = dataType;
+    entry.subtype = subtype;
+    entry.arrivalTime = arrivalTime;
+    index == -1 ? mDataQueue.Add(&entry) : mDataQueue.InsertAt(index, &entry);
+}
+
 void BaseNode::DeleteData()
 {
     mDataQueue.Delete();

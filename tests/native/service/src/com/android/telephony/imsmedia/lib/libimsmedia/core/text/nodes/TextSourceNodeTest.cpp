@@ -15,16 +15,13 @@
  */
 
 #include <gtest/gtest.h>
-#include <gmock/gmock.h>
 #include <TextConfig.h>
 #include <TextSourceNode.h>
 #include <ImsMediaCondition.h>
-#include <MockBaseNode.h>
+#include <string.h>
 
 using namespace android::telephony::imsmedia;
 using namespace android;
-
-using ::testing::Return;
 
 // RtpConfig
 const int32_t kMediaDirection = RtpConfig::MEDIA_DIRECTION_SEND_ONLY;
@@ -48,40 +45,39 @@ const int8_t kRedundantPayload = 102;
 const int8_t kRedundantLevel = 3;
 const bool kKeepRedundantLevel = true;
 const int kTextInterval = 300;
-const char* kBom = {"\xEF\xBB\xBF\0"};
+const uint8_t kBom[] = {0xEF, 0xBB, 0xBF};
 
-class FakeBaseNode : public BaseNode
+class FakeTextNode : public BaseNode
 {
 public:
-    FakeBaseNode() { mEmptyFlag = false; }
-    virtual ~FakeBaseNode() {}
+    FakeTextNode()
+    {
+        mEmptyFlag = false;
+        memset(mData, 0, sizeof(mData));
+    }
+    virtual ~FakeTextNode() {}
     virtual ImsMediaResult Start() { return RESULT_SUCCESS; }
     virtual void Stop() {}
     virtual bool IsRunTime() { return true; }
     virtual bool IsSourceNode() { return false; }
     virtual void SetConfig(void* config) { (void)config; }
-    virtual void OnDataFromFrontNode(ImsMediaSubType subtype, uint8_t* data, uint32_t size,
-            uint32_t timestamp, bool mark, uint32_t seq, ImsMediaSubType dataType,
-            uint32_t arrivalTime)
+    virtual void OnDataFromFrontNode(ImsMediaSubType /*subtype*/, uint8_t* data, uint32_t size,
+            uint32_t /*timestamp*/, bool /*mark*/, uint32_t /*seq*/, ImsMediaSubType /*dataType*/,
+            uint32_t /*arrivalTime*/)
     {
-        (void)subtype;
-        (void)timestamp;
-        (void)mark;
-        (void)seq;
-        (void)dataType;
-        (void)arrivalTime;
-
         if (size != 0 && size <= MAX_RTT_LEN)
         {
             memset(mData, 0, sizeof(mData));
             memcpy(mData, data, size);
             mEmptyFlag = false;
         }
-        else if (size == 0 && data == nullptr)
+        else if (data == nullptr)
         {
             mEmptyFlag = true;
         }
     }
+
+    virtual kBaseNodeState GetState() { return kNodeStateRunning; }
 
     uint8_t* getData() { return mData; }
     bool getEmptyFlag() { return mEmptyFlag; }
@@ -94,7 +90,11 @@ private:
 class TextSourceNodeTest : public ::testing::Test
 {
 public:
-    TextSourceNodeTest() {}
+    TextSourceNodeTest()
+    {
+        mNode = NULL;
+        mFakeNode = NULL;
+    }
     virtual ~TextSourceNodeTest() {}
 
 protected:
@@ -102,8 +102,7 @@ protected:
     RtcpConfig mRtcp;
     ImsMediaCondition mCondition;
     TextSourceNode* mNode;
-    MockBaseNode* mMockNode;
-    FakeBaseNode mFakeNode;
+    FakeTextNode* mFakeNode;
     std::list<BaseNode*> mNodes;
 
     virtual void SetUp() override
@@ -132,18 +131,12 @@ protected:
         mNode->SetConfig(&mConfig);
         mNodes.push_back(mNode);
 
-        mMockNode = new MockBaseNode();
-        mMockNode->SetDelegate(&mFakeNode);
-        mMockNode->DelegateToFake();
-
-        mMockNode->SetMediaType(IMS_MEDIA_TEXT);
-        mMockNode->SetConfig(&mConfig);
-        mNodes.push_back(mMockNode);
-
-        mNode->ConnectRearNode(mMockNode);
-
-        ON_CALL(*mMockNode, GetState()).WillByDefault(Return(kNodeStateRunning));
-        ON_CALL(*mMockNode, IsRunTime()).WillByDefault(Return(true));
+        mFakeNode = new FakeTextNode();
+        mFakeNode->SetMediaType(IMS_MEDIA_TEXT);
+        mFakeNode->SetConfig(&mConfig);
+        mNodes.push_back(mFakeNode);
+        mNode->ConnectRearNode(mFakeNode);
+        mCondition.reset();
     }
 
     virtual void TearDown() override
@@ -165,26 +158,46 @@ TEST_F(TextSourceNodeTest, startFail)
     EXPECT_EQ(mNode->Start(), RESULT_INVALID_PARAM);
 }
 
+TEST_F(TextSourceNodeTest, sendRttDisableBom)
+{
+    mConfig.setKeepRedundantLevel(false);
+    mNode->SetConfig(&mConfig);
+
+    EXPECT_EQ(mNode->Start(), RESULT_SUCCESS);
+    EXPECT_FALSE(mFakeNode->getEmptyFlag());
+
+    String8 testText1 = String8("a");
+    mNode->SendRtt(&testText1);
+
+    mNode->ProcessData();
+    EXPECT_EQ(memcmp(mFakeNode->getData(), testText1.string(), testText1.length()), 0);
+
+    mCondition.wait_timeout(kTextInterval);
+    mNode->ProcessData();
+    // expect empty flag set
+    EXPECT_TRUE(mFakeNode->getEmptyFlag());
+}
+
 TEST_F(TextSourceNodeTest, sendRttTestChunkSizeOne)
 {
     String8 testText1 = String8("a");
 
     EXPECT_EQ(mNode->Start(), RESULT_SUCCESS);
-    EXPECT_FALSE(mFakeNode.getEmptyFlag());
+    EXPECT_FALSE(mFakeNode->getEmptyFlag());
     mNode->SendRtt(&testText1);
 
     mNode->ProcessData();
     // expect BOM
-    EXPECT_EQ(String8((char*)mFakeNode.getData()), String8(kBom));
+    EXPECT_EQ(memcmp(mFakeNode->getData(), kBom, sizeof(kBom)), 0);
 
     mCondition.wait_timeout(kTextInterval);
     mNode->ProcessData();
-    EXPECT_EQ(String8((char*)mFakeNode.getData()), testText1);
+    EXPECT_EQ(memcmp(mFakeNode->getData(), testText1.string(), testText1.length()), 0);
 
     mCondition.wait_timeout(kTextInterval);
     mNode->ProcessData();
     // expect empty flag set
-    EXPECT_TRUE(mFakeNode.getEmptyFlag());
+    EXPECT_TRUE(mFakeNode->getEmptyFlag());
 }
 
 TEST_F(TextSourceNodeTest, sendRttTestChunkSizeTwo)
@@ -192,21 +205,21 @@ TEST_F(TextSourceNodeTest, sendRttTestChunkSizeTwo)
     String8 testText2 = String8("\xC2\xA9");
 
     EXPECT_EQ(mNode->Start(), RESULT_SUCCESS);
-    EXPECT_FALSE(mFakeNode.getEmptyFlag());
+    EXPECT_FALSE(mFakeNode->getEmptyFlag());
     mNode->SendRtt(&testText2);
 
     mNode->ProcessData();
     // expect BOM
-    EXPECT_EQ(String8((char*)mFakeNode.getData()), String8(kBom));
+    EXPECT_EQ(memcmp(mFakeNode->getData(), kBom, sizeof(kBom)), 0);
 
     mCondition.wait_timeout(kTextInterval);
     mNode->ProcessData();
-    EXPECT_EQ(String8((char*)mFakeNode.getData()), testText2);
+    EXPECT_EQ(memcmp(mFakeNode->getData(), testText2.string(), testText2.length()), 0);
 
     mCondition.wait_timeout(kTextInterval);
     mNode->ProcessData();
     // expect empty flag set
-    EXPECT_TRUE(mFakeNode.getEmptyFlag());
+    EXPECT_TRUE(mFakeNode->getEmptyFlag());
 }
 
 TEST_F(TextSourceNodeTest, sendRttTestChunkSizeThree)
@@ -214,21 +227,21 @@ TEST_F(TextSourceNodeTest, sendRttTestChunkSizeThree)
     String8 testText3 = String8("\xE2\x9C\x82");
 
     EXPECT_EQ(mNode->Start(), RESULT_SUCCESS);
-    EXPECT_FALSE(mFakeNode.getEmptyFlag());
+    EXPECT_FALSE(mFakeNode->getEmptyFlag());
     mNode->SendRtt(&testText3);
 
     mNode->ProcessData();
     // expect BOM
-    EXPECT_EQ(String8((char*)mFakeNode.getData()), String8(kBom));
+    EXPECT_EQ(memcmp(mFakeNode->getData(), kBom, sizeof(kBom)), 0);
 
     mCondition.wait_timeout(kTextInterval);
     mNode->ProcessData();
-    EXPECT_EQ(String8((char*)mFakeNode.getData()), testText3);
+    EXPECT_EQ(memcmp(mFakeNode->getData(), testText3.string(), testText3.length()), 0);
 
     mCondition.wait_timeout(kTextInterval);
     mNode->ProcessData();
     // expect empty flag set
-    EXPECT_TRUE(mFakeNode.getEmptyFlag());
+    EXPECT_TRUE(mFakeNode->getEmptyFlag());
 }
 
 TEST_F(TextSourceNodeTest, sendRttTestChunkSizeFour)
@@ -236,21 +249,21 @@ TEST_F(TextSourceNodeTest, sendRttTestChunkSizeFour)
     String8 testText4 = String8("\xF0\x9F\x9A\x80");
 
     EXPECT_EQ(mNode->Start(), RESULT_SUCCESS);
-    EXPECT_FALSE(mFakeNode.getEmptyFlag());
+    EXPECT_FALSE(mFakeNode->getEmptyFlag());
     mNode->SendRtt(&testText4);
 
     mNode->ProcessData();
     // expect BOM
-    EXPECT_EQ(String8((char*)mFakeNode.getData()), String8(kBom));
+    EXPECT_EQ(memcmp(mFakeNode->getData(), kBom, sizeof(kBom)), 0);
 
     mCondition.wait_timeout(kTextInterval);
     mNode->ProcessData();
-    EXPECT_EQ(String8((char*)mFakeNode.getData()), testText4);
+    EXPECT_EQ(memcmp(mFakeNode->getData(), testText4.string(), testText4.length()), 0);
 
     mCondition.wait_timeout(kTextInterval);
     mNode->ProcessData();
     // expect empty flag set
-    EXPECT_TRUE(mFakeNode.getEmptyFlag());
+    EXPECT_TRUE(mFakeNode->getEmptyFlag());
 }
 
 TEST_F(TextSourceNodeTest, sendRttTestLongString)
@@ -267,31 +280,19 @@ TEST_F(TextSourceNodeTest, sendRttTestLongString)
     testText5.append(testText4);
 
     EXPECT_EQ(mNode->Start(), RESULT_SUCCESS);
-    EXPECT_FALSE(mFakeNode.getEmptyFlag());
+    EXPECT_FALSE(mFakeNode->getEmptyFlag());
     mNode->SendRtt(&testText5);
 
     mNode->ProcessData();
     // expect BOM
-    EXPECT_EQ(String8((char*)mFakeNode.getData()), String8(kBom));
+    EXPECT_EQ(memcmp(mFakeNode->getData(), kBom, sizeof(kBom)), 0);
 
     mCondition.wait_timeout(kTextInterval);
     mNode->ProcessData();
-    EXPECT_EQ(String8((char*)mFakeNode.getData()), testText1);
-
-    mCondition.wait_timeout(kTextInterval);
-    mNode->ProcessData();
-    EXPECT_EQ(String8((char*)mFakeNode.getData()), testText2);
-
-    mCondition.wait_timeout(kTextInterval);
-    mNode->ProcessData();
-    EXPECT_EQ(String8((char*)mFakeNode.getData()), testText3);
-
-    mCondition.wait_timeout(kTextInterval);
-    mNode->ProcessData();
-    EXPECT_EQ(String8((char*)mFakeNode.getData()), testText4);
+    EXPECT_EQ(memcmp(mFakeNode->getData(), testText5.string(), testText5.length()), 0);
 
     mCondition.wait_timeout(kTextInterval);
     mNode->ProcessData();
     // expect empty flag set
-    EXPECT_TRUE(mFakeNode.getEmptyFlag());
+    EXPECT_TRUE(mFakeNode->getEmptyFlag());
 }
