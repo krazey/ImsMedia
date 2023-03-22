@@ -284,20 +284,14 @@ bool AudioJitterBuffer::Get(ImsMediaSubType* psubtype, uint8_t** ppData, uint32_
 
     if (mDataQueue.GetCount() == 0)
     {
-        IMLOGD_PACKET0(IM_PACKET_LOG_JITTER, "[Get] fail - empty");
-
-        if (!mWaiting)
-        {
-            mCurrPlayingTS += FRAME_INTERVAL;
-        }
-
+        IMLOGD_PACKET0(IM_PACKET_LOG_JITTER, "[Get] wait - empty");
         return false;
     }
     else if (mDataQueue.Get(&pEntry) && mWaiting)
     {
         uint32_t jitterDelay = currentTime - pEntry->arrivalTime;
 
-        if (jitterDelay < (mCurrJitterBufferSize - 1) * FRAME_INTERVAL)
+        if (jitterDelay < (mCurrJitterBufferSize - 1) * FRAME_INTERVAL + ALLOWABLE_ERROR)
         {
             if (psubtype)
                 *psubtype = MEDIASUBTYPE_UNDEFINED;
@@ -327,10 +321,6 @@ bool AudioJitterBuffer::Get(ImsMediaSubType* psubtype, uint8_t** ppData, uint32_
             }
             else
             {
-                IMLOGD_PACKET4(IM_PACKET_LOG_JITTER,
-                        "[Get] Wait - seq[%u], CurrJBSize[%u], delay[%u], QueueCount[%u]",
-                        pEntry->nSeqNum, mCurrJitterBufferSize, jitterDelay, mDataQueue.GetCount());
-                mCannotGetCount++;
                 return false;
             }
         }
@@ -603,7 +593,7 @@ bool AudioJitterBuffer::Resync(uint32_t currentTime)
     {
         uint32_t timeDiff = currentTime - entry->arrivalTime;
 
-        if (timeDiff > mCurrJitterBufferSize * FRAME_INTERVAL + ALLOWABLE_ERROR)
+        if (timeDiff > mCurrJitterBufferSize * FRAME_INTERVAL)
         {
             CollectRxRtpStatus(entry->nSeqNum, kRtpStatusDiscarded);
             mDataQueue.Delete();
