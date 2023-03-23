@@ -125,10 +125,8 @@ ImsMediaResult AudioSession::startGraph(RtpConfig* config)
 
     IMLOGI1("[startGraph] state[%d]", getState());
 
-    if (mMediaQualityAnalyzer != nullptr &&
-            !mMediaQualityAnalyzer->isSameConfig(reinterpret_cast<AudioConfig*>(config)))
+    if (mMediaQualityAnalyzer != nullptr)
     {
-        mMediaQualityAnalyzer->stop();
         mMediaQualityAnalyzer->setConfig(reinterpret_cast<AudioConfig*>(config));
         mMediaQualityAnalyzer->start();
     }

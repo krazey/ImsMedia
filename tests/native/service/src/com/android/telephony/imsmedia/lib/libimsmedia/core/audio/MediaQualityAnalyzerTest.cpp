@@ -26,7 +26,7 @@ using namespace android::telephony::imsmedia;
 using ::testing::_;
 
 // RtpConfig
-const int32_t kMediaDirection = RtpConfig::MEDIA_DIRECTION_INACTIVE;
+const int32_t kMediaDirection = RtpConfig::MEDIA_DIRECTION_SEND_RECEIVE;
 const android::String8 kRemoteAddress("127.0.0.1");
 const int32_t kRemotePort = 10000;
 const int8_t kDscp = 0;
@@ -128,6 +128,7 @@ public:
     {
         notifyCallQuality();
         reset();
+        counter = 0;
     }
 
     void testProcessCycle(const int32_t numCycle)
@@ -293,7 +294,7 @@ TEST_F(MediaQualityAnalyzerTest, TestCollectTxPackets)
 
 TEST_F(MediaQualityAnalyzerTest, TestRtpInactivityNotRunning)
 {
-    EXPECT_CALL(mCallback, onEvent(kAudioCallQualityChangedInd, _, _)).Times(1);
+    EXPECT_CALL(mCallback, onEvent(kAudioCallQualityChangedInd, _, _)).Times(2);
     EXPECT_CALL(mCallback, onEvent(kImsMediaEventMediaQualityStatus, _, _)).Times(0);
     MediaQualityThreshold threshold;
     threshold.setRtpInactivityTimerMillis(std::vector<int32_t>{0});
@@ -301,9 +302,61 @@ TEST_F(MediaQualityAnalyzerTest, TestRtpInactivityNotRunning)
     mAnalyzer->start();
     mAnalyzer->testProcessCycle(2);
     mAnalyzer->stop();
+
+    threshold.setRtpInactivityTimerMillis(std::vector<int32_t>{2000});
+    mConfig.setMediaDirection(RtpConfig::MEDIA_DIRECTION_INACTIVE);
+    mAnalyzer->setConfig(&mConfig);
+    mAnalyzer->setMediaQualityThreshold(threshold);
+    mAnalyzer->start();
+    mAnalyzer->testProcessCycle(2);
+    mAnalyzer->stop();
 }
 
-TEST_F(MediaQualityAnalyzerTest, TestRtpInactivityRunning)
+TEST_F(MediaQualityAnalyzerTest, TestRtpInactivityNoUpdateByDirection)
+{
+    EXPECT_CALL(mCallback, onEvent(kAudioCallQualityChangedInd, _, _)).Times(2);
+    EXPECT_CALL(mCallback, onEvent(kImsMediaEventMediaQualityStatus, _, _)).Times(1);
+    MediaQualityThreshold threshold;
+    threshold.setRtpInactivityTimerMillis(std::vector<int32_t>{4000});
+    mAnalyzer->setMediaQualityThreshold(threshold);
+    mAnalyzer->testProcessCycle(2);
+
+    mConfig.setMediaDirection(RtpConfig::MEDIA_DIRECTION_RECEIVE_ONLY);
+
+    if (!mAnalyzer->isSameConfig(&mConfig))
+    {
+        mAnalyzer->stop();
+        mAnalyzer->start();
+    }
+
+    mAnalyzer->testProcessCycle(2);
+    mAnalyzer->stop();
+    MediaQualityStatus quality = mFakeCallback.getMediaQualityStatus();
+    EXPECT_EQ(quality.getRtpInactivityTimeMillis(), 4000);
+}
+
+TEST_F(MediaQualityAnalyzerTest, TestRtpInactivityUpdateByDirection)
+{
+    EXPECT_CALL(mCallback, onEvent(kAudioCallQualityChangedInd, _, _)).Times(2);
+    EXPECT_CALL(mCallback, onEvent(kImsMediaEventMediaQualityStatus, _, _)).Times(1);
+    MediaQualityThreshold threshold;
+    threshold.setRtpInactivityTimerMillis(std::vector<int32_t>{2000});
+    mAnalyzer->setMediaQualityThreshold(threshold);
+    mAnalyzer->testProcessCycle(2);
+
+    mConfig.setMediaDirection(RtpConfig::MEDIA_DIRECTION_INACTIVE);
+
+    if (!mAnalyzer->isSameConfig(&mConfig))
+    {
+        mAnalyzer->stop();
+        mAnalyzer->start();
+    }
+
+    mAnalyzer->testProcessCycle(2);
+    mAnalyzer->stop();
+}
+
+TEST_F(MediaQualityAnalyzerTest, TestRtpInactivityUpdate)
 {
     EXPECT_CALL(mCallback, onEvent(kAudioCallQualityChangedInd, _, _)).Times(2);
     EXPECT_CALL(mCallback, onEvent(kImsMediaEventMediaQualityStatus, _, _)).Times(3);
@@ -331,6 +384,36 @@ TEST_F(MediaQualityAnalyzerTest, TestRtpInactivityRunning)
 
     MediaQualityStatus quality3 = mFakeCallback.getMediaQualityStatus();
     EXPECT_EQ(quality3.getRtpInactivityTimeMillis(), 2000);
+    mAnalyzer->stop();
+}
+
+TEST_F(MediaQualityAnalyzerTest, TestRtcpInactivityNotRunning)
+{
+    EXPECT_CALL(mCallback, onEvent(kAudioCallQualityChangedInd, _, _)).Times(3);
+    EXPECT_CALL(mCallback, onEvent(kImsMediaEventMediaQualityStatus, _, _)).Times(0);
+    MediaQualityThreshold threshold;
+    threshold.setRtcpInactivityTimerMillis(0);
+    mAnalyzer->setMediaQualityThreshold(threshold);
+    mAnalyzer->start();
+    mAnalyzer->testProcessCycle(2);
+    mAnalyzer->stop();
+
+    threshold.setRtcpInactivityTimerMillis(2000);
+    mConfig.setMediaDirection(RtpConfig::MEDIA_DIRECTION_NO_FLOW);
+    mAnalyzer->setConfig(&mConfig);
+    mAnalyzer->setMediaQualityThreshold(threshold);
+    mAnalyzer->start();
+    mAnalyzer->testProcessCycle(2);
+    mAnalyzer->stop();
+
+    threshold.setRtcpInactivityTimerMillis(2000);
+    mRtcpConfig.setIntervalSec(0);
+    mConfig.setMediaDirection(RtpConfig::MEDIA_DIRECTION_INACTIVE);
+    mConfig.setRtcpConfig(mRtcpConfig);
+    mAnalyzer->setConfig(&mConfig);
+    mAnalyzer->setMediaQualityThreshold(threshold);
+    mAnalyzer->start();
+    mAnalyzer->testProcessCycle(2);
     mAnalyzer->stop();
 }
 

@@ -256,6 +256,10 @@ protected:
     int32_t mCodecType;
     /** The codec attribute of the audio session, it could be bandwidth in evs codec */
     int32_t mCodecAttribute;
+    /** Whether RTP is activated for the receiver or not */
+    bool mIsRxRtpEnabled;
+    /** Whether RTCP is activated for both sender and receiver */
+    bool mIsRtcpEnabled;
     /** The begin of the rx rtp packet sequence number for Rtcp-Xr report */
     int32_t mBeginSeq;
     /** The end of the rx rtp packet sequence number for Rtcp-Xr report */

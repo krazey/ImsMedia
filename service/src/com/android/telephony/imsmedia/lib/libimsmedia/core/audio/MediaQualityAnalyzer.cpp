@@ -26,6 +26,8 @@
 #include <algorithm>
 #include <numeric>
 
+using namespace android::telephony::imsmedia;
+
 #define DEFAULT_PARAM                            (-1)
 #define DEFAULT_INACTIVITY_TIME_FOR_CALL_QUALITY (4)
 #define CALL_QUALITY_MONITORING_TIME             (5)
@@ -34,12 +36,17 @@
 #define TIMER_INTERVAL                           (1000)   // 1 sec
 #define STOP_TIMEOUT                             (1000)   // 1 sec
 #define MESSAGE_PROCESSING_INTERVAL              (20000)  // 20 msec
+#define MEDIA_DIRECTION_CONTAINS_RECEIVE(a)            \
+    ((a) == RtpConfig::MEDIA_DIRECTION_SEND_RECEIVE || \
+            (a) == RtpConfig::MEDIA_DIRECTION_RECEIVE_ONLY)
 
 MediaQualityAnalyzer::MediaQualityAnalyzer()
 {
     mTimeStarted = 0;
     mCodecType = 0;
     mCodecAttribute = 0;
+    mIsRxRtpEnabled = false;
+    mIsRtcpEnabled = false;
     mCallback = nullptr;
     std::unique_ptr<RtcpXrEncoder> analyzer(new RtcpXrEncoder());
     mRtcpXrEncoder = std::move(analyzer);
@@ -67,10 +74,17 @@ MediaQualityAnalyzer::~MediaQualityAnalyzer()
 
 void MediaQualityAnalyzer::setConfig(AudioConfig* config)
 {
+    if (!isSameConfig(config))
+    {
+        reset();
+    }
+
+    mIsRxRtpEnabled = MEDIA_DIRECTION_CONTAINS_RECEIVE(config->getMediaDirection());
     mCodecType = config->getCodecType();
     mCodecAttribute = config->getEvsParams().getEvsBandwidth();
 
-    IMLOGD2("[setCodecType] type[%d], bandwidth[%d]", mCodecType, mCodecAttribute);
+    mCallQuality.setCodecType(convertAudioCodecType(
+            mCodecType, ImsMediaAudioUtil::FindMaxEvsBandwidthFromRange(mCodecAttribute)));
 
     if (mCodecType == AudioConfig::CODEC_AMR)
     {
@@ -80,6 +94,20 @@ void MediaQualityAnalyzer::setConfig(AudioConfig* config)
     {
         mRtcpXrEncoder->setSamplingRate(16);
     }
+
+    // Enable RTCP if both interval and direction is valid
+    bool isRtcpEnabled = (config->getRtcpConfig().getIntervalSec() > 0 &&
+            config->getMediaDirection() != RtpConfig::MEDIA_DIRECTION_NO_FLOW);
+
+    if (mIsRtcpEnabled != isRtcpEnabled)
+    {
+        mIsRtcpEnabled = isRtcpEnabled;
+        mCountRtcpInactivity = 0;
+        mNumRtcpPacketReceived = 0;
+    }
+
+    IMLOGI4("[setConfig] codec type[%d], bandwidth[%d], rxRtp[%d], rtcp[%d]", mCodecType,
+            mCodecAttribute, mIsRxRtpEnabled, mIsRtcpEnabled);
 }
 
 void MediaQualityAnalyzer::setCallback(BaseSessionCallback* callback)
@@ -112,16 +140,18 @@ void MediaQualityAnalyzer::setMediaQualityThreshold(const MediaQualityThreshold&
 bool MediaQualityAnalyzer::isSameConfig(AudioConfig* config)
 {
     return (mCodecType == config->getCodecType() &&
-            mCodecAttribute == config->getEvsParams().getEvsBandwidth());
+            mCodecAttribute == config->getEvsParams().getEvsBandwidth() &&
+            mIsRxRtpEnabled == MEDIA_DIRECTION_CONTAINS_RECEIVE(config->getMediaDirection()));
 }
 
 void MediaQualityAnalyzer::start()
 {
-    IMLOGD0("[start]");
-    mCallQuality.setCodecType(convertAudioCodecType(
-            mCodecType, ImsMediaAudioUtil::FindMaxEvsBandwidthFromRange(mCodecAttribute)));
-    mTimeStarted = ImsMediaTimer::GetTimeInMilliSeconds();
-    StartThread();
+    if (IsThreadStopped())
+    {
+        IMLOGD0("[start]");
+        mTimeStarted = ImsMediaTimer::GetTimeInMilliSeconds();
+        StartThread();
+    }
 }
 
 void MediaQualityAnalyzer::stop()
@@ -392,7 +422,7 @@ void MediaQualityAnalyzer::processData(const int32_t timeCount)
 void MediaQualityAnalyzer::processMediaQuality()
 {
     // media quality rtp inactivity
-    if (mNumRxPacket == 0)
+    if (mNumRxPacket == 0 && mIsRxRtpEnabled)
     {
         mCountRtpInactivity += 1000;
     }
@@ -404,7 +434,7 @@ void MediaQualityAnalyzer::processMediaQuality()
     }
 
     // media quality rtcp inactivity
-    if (mNumRtcpPacketReceived == 0)
+    if (mNumRtcpPacketReceived == 0 && mIsRtcpEnabled)
     {
         mCountRtcpInactivity += 1000;
     }
@@ -468,7 +498,7 @@ void MediaQualityAnalyzer::processMediaQuality()
     bool shouldNotify = false;
 
     // check jitter notification
-    if (!mJitterThreshold.empty())
+    if (!mJitterThreshold.empty() && mIsRxRtpEnabled)
     {
         if (mJitterChecker.checkNotifiable(mJitterThreshold, mQualityStatus.getRtpJitterMillis()))
         {
@@ -477,7 +507,7 @@ void MediaQualityAnalyzer::processMediaQuality()
     }
 
     // check packet loss notification
-    if (!mPacketLossThreshold.empty())
+    if (!mPacketLossThreshold.empty() && mIsRxRtpEnabled)
     {
         if (mPacketLossChecker.checkNotifiable(
                     mPacketLossThreshold, mQualityStatus.getRtpPacketLossRate()))
@@ -500,7 +530,7 @@ void MediaQualityAnalyzer::processMediaQuality()
         return;
     }
 
-    if (!mCurrentRtpInactivityTimes.empty())
+    if (!mCurrentRtpInactivityTimes.empty() && mIsRxRtpEnabled)
     {
         std::vector<int32_t>::iterator rtpIter = std::find_if(mCurrentRtpInactivityTimes.begin(),
                 mCurrentRtpInactivityTimes.end(),
@@ -518,7 +548,7 @@ void MediaQualityAnalyzer::processMediaQuality()
         }
     }
 
-    if (mRtcpInactivityTime != 0 && mCountRtcpInactivity == mRtcpInactivityTime)
+    if (mRtcpInactivityTime != 0 && mCountRtcpInactivity == mRtcpInactivityTime && mIsRtcpEnabled)
     {
         notifyMediaQualityStatus();
         mCountRtcpInactivity = 0;
@@ -754,6 +784,17 @@ void MediaQualityAnalyzer::reset()
     mNumRxPacket = 0;
     mNumLostPacket = 0;
     mJitterRxPacket = 0.0;
+
+    // rtp and rtcp inactivity
+    mCountRtpInactivity = 0;
+    mCountRtcpInactivity = 0;
+    mNumRtcpPacketReceived = 0;
+
+    // reset the status
+    mQualityStatus = MediaQualityStatus();
+
+    mPacketLossChecker.initialize(mRtpHysteresisTime);
+    mJitterChecker.initialize(mRtpHysteresisTime);
 }
 
 void MediaQualityAnalyzer::clearPacketList(std::list<RtpPacket*>& list, const int32_t seq)
