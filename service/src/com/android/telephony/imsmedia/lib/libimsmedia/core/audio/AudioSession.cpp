@@ -33,6 +33,8 @@ AudioSession::~AudioSession()
 {
     IMLOGD0("[~AudioSession]");
 
+    mMediaQualityAnalyzer->stop();
+
     while (mListGraphRtpTx.size() > 0)
     {
         AudioStreamGraphRtpTx* graph = mListGraphRtpTx.front();
@@ -71,8 +73,6 @@ AudioSession::~AudioSession()
         mListGraphRtcp.pop_front();
         delete graph;
     }
-
-    mMediaQualityAnalyzer->stop();
 }
 
 SessionState AudioSession::getState()
