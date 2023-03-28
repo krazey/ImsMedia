@@ -64,6 +64,7 @@
   <string name="video_device_orientation">Device Orientation</string>
   <string name="video_pause_image_path">Pause Image Path</string>
   <string name="video_cvo_value">CVO Value</string>
+  <string name="video_resolution">Resolution</string>
 
   <!-- Save button text -->
   <string name="save">SAVE</string>
