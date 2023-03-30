@@ -608,19 +608,15 @@ bool AudioJitterBuffer::Resync(uint32_t currentTime)
         }
         else
         {
-            if (!IsSID(entry->nBufferSize))
-            {
-                // the first voice frame
-                mCurrPlayingTS = entry->nTimestamp;
-                IMLOGD2("[Resync] currTs[%d], delay[%d]", mCurrPlayingTS, timeDiff);
-                return true;
-            }
-            else if (timeDiff > (mCurrJitterBufferSize - 1) * FRAME_INTERVAL)
+            if (!IsSID(entry->nBufferSize) ||
+                    timeDiff > (mCurrJitterBufferSize - 1) * FRAME_INTERVAL)
             {
                 mCurrPlayingTS = entry->nTimestamp;
                 IMLOGD2("[Resync] currTs[%d], delay[%d]", mCurrPlayingTS, timeDiff);
                 return true;
             }
+
+            break;
         }
     }
 
