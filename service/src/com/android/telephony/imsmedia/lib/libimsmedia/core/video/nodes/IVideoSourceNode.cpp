@@ -57,7 +57,6 @@ kBaseNodeId IVideoSourceNode::GetNodeId()
 ImsMediaResult IVideoSourceNode::Start()
 {
     IMLOGD3("[Start] codec[%d], mode[%d], cameraId[%d]", mCodecType, mVideoMode, mCameraId);
-    std::lock_guard<std::mutex> guard(mMutex);
 
     if (mVideoSource)
     {
@@ -99,7 +98,6 @@ ImsMediaResult IVideoSourceNode::Start()
 void IVideoSourceNode::Stop()
 {
     IMLOGD0("[Stop]");
-    std::lock_guard<std::mutex> guard(mMutex);
 
     if (mVideoSource)
     {
@@ -263,9 +261,9 @@ void IVideoSourceNode::UpdateSurface(ANativeWindow* window)
     mWindow = window;
 }
 
-void IVideoSourceNode::OnUplinkEvent(uint8_t* data, uint32_t size, int64_t timestamp, uint32_t flag)
+void IVideoSourceNode::OnUplinkEvent(
+        uint8_t* data, uint32_t size, int64_t timestamp, uint32_t /*flag*/)
 {
-    (void)flag;
     IMLOGD_PACKET2(
             IM_PACKET_LOG_VIDEO, "[OnUplinkEvent] size[%zu], timestamp[%ld]", size, timestamp);
     std::lock_guard<std::mutex> guard(mMutex);
