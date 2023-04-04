@@ -30,6 +30,7 @@ import android.hardware.radio.ims.media.IImsMedia;
 import android.hardware.radio.ims.media.IImsMediaSession;
 import android.hardware.radio.ims.media.RtpConfig;
 import android.hardware.radio.ims.media.RtpError;
+import android.os.Looper;
 import android.os.ParcelFileDescriptor;
 import android.os.RemoteException;
 import android.telephony.CallQuality;
@@ -39,6 +40,7 @@ import android.telephony.imsmedia.IImsAudioSessionCallback;
 import android.telephony.imsmedia.ImsMediaSession;
 import android.telephony.imsmedia.MediaQualityStatus;
 import android.telephony.imsmedia.MediaQualityThreshold;
+import android.testing.AndroidTestingRunner;
 import android.testing.TestableLooper;
 
 import com.android.telephony.imsmedia.AudioSession;
@@ -49,7 +51,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
@@ -60,8 +61,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
-@RunWith(JUnit4.class)
-public class AudioOffloadTest {
+@RunWith(AndroidTestingRunner.class)
+@TestableLooper.RunWithLooper
+public class AudioOffloadTest extends ImsMediaTest {
     private static final int SESSION_ID = 1;
     private static final int DTMF_DURATION = 120;
     private static final int NO_RESOURCES = ImsMediaSession.RESULT_NO_RESOURCES;
@@ -73,7 +75,6 @@ public class AudioOffloadTest {
     private AudioSession audioSession;
     private AudioOffloadListener offloadListener;
     private AudioSession.AudioSessionHandler handler;
-    private TestableLooper looper;
     @Mock
     private IImsAudioSessionCallback callback;
     @Mock
@@ -88,24 +89,19 @@ public class AudioOffloadTest {
         MockitoAnnotations.initMocks(this);
         offloadService = spy(AudioOffloadService.getInstance());
         doReturn(imsMedia).when(offloadService).getIImsMedia();
-        audioSession = new AudioSession(SESSION_ID, callback, null, null, offloadService);
+        audioSession = new AudioSession(SESSION_ID, callback, null, null, offloadService,
+                Looper.myLooper());
         handler = audioSession.getAudioSessionHandler();
         audioSession.setAudioOffload(true);
         offloadListener = audioSession.getOffloadListener();
         audioSession.onOpenSessionSuccess(imsMediaSession);
-        try {
-            looper = new TestableLooper(handler.getLooper());
-        } catch (Exception e) {
-            throw new AssertionError("Unable to create TestableLooper", e);
-        }
+        mTestClass = AudioOffloadTest.this;
+        super.setUp();
     }
 
     @After
     public void tearDown() throws Exception {
-        if (looper != null) {
-            looper.destroy();
-            looper = null;
-        }
+        super.tearDown();
     }
 
     @Test
@@ -395,12 +391,6 @@ public class AudioOffloadTest {
             verify(callback, times(1)).onCallQualityChanged(eq(outputCallQuality));
         } catch (RemoteException e) {
             fail("Failed to notify onCallQualityChanged: " + e);
-        }
-    }
-
-    private void processAllMessages() {
-        while (!looper.getLooper().getQueue().isIdle()) {
-            looper.processAllMessages();
         }
     }
 }

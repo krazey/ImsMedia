@@ -22,23 +22,25 @@ import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
+import android.os.Looper;
 import android.os.Parcel;
 import android.os.RemoteException;
 import android.telephony.imsmedia.IImsVideoSessionCallback;
 import android.telephony.imsmedia.ImsMediaSession;
 import android.telephony.imsmedia.VideoConfig;
+import android.testing.AndroidTestingRunner;
 import android.testing.TestableLooper;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-@RunWith(JUnit4.class)
-public class VideoListenerTest {
+@RunWith(AndroidTestingRunner.class)
+@TestableLooper.RunWithLooper
+public class VideoListenerTest extends ImsMediaTest {
     private static final int SESSION_ID = 1;
     private static final long VIDEO_DATA = 1024;
     private static final int RESOLUTION_WIDTH = 640;
@@ -54,31 +56,24 @@ public class VideoListenerTest {
     @Mock
     private IImsVideoSessionCallback mMockIImsVideoSessionCallback;
     private VideoConfig mVideoConfig;
-    private TestableLooper mLooper;
 
     @Before
     public void setUp() {
         MockitoAnnotations.initMocks(this);
         VideoSession videoSession = new VideoSession(SESSION_ID, mMockIImsVideoSessionCallback,
-                mVideoService, mMockVideoLocalSession);
+                mVideoService, mMockVideoLocalSession, Looper.myLooper());
         VideoSession.VideoSessionHandler handler = videoSession.getVideoSessionHandler();
         mVideoListener = new VideoListener(handler);
         mVideoListener.setMediaCallback(mMockCallback);
         mVideoListener.setNativeObject(NATIVE_OBJECT);
         mVideoConfig = VideoConfigTest.createVideoConfig();
-        try {
-            mLooper = new TestableLooper(handler.getLooper());
-        } catch (Exception e) {
-            throw new AssertionError("Unable to create TestableLooper", e);
-        }
+        mTestClass = VideoListenerTest.this;
+        super.setUp();
     }
 
     @After
-    public void tearDown() {
-        if (mLooper != null) {
-            mLooper.destroy();
-            mLooper = null;
-        }
+    public void tearDown() throws Exception {
+        super.tearDown();
     }
 
     private Parcel createParcel(int event, int result) {
@@ -200,11 +195,5 @@ public class VideoListenerTest {
         doNothing().when(mMockCallback).onSessionClosed(eq(SESSION_ID));
         parcel.recycle();
         verify(mMockCallback, times(1)).onSessionClosed(eq(SESSION_ID));
-    }
-
-    private void processAllMessages() {
-        while (!mLooper.getLooper().getQueue().isIdle()) {
-            mLooper.processAllMessages();
-        }
     }
 }

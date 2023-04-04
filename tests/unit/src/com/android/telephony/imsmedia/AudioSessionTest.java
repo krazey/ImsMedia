@@ -21,6 +21,7 @@ import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
+import android.os.Looper;
 import android.os.Parcel;
 import android.os.ParcelFileDescriptor;
 import android.os.RemoteException;
@@ -31,6 +32,7 @@ import android.telephony.imsmedia.IImsAudioSessionCallback;
 import android.telephony.imsmedia.ImsMediaSession;
 import android.telephony.imsmedia.MediaQualityStatus;
 import android.telephony.imsmedia.MediaQualityThreshold;
+import android.testing.AndroidTestingRunner;
 import android.testing.TestableLooper;
 
 import com.android.telephony.imsmedia.AudioService;
@@ -42,7 +44,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
@@ -50,8 +51,9 @@ import java.net.DatagramSocket;
 import java.net.SocketException;
 import java.util.ArrayList;
 
-@RunWith(JUnit4.class)
-public class AudioSessionTest {
+@RunWith(AndroidTestingRunner.class)
+@TestableLooper.RunWithLooper
+public class AudioSessionTest extends ImsMediaTest {
     private static final int SESSION_ID = 1;
     private static final int DTMF_DURATION = 140;
     private static final int UNUSED = -1;
@@ -69,28 +71,21 @@ public class AudioSessionTest {
     private AudioLocalSession audioLocalSession;
     @Mock
     private IImsAudioSessionCallback callback;
-    private TestableLooper looper;
 
     @Before
     public void setUp() {
         MockitoAnnotations.initMocks(this);
         audioSession = new AudioSession(SESSION_ID, callback,
-                audioService, audioLocalSession, null);
+                audioService, audioLocalSession, null, Looper.myLooper());
         audioListener = audioSession.getAudioListener();
         handler = audioSession.getAudioSessionHandler();
-        try {
-            looper = new TestableLooper(handler.getLooper());
-        } catch (Exception e) {
-            throw new AssertionError("Unable to create TestableLooper", e);
-        }
+        mTestClass = AudioSessionTest.this;
+        super.setUp();
     }
 
     @After
     public void tearDown() throws Exception {
-        if (looper != null) {
-            looper.destroy();
-            looper = null;
-        }
+        super.tearDown();
     }
 
     private Parcel createParcel(int message, int result, AudioConfig config) {
@@ -364,12 +359,6 @@ public class AudioSessionTest {
             verify(callback, times(1)).onSessionClosed();
         } catch (RemoteException e) {
             fail("Failed to notify onSessionClosed: " + e);
-        }
-    }
-
-    private void processAllMessages() {
-        while (!looper.getLooper().getQueue().isIdle()) {
-            looper.processAllMessages();
         }
     }
 }

@@ -103,13 +103,14 @@ public final class AudioSession extends IImsAudioSession.Stub implements IMediaS
 
     @VisibleForTesting
     AudioSession(final int sessionId,
-            final @NonNull IImsAudioSessionCallback callback,
-            final @Nullable AudioService audioService,
-            final @Nullable AudioLocalSession localSession,
-            final @Nullable AudioOffloadService offloadService) {
+            @NonNull final IImsAudioSessionCallback callback,
+            @Nullable final AudioService audioService,
+            @Nullable final AudioLocalSession localSession,
+            @Nullable final AudioOffloadService offloadService,
+            Looper looper) {
         mSessionId = sessionId;
         mCallback = callback;
-        mHandler = new AudioSessionHandler(Looper.getMainLooper());
+        mHandler = new AudioSessionHandler(looper);
         mAudioService = audioService;
         mLocalSession = localSession;
         mAudioListener = new AudioListener(mHandler);

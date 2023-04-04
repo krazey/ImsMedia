@@ -21,6 +21,7 @@ import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
+import android.os.Looper;
 import android.os.Parcel;
 import android.os.ParcelFileDescriptor;
 import android.os.RemoteException;
@@ -28,6 +29,7 @@ import android.telephony.imsmedia.IImsTextSessionCallback;
 import android.telephony.imsmedia.ImsMediaSession;
 import android.telephony.imsmedia.MediaQualityThreshold;
 import android.telephony.imsmedia.TextConfig;
+import android.testing.AndroidTestingRunner;
 import android.testing.TestableLooper;
 
 import com.android.telephony.imsmedia.Utils.OpenSessionParams;
@@ -36,15 +38,15 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import java.net.DatagramSocket;
 import java.net.SocketException;
 
-@RunWith(JUnit4.class)
-public class TextSessionTest {
+@RunWith(AndroidTestingRunner.class)
+@TestableLooper.RunWithLooper
+public class TextSessionTest extends ImsMediaTest {
     private static final int SESSION_ID = 1;
     private static final int SUCCESS = ImsMediaSession.RESULT_SUCCESS;
     private static final int NO_RESOURCES = ImsMediaSession.RESULT_NO_RESOURCES;
@@ -60,27 +62,21 @@ public class TextSessionTest {
     private TextLocalSession mTextLocalSession;
     @Mock
     private IImsTextSessionCallback mCallback;
-    private TestableLooper mLooper;
 
     @Before
     public void setUp() {
         MockitoAnnotations.initMocks(this);
-        mTextSession = new TextSession(SESSION_ID, mCallback, mTextService, mTextLocalSession);
+        mTextSession = new TextSession(SESSION_ID, mCallback, mTextService, mTextLocalSession,
+                Looper.myLooper());
         mTextListener = mTextSession.getTextListener();
         mHandler = mTextSession.getTextSessionHandler();
-        try {
-            mLooper = new TestableLooper(mHandler.getLooper());
-        } catch (Exception e) {
-            throw new AssertionError("Unable to create TestableLooper", e);
-        }
+        mTestClass = TextSessionTest.this;
+        super.setUp();
     }
 
     @After
     public void tearDown() throws Exception {
-        if (mLooper != null) {
-            mLooper.destroy();
-            mLooper = null;
-        }
+        super.tearDown();
     }
 
     private Parcel createParcel(int message, int result, TextConfig config) {
@@ -239,12 +235,6 @@ public class TextSessionTest {
             verify(mCallback, times(1)).onSessionClosed();
         } catch (RemoteException e) {
             fail("Failed to notify onSessionClosed: " + e);
-        }
-    }
-
-    private void processAllMessages() {
-        while (!mLooper.getLooper().getQueue().isIdle()) {
-            mLooper.processAllMessages();
         }
     }
 }

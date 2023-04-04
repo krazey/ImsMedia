@@ -22,23 +22,25 @@ import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
+import android.os.Looper;
 import android.os.Parcel;
 import android.os.RemoteException;
 import android.telephony.imsmedia.IImsTextSessionCallback;
 import android.telephony.imsmedia.ImsMediaSession;
 import android.telephony.imsmedia.TextConfig;
+import android.testing.AndroidTestingRunner;
 import android.testing.TestableLooper;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-@RunWith(JUnit4.class)
-public class TextListenerTest {
+@RunWith(AndroidTestingRunner.class)
+@TestableLooper.RunWithLooper
+public class TextListenerTest extends ImsMediaTest {
     private static final int SESSION_ID = 1;
     private static final String TEXT_STREAM = "Hello";
     private static final long NATIVE_OBJECT = 1234L;
@@ -52,31 +54,24 @@ public class TextListenerTest {
     @Mock
     private IImsTextSessionCallback mMockIImsTextSessionCallback;
     private TextConfig mTextConfig;
-    private TestableLooper mLooper;
 
     @Before
     public void setUp() {
         MockitoAnnotations.initMocks(this);
         TextSession textSession = new TextSession(SESSION_ID, mMockIImsTextSessionCallback,
-                mTextService, mMockTextLocalSession);
+                mTextService, mMockTextLocalSession, Looper.myLooper());
         TextSession.TextSessionHandler handler = textSession.getTextSessionHandler();
         mTextListener = new TextListener(handler);
         mTextListener.setMediaCallback(mMockCallback);
         mTextListener.setNativeObject(NATIVE_OBJECT);
         mTextConfig = TextConfigTest.createTextConfig();
-        try {
-            mLooper = new TestableLooper(handler.getLooper());
-        } catch (Exception e) {
-            throw new AssertionError("Unable to create TestableLooper", e);
-        }
+        mTestClass = TextListenerTest.this;
+        super.setUp();
     }
 
     @After
-    public void tearDown() {
-        if (mLooper != null) {
-            mLooper.destroy();
-            mLooper = null;
-        }
+    public void tearDown() throws Exception {
+        super.tearDown();
     }
 
     private Parcel createParcel(int event, int result, TextConfig config) {
@@ -165,11 +160,5 @@ public class TextListenerTest {
         mTextListener.onMessage(parcel);
         parcel.recycle();
         verify(mMockCallback, times(1)).onSessionClosed(eq(SESSION_ID));
-    }
-
-    private void processAllMessages() {
-        while (!mLooper.getLooper().getQueue().isIdle()) {
-            mLooper.processAllMessages();
-        }
     }
 }

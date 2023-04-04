@@ -85,10 +85,10 @@ public final class VideoSession extends IImsVideoSession.Stub implements IMediaS
     VideoSession(final int sessionId,
             final @NonNull IImsVideoSessionCallback callback,
             final @Nullable VideoService videoService,
-            final @Nullable VideoLocalSession localSession) {
+            final @Nullable VideoLocalSession localSession, Looper looper) {
         mSessionId = sessionId;
         mCallback = callback;
-        mHandler = new VideoSessionHandler(Looper.getMainLooper());
+        mHandler = new VideoSessionHandler(looper);
         mVideoService = videoService;
         mLocalSession = localSession;
         mVideoListener = new VideoListener(mHandler);

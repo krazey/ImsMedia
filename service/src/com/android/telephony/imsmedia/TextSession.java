@@ -73,10 +73,10 @@ public final class TextSession extends IImsTextSession.Stub implements IMediaSes
     TextSession(final int sessionId,
             final @NonNull IImsTextSessionCallback callback,
             final @Nullable TextService textService,
-            final @Nullable TextLocalSession localSession) {
+            final @Nullable TextLocalSession localSession, Looper looper) {
         mSessionId = sessionId;
         mCallback = callback;
-        mHandler = new TextSessionHandler(Looper.getMainLooper());
+        mHandler = new TextSessionHandler(looper);
         mTextService = textService;
         mLocalSession = localSession;
         mTextListener = new TextListener(mHandler);
