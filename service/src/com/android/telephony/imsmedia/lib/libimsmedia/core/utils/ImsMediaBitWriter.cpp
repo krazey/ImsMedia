@@ -40,15 +40,17 @@ void ImsMediaBitWriter::SetBuffer(uint8_t* pbBuffer, uint32_t nBufferSize)
     mMaxBufferSize = nBufferSize;
 }
 
-void ImsMediaBitWriter::Write(uint32_t nValue, uint32_t nSize)
+bool ImsMediaBitWriter::Write(uint32_t nValue, uint32_t nSize)
 {
     if (nSize == 0)
-        return;
+    {
+        return false;
+    }
 
     if (mBuffer == nullptr || nSize > 24 || mBufferFull)
     {
         IMLOGE2("[Write] nSize[%d], BufferFull[%d]", nSize, mBufferFull);
-        return;
+        return false;
     }
 
     // write to bit buffer
@@ -67,9 +69,11 @@ void ImsMediaBitWriter::Write(uint32_t nValue, uint32_t nSize)
     {
         mBufferFull = true;
     }
+
+    return true;
 }
 
-void ImsMediaBitWriter::WriteByteBuffer(uint8_t* pbSrc, uint32_t nBitSize)
+bool ImsMediaBitWriter::WriteByteBuffer(uint8_t* pbSrc, uint32_t nBitSize)
 {
     uint32_t nByteSize;
     uint32_t nRemainBitSize;
@@ -87,7 +91,10 @@ void ImsMediaBitWriter::WriteByteBuffer(uint8_t* pbSrc, uint32_t nBitSize)
 
         for (i = 0; i < nByteSize; i++)
         {
-            Write(pbSrc[i], 8);
+            if (!Write(pbSrc[i], 8))
+            {
+                return false;
+            }
         }
     }
 
@@ -95,11 +102,17 @@ void ImsMediaBitWriter::WriteByteBuffer(uint8_t* pbSrc, uint32_t nBitSize)
     {
         uint32_t v = pbSrc[nByteSize];
         v >>= (8 - nRemainBitSize);
-        Write(v, nRemainBitSize);
+
+        if (!Write(v, nRemainBitSize))
+        {
+            return false;
+        }
     }
+
+    return true;
 }
 
-void ImsMediaBitWriter::WriteByteBuffer(uint32_t value)
+bool ImsMediaBitWriter::WriteByteBuffer(uint32_t value)
 {
     uint32_t nRemainBitSize = 32;
 
@@ -107,8 +120,14 @@ void ImsMediaBitWriter::WriteByteBuffer(uint32_t value)
     {
         nRemainBitSize -= 8;
         uint8_t v = (value >> nRemainBitSize) & 0x00ff;
-        Write(v, 8);
+
+        if (!Write(v, 8))
+        {
+            return false;
+        }
     }
+
+    return true;
 }
 
 void ImsMediaBitWriter::Seek(uint32_t nSize)

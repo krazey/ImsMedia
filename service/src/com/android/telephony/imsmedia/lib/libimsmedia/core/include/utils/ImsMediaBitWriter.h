@@ -25,9 +25,9 @@ public:
     ImsMediaBitWriter();
     ~ImsMediaBitWriter();
     void SetBuffer(uint8_t* pbBuffer, uint32_t nBufferSize);
-    void Write(uint32_t nValue, uint32_t nSize);
-    void WriteByteBuffer(uint8_t* pbSrc, uint32_t nBitSize);
-    void WriteByteBuffer(uint32_t value);
+    bool Write(uint32_t nValue, uint32_t nSize);
+    bool WriteByteBuffer(uint8_t* pbSrc, uint32_t nBitSize);
+    bool WriteByteBuffer(uint32_t value);
     void Seek(uint32_t nSize);
     void AddPadding();
     uint32_t GetBufferSize();
