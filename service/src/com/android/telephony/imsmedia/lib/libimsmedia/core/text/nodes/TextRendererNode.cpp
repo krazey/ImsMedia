@@ -114,20 +114,6 @@ void TextRendererNode::ProcessData()
                 "[ProcessData] size[%u], TS[%u], mark[%u], seq[%u], last seq[%u]", size, timestamp,
                 mark, seq, mLastPlayedSeq);
 
-        // ignore empty t.140
-        if (size == 0)
-        {
-            mLastPlayedSeq = (uint16_t)seq;
-            DeleteData();
-            break;
-        }
-
-        if (data == nullptr)
-        {
-            IMLOGD0("[ProcessData] invalid data");
-            break;
-        }
-
         if (mFirstFrameReceived)
         {
             // detect lost packet

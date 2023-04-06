@@ -118,10 +118,10 @@ void TextRtpPayloadDecoderNode::DecodeT140(uint8_t* data, uint32_t size, ImsMedi
 
     if (subtype == MEDIASUBTYPE_BITSTREAM_T140 || subtype == MEDIASUBTYPE_BITSTREAM_T140_RED)
     {
-        std::list<uint32_t> lstTSOffset;
-        std::list<uint32_t> lstLength;
-        uint32_t nReadByte = 0;
-        uint32_t nRedCount = 0;
+        std::list<uint32_t> listTimestampOffset;
+        std::list<uint32_t> listLength;
+        uint32_t readByte = 0;
+        uint16_t redundantCount = 0;
 
         mBitReader.SetBuffer(data, size);
 
@@ -136,7 +136,6 @@ void TextRtpPayloadDecoderNode::DecodeT140(uint8_t* data, uint32_t size, ImsMedi
         */
 
         // Primary Data Only
-        // Red header + primary header = 5 byte
         if (subtype == MEDIASUBTYPE_BITSTREAM_T140)
         {
             SendDataToRearNode(MEDIASUBTYPE_BITSTREAM_T140, data, size, timestamp, mark, seq);
@@ -144,69 +143,54 @@ void TextRtpPayloadDecoderNode::DecodeT140(uint8_t* data, uint32_t size, ImsMedi
         }
 
         // Redundant data included
-        while (mBitReader.Read(1) == 1)  // Rendundancy bit
+        while (mBitReader.Read(1) == 1)  // redundant flag bit
         {
-            uint32_t nPT = mBitReader.Read(7);  // T140 payload type
-            uint32_t nTSOffset = mBitReader.Read(14);
-            uint32_t nLen = mBitReader.Read(10);
+            uint32_t payloadType = mBitReader.Read(7);  // T140 payload type
+            uint32_t timestampOffset = mBitReader.Read(14);
+            uint32_t length = mBitReader.Read(10);
 
-            lstTSOffset.push_back(nTSOffset);  // timestamp offset
-            lstLength.push_back(nLen);         // block length
+            listTimestampOffset.push_back(timestampOffset);  // timestamp offset
+            listLength.push_back(length);                    // block length
 
-            IMLOGD_PACKET3(IM_PACKET_LOG_PH, "[DecodeT140] nPT[%u], nTSOffset[%u], nLen[%u]", nPT,
-                    nTSOffset, nLen);
-            nReadByte += 4;
-            nRedCount++;
+            IMLOGD_PACKET3(IM_PACKET_LOG_PH, "[DecodeT140] PT[%u], TSOffset[%u], size[%u]",
+                    payloadType, timestampOffset, length);
+            readByte += 4;
+            redundantCount++;
         }
 
         mBitReader.Read(7);  // T140 payload type (111)
-        nReadByte += 1;
+        readByte += 1;
 
         // redundant data
-        while (lstTSOffset.size() > 0)
+        while (listTimestampOffset.size() > 0)
         {
-            uint32_t nRedTimestamp = 0;
-            uint32_t nRedLength = 0;
+            uint32_t redundantTimestamp = listTimestampOffset.front();
+            uint32_t redundantLength = listLength.front();
 
-            nRedTimestamp = lstTSOffset.front();
-            nRedLength = lstLength.front();
+            // read redundant payload
+            mBitReader.ReadByteBuffer(mPayload, redundantLength * 8);
+            readByte += redundantLength;
 
-            if (nRedLength > 0)
-            {
-                uint32_t nRedSeqNum = 0;
-                // here should compare mPayload size red length
-                mBitReader.ReadByteBuffer(mPayload, nRedLength * 8);
-                nReadByte += nRedLength;
+            uint16_t redundantSeqNum = seq - redundantCount;
 
-                if (seq < nRedCount)
-                {
-                    nRedSeqNum = seq + 0xffff - nRedCount;  // round trip
-                }
-                else
-                {
-                    nRedSeqNum = seq - nRedCount;
-                }
+            IMLOGD_PACKET3(IM_PACKET_LOG_PH, "[DecodeT140] red TS[%u], size[%u], seq[%u]",
+                    timestamp - redundantTimestamp, redundantLength, redundantSeqNum);
+            SendDataToRearNode(MEDIASUBTYPE_BITSTREAM_T140, mPayload, redundantLength,
+                    timestamp - redundantTimestamp, mark, redundantSeqNum);
 
-                IMLOGD_PACKET3(IM_PACKET_LOG_PH,
-                        "[DecodeT140] nRedTimestamp[%u], nRedLength[%u], nRedSeqNum[%u]",
-                        timestamp - nRedTimestamp, nRedLength, nRedSeqNum);
-                SendDataToRearNode(MEDIASUBTYPE_BITSTREAM_T140, mPayload, nRedLength,
-                        timestamp - nRedTimestamp, mark, nRedSeqNum);
-            }
-
-            nRedCount--;
-            lstTSOffset.pop_front();
-            lstLength.pop_front();
+            redundantCount--;
+            listTimestampOffset.pop_front();
+            listLength.pop_front();
         }
 
         // primary data
-        if (size - nReadByte > 0)
+        if (size - readByte > 0)
         {
-            mBitReader.ReadByteBuffer(mPayload, (size - nReadByte) * 8);
+            mBitReader.ReadByteBuffer(mPayload, (size - readByte) * 8);
         }
 
         SendDataToRearNode(
-                MEDIASUBTYPE_BITSTREAM_T140, mPayload, (size - nReadByte), timestamp, mark, seq);
+                MEDIASUBTYPE_BITSTREAM_T140, mPayload, (size - readByte), timestamp, mark, seq);
     }
     else
     {

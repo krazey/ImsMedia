@@ -32,11 +32,9 @@ void TextJitterBuffer::Reset()
 }
 
 void TextJitterBuffer::Add(ImsMediaSubType subtype, uint8_t* buffer, uint32_t size,
-        uint32_t timestamp, bool mark, uint32_t seqNum, ImsMediaSubType dataType,
+        uint32_t timestamp, bool mark, uint32_t seqNum, ImsMediaSubType /*dataType*/,
         uint32_t arrivalTime)
 {
-    (void)dataType;
-
     IMLOGD_PACKET6(IM_PACKET_LOG_JITTER,
             "[Add] seq[%u], mark[%u], TS[%u], size[%u], lastPlayedSeq[%u], arrivalTime[%u]", seqNum,
             mark, timestamp, size, mLastPlayedSeqNum, arrivalTime);
@@ -64,11 +62,6 @@ void TextJitterBuffer::Add(ImsMediaSubType subtype, uint8_t* buffer, uint32_t si
     if (mDataQueue.GetCount() == 0)  // jitter buffer is empty
     {
         mDataQueue.Add(&currEntry);
-
-        if (!mFirstFrameReceived)
-        {
-            mFirstFrameReceived = true;
-        }
     }
     else
     {
@@ -167,6 +160,11 @@ void TextJitterBuffer::Delete()
     if (pEntry == nullptr)
     {
         return;
+    }
+
+    if (!mFirstFrameReceived)
+    {
+        mFirstFrameReceived = true;
     }
 
     mLastPlayedSeqNum = pEntry->nSeqNum;
