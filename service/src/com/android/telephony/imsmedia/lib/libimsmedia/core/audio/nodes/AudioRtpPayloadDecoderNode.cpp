@@ -49,7 +49,7 @@ ImsMediaResult AudioRtpPayloadDecoderNode::Start()
     mEvsMode = (kEvsBitrate)ImsMediaAudioUtil::GetMaximumEvsMode(mCoreEvsMode);
     mEvsCodecMode = (kEvsCodecMode)ImsMediaAudioUtil::ConvertEvsCodecMode(mEvsMode);
 
-    mPrevCMR = 15;
+    mPrevCMR = mCodecType == kAudioCodecEvs ? 127 : 15;
     mListFrameType.clear();
     mNodeState = kNodeStateRunning;
     return RESULT_SUCCESS;
@@ -133,7 +133,7 @@ void AudioRtpPayloadDecoderNode::OnDataFromFrontNode(ImsMediaSubType subtype, ui
     {
         case kAudioCodecAmr:
         case kAudioCodecAmrWb:
-            DecodePayloadAmr(pData, nDataSize, nTimestamp, bMark, nSeqNum, arrivalTime);
+            DecodePayloadAmr(pData, nDataSize, nTimestamp, nSeqNum, arrivalTime);
             break;
         case kAudioCodecPcmu:
         case kAudioCodecPcma:
@@ -152,14 +152,13 @@ void AudioRtpPayloadDecoderNode::OnDataFromFrontNode(ImsMediaSubType subtype, ui
 }
 
 void AudioRtpPayloadDecoderNode::DecodePayloadAmr(uint8_t* pData, uint32_t nDataSize,
-        uint32_t nTimestamp, bool bMark, uint32_t nSeqNum, uint32_t arrivalTime)
+        uint32_t nTimestamp, uint32_t nSeqNum, uint32_t arrivalTime)
 {
     if (pData == nullptr || nDataSize == 0)
     {
         return;
     }
 
-    (void)bMark;
     uint32_t timestamp = nTimestamp;
     uint32_t eRate;
     uint32_t f;
@@ -167,9 +166,9 @@ void AudioRtpPayloadDecoderNode::DecodePayloadAmr(uint8_t* pData, uint32_t nData
     uint32_t QbitPos;  // Q_Speech_Sid_Bad
 
     IMLOGD_PACKET5(IM_PACKET_LOG_PH,
-            "[DecodePayloadAmr] GetCodectype[%d], octetAligned[%d], nSeqNum[%d], TS[%u], "
+            "[DecodePayloadAmr] codec type[%d], octetAligned[%d], size[%d], TS[%u], "
             "arrivalTime[%u]",
-            mCodecType, mOctetAligned, nSeqNum, timestamp, arrivalTime);
+            mCodecType, mOctetAligned, nDataSize, timestamp, arrivalTime);
 
     mBitReader.SetBuffer(pData, nDataSize);
     // read cmr
@@ -236,19 +235,20 @@ void AudioRtpPayloadDecoderNode::DecodePayloadAmr(uint8_t* pData, uint32_t nData
 
         mListFrameType.pop_front();
         mBitWriter.SetBuffer(mPayload, MAX_AUDIO_PAYLOAD_SIZE);
-        // set payload header
+        uint32_t bufferSize = (nDataBitSize + 7) >> 3;
+        // set TOC
         mBitWriter.Write(f, 1);
         mBitWriter.Write(eRate, 4);
         mBitWriter.Write(QbitPos, 1);
         mBitWriter.Write(0, 2);
         mBitReader.ReadByteBuffer(mPayload + 1, nDataBitSize);
-        // add payload header to payload size
-        uint32_t nBufferSize = ((nDataBitSize + 7) >> 3) + 1;
+        bufferSize++;
+
         IMLOGD_PACKET6(IM_PACKET_LOG_PH,
                 "[DecodePayloadAmr] result = %02X %02X %02X %02X, len[%d], eRate[%d]", mPayload[0],
-                mPayload[1], mPayload[2], mPayload[3], nBufferSize, eRate);
+                mPayload[1], mPayload[2], mPayload[3], bufferSize, eRate);
         // send remaining packet number in bundle as bMark value
-        SendDataToRearNode(MEDIASUBTYPE_RTPPAYLOAD, mPayload, nBufferSize, timestamp,
+        SendDataToRearNode(MEDIASUBTYPE_RTPPAYLOAD, mPayload, bufferSize, timestamp,
                 mListFrameType.size(), nSeqNum, MEDIASUBTYPE_UNDEFINED, arrivalTime);
 
         timestamp += 20;
@@ -263,10 +263,9 @@ void AudioRtpPayloadDecoderNode::DecodePayloadEvs(uint8_t* pData, uint32_t nData
         return;
     }
 
-    IMLOGD_PACKET5(IM_PACKET_LOG_PH,
-            "[DecodePayloadEvs] GetCodectype[%d], octetAligned[%d], nSeqNum[%d], TS[%u], "
-            "arrivalTime[%u]",
-            mCodecType, mOctetAligned, nSeqNum, nTimeStamp, arrivalTime);
+    IMLOGD_PACKET4(IM_PACKET_LOG_PH,
+            "[DecodePayloadEvs] codec type[%d], size[%d], TS[%u], arrivalTime[%u]", mCodecType,
+            nDataSize, nTimeStamp, arrivalTime);
 
     kRtpPyaloadHeaderMode eEVSReceivedPHFormat = kRtpPyaloadHeaderModeEvsCompact;
     kEvsCodecMode kEvsCodecMode = kEvsCodecModePrimary;
@@ -321,7 +320,7 @@ void AudioRtpPayloadDecoderNode::DecodePayloadEvs(uint8_t* pData, uint32_t nData
 
             mBitReader.ReadByteBuffer(mPayload, nDataBitSize);
 
-            IMLOGD6("[DecodePayloadEvs] Result =%02X %02X %02X %02X, len=%d,nFrameType=%d",
+            IMLOGD6("[DecodePayloadEvs] Result=%02X %02X %02X %02X, len=%d,nFrameType=%d",
                     mPayload[0], mPayload[1], mPayload[2], mPayload[3], nDataSize, nFrameType);
 
             SendDataToRearNode(MEDIASUBTYPE_RTPPAYLOAD, mPayload, nDataSize, timestamp, bMark,
@@ -608,7 +607,6 @@ void AudioRtpPayloadDecoderNode::DecodePayloadEvs(uint8_t* pData, uint32_t nData
             }
             else  // ToC byte
             {
-                IMLOGD0("[DecodePayloadEvs] Decoding TOC header");
                 toc_f = mBitReader.Read(1);
                 toc_ft_m = mBitReader.Read(1);
                 toc_ft_q = mBitReader.Read(1);
@@ -636,14 +634,16 @@ void AudioRtpPayloadDecoderNode::DecodePayloadEvs(uint8_t* pData, uint32_t nData
             }
 
             mBitWriter.SetBuffer(mPayload, MAX_AUDIO_PAYLOAD_SIZE);
+            uint32_t bufferSize = (nDataBitSize + 7) >> 3;
 
+            // set TOC
             mBitWriter.Write(h, 1);
             mBitWriter.Write(toc_f, 1);
             mBitWriter.Write(toc_ft_m, 1);
             mBitWriter.Write(toc_ft_q, 1);
             mBitWriter.Write(toc_ft_b, 4);
-
             mBitReader.ReadByteBuffer(mPayload + 1, nDataBitSize);
+            bufferSize++;
 
             // remove padding bit
             {
@@ -653,10 +653,10 @@ void AudioRtpPayloadDecoderNode::DecodePayloadEvs(uint8_t* pData, uint32_t nData
             }
 
             IMLOGD6("[DecodePayloadEvs] result = %02X %02X %02X %02X, len=%d, eRate=%d",
-                    mPayload[0], mPayload[1], mPayload[2], mPayload[3], nDataSize, toc_ft_b);
+                    mPayload[0], mPayload[1], mPayload[2], mPayload[3], bufferSize, toc_ft_b);
 
-            SendDataToRearNode(MEDIASUBTYPE_RTPPAYLOAD, mPayload, (((nDataBitSize + 7) >> 3)),
-                    timestamp, mListFrameType.size(), nSeqNum, MEDIASUBTYPE_UNDEFINED, arrivalTime);
+            SendDataToRearNode(MEDIASUBTYPE_RTPPAYLOAD, mPayload, bufferSize, timestamp,
+                    mListFrameType.size(), nSeqNum, MEDIASUBTYPE_UNDEFINED, arrivalTime);
 
             timestamp += 20;
         }

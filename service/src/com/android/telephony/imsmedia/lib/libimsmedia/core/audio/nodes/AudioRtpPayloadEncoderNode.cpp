@@ -51,10 +51,12 @@ kBaseNodeId AudioRtpPayloadEncoderNode::GetNodeId()
 
 ImsMediaResult AudioRtpPayloadEncoderNode::Start()
 {
-    IMLOGD2("[Start] codecType[%d], mode[%d]", mCodecType, mOctetAligned);
     mMaxNumOfFrame = mPtime / 20;
     mEvsMode = (kEvsBitrate)ImsMediaAudioUtil::GetMaximumEvsMode(mCoreEvsMode);
     mEvsCodecMode = (kEvsCodecMode)ImsMediaAudioUtil::ConvertEvsCodecMode(mEvsMode);
+
+    IMLOGD5("[Start] codecType[%d], mode[%d], num of frames[%d], evs bitrate[%d], evs mode[%d]",
+            mCodecType, mOctetAligned, mMaxNumOfFrame, mEvsMode, mEvsCodecMode);
 
     if (mMaxNumOfFrame == 0 || mMaxNumOfFrame > MAX_FRAME_IN_PACKET)
     {
@@ -86,16 +88,15 @@ bool AudioRtpPayloadEncoderNode::IsSourceNode()
     return false;
 }
 
-void AudioRtpPayloadEncoderNode::OnDataFromFrontNode(ImsMediaSubType subtype, uint8_t* pData,
+void AudioRtpPayloadEncoderNode::OnDataFromFrontNode(ImsMediaSubType /*subtype*/, uint8_t* pData,
         uint32_t nDataSize, uint32_t nTimestamp, bool bMark, uint32_t nSeqNum,
         ImsMediaSubType nDataType, uint32_t arrivalTime)
 {
-    (void)subtype;
     switch (mCodecType)
     {
         case kAudioCodecAmr:
         case kAudioCodecAmrWb:
-            EncodePayloadAmr(pData, nDataSize, nTimestamp, bMark);
+            EncodePayloadAmr(pData, nDataSize, nTimestamp);
             break;
         case kAudioCodecPcmu:
         case kAudioCodecPcma:
@@ -166,16 +167,15 @@ bool AudioRtpPayloadEncoderNode::IsSameConfig(void* config)
 }
 
 void AudioRtpPayloadEncoderNode::EncodePayloadAmr(
-        uint8_t* pData, uint32_t nDataSize, uint32_t nTimestamp, bool bMark)
+        uint8_t* pData, uint32_t nDataSize, uint32_t nTimestamp)
 {
-    (void)bMark;
     uint32_t nCmr = 15;
     uint32_t f, ft, q, nDataBitSize;
 
-#ifndef LEGACY_AUDIO_ENABLED  // for ap audio test
+    // remove TOC from the encoder
     pData++;
     nDataSize -= 1;
-#endif
+
     if (nDataSize > 4)
     {
         IMLOGD_PACKET5(IM_PACKET_LOG_PH, "[EncodePayloadAmr] src = %02X %02X %02X %02X, len[%d]",
@@ -277,28 +277,18 @@ void AudioRtpPayloadEncoderNode::EncodePayloadAmr(
 void AudioRtpPayloadEncoderNode::EncodePayloadEvs(
         uint8_t* pData, uint32_t nDataSize, uint32_t nTimeStamp)
 {
-    kRtpPyaloadHeaderMode eEVSPayloadFormat = kRtpPyaloadHeaderModeEvsHeaderFull;
-    kEvsCodecMode kEvsCodecMode;
-
-    // 0111 1111 is no request.
-    uint32_t nEVSBW = 0x07;
-    uint32_t nEVSBR = 0x0f;
-    uint32_t nFrameType = 0;
-
     if (nDataSize == 0)
     {
         return;
     }
 
-    eEVSPayloadFormat = mEvsPayloadHeaderMode;
+    uint32_t nFrameType = 0;
     // compact or header-full format, default is compact formats
-    kEvsCodecMode = mEvsCodecMode;
-
     // primary or amr-wb io mode, default is primary mode
     // primary or amr-wb io mode base on frameSize.
     mCurrNumOfFrame++;
 
-    if (eEVSPayloadFormat == kRtpPyaloadHeaderModeEvsCompact)
+    if (mEvsPayloadHeaderMode == kRtpPyaloadHeaderModeEvsCompact)
     {
         memset(mPayload, 0, MAX_AUDIO_PAYLOAD_SIZE);
         mBWHeader.SetBuffer(mPayload, MAX_AUDIO_PAYLOAD_SIZE);
@@ -306,7 +296,7 @@ void AudioRtpPayloadEncoderNode::EncodePayloadEvs(
 
         mTimestamp = nTimeStamp;
         // exactly one coded frame without any additional EVS RTP payload header
-        if (kEvsCodecMode == kEvsCodecModePrimary)
+        if (mEvsCodecMode == kEvsCodecModePrimary)
         {
             // calculate nDataBitSize from nDataSize
             nFrameType = (uint32_t)ImsMediaAudioUtil::ConvertLenToEVSAudioMode(nDataSize);
@@ -354,9 +344,8 @@ void AudioRtpPayloadEncoderNode::EncodePayloadEvs(
                 mFirstFrame = false;
         }
         // one 3-bit CMR field, one coded frame, and zero-padding bits if necessary
-        else if (kEvsCodecMode == kEvsCodecModeAmrIo)
+        else if (mEvsCodecMode == kEvsCodecModeAmrIo)
         {
-            IMLOGE0("[EncodePayloadEvs] COMPACT and AMR_WB_IO");
             // calculate nDataBitSize from nDataSize
             nFrameType = (uint32_t)ImsMediaAudioUtil::ConvertLenToAmrWbMode(nDataSize);
             uint32_t nDataBitSize = ImsMediaAudioUtil::ConvertAmrWbModeToBitLen(nFrameType);
@@ -447,17 +436,23 @@ void AudioRtpPayloadEncoderNode::EncodePayloadEvs(
             return;
         }
     }
-    else if (eEVSPayloadFormat == kRtpPyaloadHeaderModeEvsHeaderFull)
+    else if (mEvsPayloadHeaderMode == kRtpPyaloadHeaderModeEvsHeaderFull)
     {
+        // 0111 1111 is no request.
+        uint32_t nEVSBW = 0x07;
+        uint32_t nEVSBR = 0x0f;
+
+        // remove 1 byte toc field from the codec
+        pData++;
+        nDataSize--;
+
         uint32_t cmr_h, cmr_t, cmr_d = 0;  // CMR byte
         memset(mPayload, 0, MAX_AUDIO_PAYLOAD_SIZE);
         mBWHeader.SetBuffer(mPayload, MAX_AUDIO_PAYLOAD_SIZE);
         mBWPayload.SetBuffer(mPayload, MAX_AUDIO_PAYLOAD_SIZE);
 
-        if (kEvsCodecMode == kEvsCodecModePrimary)
+        if (mEvsCodecMode == kEvsCodecModePrimary)
         {
-            IMLOGE0("[EncodePayloadEvs] HF and PRI");
-
             if (nFrameType == kImsAudioEvsPrimaryModeSID || mSendCMR)  // CMR value
             {
                 // Header Type identification bit(1bit) - always set to 1
@@ -537,9 +532,8 @@ void AudioRtpPayloadEncoderNode::EncodePayloadEvs(
                     mFirstFrame = false;
             }
         }
-        else if (kEvsCodecMode == kEvsCodecModeAmrIo)
+        else if (mEvsCodecMode == kEvsCodecModeAmrIo)
         {
-            IMLOGE0("[EncodePayloadEvs] HF and AMR_WB_IO");
             // set CMR byte
             // at EVS AMR WB IO Mode, CMR field shall include.
             // Header Type identification bit(1bit) - always set to 1
@@ -624,8 +618,7 @@ void AudioRtpPayloadEncoderNode::EncodePayloadEvs(
             IMLOGE0("[EncodePayloadEvs] invalid codec mode");
             return;
         }
-
-    }  // end of if(eEVSPayloadFormat == kRtpPyaloadHeaderModeEvsHeaderFull)
+    }
     else
     {
         IMLOGE0("[EncodePayloadEvs] invalid payload format");
@@ -637,19 +630,17 @@ void AudioRtpPayloadEncoderNode::EncodePayloadEvs(
 
 uint32_t AudioRtpPayloadEncoderNode::CheckPaddingNecessity(uint32_t nTotalSize)
 {
-    kEvsCodecMode kEvsCodecMode;
+    kEvsCodecMode evsCodecMode;
     uint32_t nEVSCompactId;
     uint32_t nSize = nTotalSize;
 
     // check EVS compact size
     while (nSize != 0 &&
-            ImsMediaAudioUtil::ConvertEVSPayloadMode(nSize, &kEvsCodecMode, &nEVSCompactId) ==
+            ImsMediaAudioUtil::ConvertEVSPayloadMode(nSize, &evsCodecMode, &nEVSCompactId) ==
                     kRtpPyaloadHeaderModeEvsCompact)
     {
         mPayload[nSize] = 0;
         nSize++;
-
-        IMLOGD1("[CheckPaddingNecessity] Add Padding - size[%d]", nSize);
     }
 
     return nSize;

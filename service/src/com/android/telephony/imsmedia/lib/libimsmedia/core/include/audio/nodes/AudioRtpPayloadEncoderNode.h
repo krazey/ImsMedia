@@ -38,7 +38,7 @@ public:
     virtual bool IsSameConfig(void* config);
 
 private:
-    void EncodePayloadAmr(uint8_t* pData, uint32_t nDataSize, uint32_t nTimestamp, bool bMark);
+    void EncodePayloadAmr(uint8_t* pData, uint32_t nDataSize, uint32_t nTimestamp);
     void EncodePayloadEvs(uint8_t* pData, uint32_t nDataSize, uint32_t nTimeStamp);
     uint32_t CheckPaddingNecessity(uint32_t nTotalSize);
 

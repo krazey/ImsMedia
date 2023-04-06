@@ -45,8 +45,8 @@ public:
             uint32_t arrivalTime = 0);
 
 private:
-    void DecodePayloadAmr(uint8_t* pData, uint32_t nDataSize, uint32_t nTimestamp, bool bMark,
-            uint32_t nSeqNum, uint32_t arrivalTime);
+    void DecodePayloadAmr(uint8_t* pData, uint32_t nDataSize, uint32_t nTimestamp, uint32_t nSeqNum,
+            uint32_t arrivalTime);
     void DecodePayloadEvs(uint8_t* pData, uint32_t nDataSize, uint32_t nTimeStamp, bool bMark,
             uint32_t nSeqNum, uint32_t arrivalTime);
     bool ProcessCMRForEVS(kRtpPyaloadHeaderMode eEVSPayloadHeaderMode, kEvsCmrCodeType cmr_t,
