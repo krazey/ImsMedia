@@ -80,7 +80,6 @@ ImsMediaResult IAudioPlayerNode::ProcessStart()
         IMLOGE0("[IAudioPlayer] Not able to start AudioPlayer");
     }
 
-    mFirstFrame = false;
     mNodeState = kNodeStateRunning;
     StartThread();
     return RESULT_SUCCESS;
@@ -198,6 +197,7 @@ void* IAudioPlayerNode::run()
     bool bMark = false;
     uint32_t nSeqNum = 0;
     uint64_t nNextTime = ImsMediaTimer::GetTimeInMicroSeconds();
+    bool isFirstFrameReceived = false;
 
     while (true)
     {
@@ -210,23 +210,27 @@ void* IAudioPlayerNode::run()
 
         if (GetData(&subtype, &pData, &nDataSize, &nTimestamp, &bMark, &nSeqNum, &datatype) == true)
         {
+            IMLOGD_PACKET2(IM_PACKET_LOG_AUDIO, "[run] write buffer size[%d], TS[%u]", nDataSize,
+                    nTimestamp);
             if (nDataSize != 0)
             {
-                IMLOGD_PACKET2(IM_PACKET_LOG_AUDIO, "[run] write buffer size[%d], TS[%u]",
-                        nDataSize, nTimestamp);
                 if (mAudioPlayer->onDataFrame(pData, nDataSize))
                 {
                     // send buffering complete message to client
-                    if (mFirstFrame == false)
+                    if (isFirstFrameReceived == false)
                     {
                         mCallback->SendEvent(kImsMediaEventFirstPacketReceived,
                                 reinterpret_cast<uint64_t>(new AudioConfig(*mConfig)));
-                        mFirstFrame = true;
+                        isFirstFrameReceived = true;
                     }
                 }
             }
-
             DeleteData();
+        }
+        else if (isFirstFrameReceived)
+        {
+            IMLOGE0("[run] GetData returned 0 bytes");
+            mAudioPlayer->onDataFrame(nullptr, 0);
         }
 
         nNextTime += 20000;
