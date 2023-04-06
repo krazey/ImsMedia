@@ -167,6 +167,7 @@ private:
     uint32_t mCameraZoom;
     uint32_t mWidth;
     uint32_t mHeight;
+    int32_t mCodecStride;
     uint32_t mFramerate;
     uint32_t mBitrate;
     uint32_t mIntraInterval;

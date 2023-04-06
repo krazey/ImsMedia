@@ -63,9 +63,10 @@ void ImsMediaPauseImageSource::Uninitialize()
     }
 }
 
-bool ImsMediaPauseImageSource::Initialize(int width, int height)
+bool ImsMediaPauseImageSource::Initialize(int width, int height, int stride)
 {
-    IMLOGD2("[ImsMediaPauseImageSource] Init(width:%d, height:%d)", width, height);
+    IMLOGD3("[ImsMediaPauseImageSource] Init(width:%d, height:%d, stride:%d)", width, height,
+            stride);
     mWidth = width;
     mHeight = height;
 
@@ -105,12 +106,12 @@ bool ImsMediaPauseImageSource::Initialize(int width, int height)
      *      (AndroidBitmapFormat)AImageDecoderHeaderInfo_getAndroidBitmapFormat(info);
      */
 
-    size_t stride = AImageDecoder_getMinimumStride(decoder);  // Image decoder does not
+    size_t decStride = AImageDecoder_getMinimumStride(decoder);  // Image decoder does not
     // use padding by default
-    size_t size = height * stride;
+    size_t size = height * decStride;
     int8_t* pixels = reinterpret_cast<int8_t*>(malloc(size));
 
-    result = AImageDecoder_decodeImage(decoder, pixels, stride, size);
+    result = AImageDecoder_decodeImage(decoder, pixels, decStride, size);
     if (result != ANDROID_IMAGE_DECODER_SUCCESS)
     {
         IMLOGE0("[ImsMediaPauseImageSource] error occurred, and the file could not be decoded.");
@@ -119,7 +120,7 @@ bool ImsMediaPauseImageSource::Initialize(int width, int height)
         return false;
     }
 
-    mYuvImageBuffer = ConvertRgbaToYuv(pixels, width, height);
+    mYuvImageBuffer = ConvertRgbaToYuv(pixels, width, height, stride);
 
     AImageDecoder_delete(decoder);
     free(pixels);
@@ -141,7 +142,8 @@ size_t ImsMediaPauseImageSource::GetYuvImage(uint8_t* buffer, size_t len)
         return mBufferSize;
     }
 
-    IMLOGE0("[ImsMediaPauseImageSource] buffer size is smaller. Cannot copy");
+    IMLOGE2("[ImsMediaPauseImageSource] buffer size is smaller. Expected Bufsize[%d], passed[%d]",
+            mBufferSize, len);
     return 0;
 }
 
@@ -200,31 +202,27 @@ const char* ImsMediaPauseImageSource::getImageFilePath()
     return nullptr;
 }
 
-int8_t* ImsMediaPauseImageSource::ConvertRgbaToYuv(int8_t* pixels, int width, int height)
+int8_t* ImsMediaPauseImageSource::ConvertRgbaToYuv(
+        int8_t* pixels, int width, int height, int stride)
 {
     // src array must be integer array, data have no padding alignment
     int32_t* pSrcArray = reinterpret_cast<int32_t*>(pixels);
-    mBufferSize = width * height * 1.5;
+    mBufferSize = stride * height * 1.5;
     int8_t* pDstArray = reinterpret_cast<int8_t*>(malloc(mBufferSize));
     int32_t nYIndex = 0;
-    int32_t nUVIndex = width * height;
-    int32_t r, g, b;
+    int32_t nUVIndex = stride * height;
+    int32_t r, g, b, padLen = stride - width;
     double y, u, v;
 
     for (int32_t j = 0; j < height; j++)
     {
+        int32_t nIndex = width * j;
         for (int32_t i = 0; i < width; i++)
         {
-            int32_t nIndex = width * j + i;
-
-            /*
-             * TODO: Decode alpha
-             * a = (pSrcArray[nIndex] & 0xff000000) >> 24;
-             */
-
             r = (pSrcArray[nIndex] & 0xff0000) >> 16;
             g = (pSrcArray[nIndex] & 0xff00) >> 8;
             b = (pSrcArray[nIndex] & 0xff) >> 0;
+            nIndex++;
 
             // rgb to yuv
             y = 0.257 * r + 0.504 * g + 0.098 * b + 16;
@@ -240,7 +238,19 @@ int8_t* ImsMediaPauseImageSource::ConvertRgbaToYuv(int8_t* pixels, int width, in
                 pDstArray[nUVIndex++] = (uint8_t)((u < 0) ? 0 : ((u > 255) ? 255 : u));
             }
         }
+
+        // Add padding if stride > width
+        if (padLen > 0)
+        {
+            nYIndex += padLen;
+
+            if (j % 2 == 0)
+            {
+                nUVIndex += padLen;
+            }
+        }
     }
 
+    mBufferSize -= padLen;
     return pDstArray;
 }

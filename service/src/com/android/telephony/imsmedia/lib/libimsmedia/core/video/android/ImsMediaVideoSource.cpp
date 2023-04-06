@@ -220,6 +220,26 @@ bool ImsMediaVideoSource::Start()
             return false;
         }
 
+        mCodecStride = mWidth;
+        AMediaFormat* encoderInputFormat = AMediaCodec_getInputFormat(mCodec);
+
+        if (encoderInputFormat != nullptr)
+        {
+            // Check if encoder is initialized with the expected configurations.
+            int32_t width = 0, height = 0;
+            AMediaFormat_getInt32(encoderInputFormat, AMEDIAFORMAT_KEY_WIDTH, &width);
+            AMediaFormat_getInt32(encoderInputFormat, AMEDIAFORMAT_KEY_HEIGHT, &height);
+            AMediaFormat_getInt32(encoderInputFormat, AMEDIAFORMAT_KEY_STRIDE, &mCodecStride);
+            AMediaFormat_delete(encoderInputFormat);
+
+            // TODO: More configuration checks should be added
+            if (mWidth != width || mHeight != height || width > mCodecStride)
+            {
+                IMLOGE0("Encoder doesn't support requested configuration.");
+                return false;
+            }
+        }
+
         err = AMediaCodec_start(mCodec);
 
         if (err != AMEDIA_OK)
@@ -273,7 +293,7 @@ bool ImsMediaVideoSource::Start()
     }
     else if (mVideoMode == kVideoModePauseImage)
     {
-        mPauseImageSource.Initialize(mWidth, mHeight);
+        mPauseImageSource.Initialize(mWidth, mHeight, mCodecStride);
         // start encoder output thread
         if (mCodec != nullptr)
         {
@@ -355,7 +375,6 @@ void ImsMediaVideoSource::onCameraFrame(AImage* pImage)
     {
         size_t buffCapacity = 0;
         uint8_t* encoderBuf = AMediaCodec_getInputBuffer(mCodec, index, &buffCapacity);
-
         if (!encoderBuf || !buffCapacity)
         {
             IMLOGE1("[onCameraFrame] returned null buffer pointer or buffCapacity[%d]",
@@ -363,7 +382,7 @@ void ImsMediaVideoSource::onCameraFrame(AImage* pImage)
             return;
         }
 
-        int32_t width, height, ylen, uvlen;
+        int32_t width, height, ylen, uvlen, result = 0;
         uint8_t *yPlane, *uvPlane;
         AImage_getWidth(pImage, &width);
         AImage_getHeight(pImage, &height);
@@ -384,15 +403,15 @@ void ImsMediaVideoSource::onCameraFrame(AImage* pImage)
             {
                 case ACAMERA_LENS_FACING_FRONT:
                 {
-                    ImsMediaImageRotate::YUV420_SP_Rotate270(
-                            encoderBuf, yPlane, uvPlane, width, height);
+                    result = ImsMediaImageRotate::YUV420_SP_Rotate270(
+                            encoderBuf, buffCapacity, mCodecStride, yPlane, uvPlane, width, height);
                 }
                 break;
 
                 case ACAMERA_LENS_FACING_BACK:
                 {
-                    ImsMediaImageRotate::YUV420_SP_Rotate90(
-                            encoderBuf, yPlane, uvPlane, width, height);
+                    result = ImsMediaImageRotate::YUV420_SP_Rotate90(
+                            encoderBuf, buffCapacity, mCodecStride, yPlane, uvPlane, width, height);
                 }
                 break;
 
@@ -408,8 +427,18 @@ void ImsMediaVideoSource::onCameraFrame(AImage* pImage)
 
         IMLOGD_PACKET1(IM_PACKET_LOG_VIDEO, "[onCameraFrame] queue buffer size[%d]", ylen + uvlen);
 
-        AMediaCodec_queueInputBuffer(
-                mCodec, index, 0, ylen + uvlen, ImsMediaTimer::GetTimeInMicroSeconds(), 0);
+        if (result == 0)
+        {
+            AMediaCodec_queueInputBuffer(
+                    mCodec, index, 0, ylen + uvlen, ImsMediaTimer::GetTimeInMicroSeconds(), 0);
+        }
+        else
+        {
+            IMLOGE5("Camera image resolution[%dx%d]. Encoder resolution[%dx%d] buffer size[%d]",
+                    width, height, mWidth, mHeight, buffCapacity);
+            AMediaCodec_queueInputBuffer(mCodec, index, 0, 0, 0, 0);
+            return;
+        }
     }
     else
     {

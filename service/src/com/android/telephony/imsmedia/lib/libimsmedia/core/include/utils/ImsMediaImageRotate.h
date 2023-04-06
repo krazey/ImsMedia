@@ -24,7 +24,7 @@ class ImsMediaImageRotate
 public:
     /**
      * @brief Rotates YUVImage_420_Planar Image by 90 degrees and flips.
-     * Supports zero pixel and zero row stride.
+     * Supports input row stride equal to width.
      *
      *  Source Image    Destination Image
      *  + - - - - +     + - - - - +
@@ -33,17 +33,18 @@ public:
      *  | 7  8  9 |     | 7  4  1 |
      *  + - - - - +     + - - - - +
      *
-     * @param pbDst Destination buffer with size nDstWidth*nDstHeight*1.5.
+     * @param pOutBuffer Pointer to output buffer with size nDstWidth*nDstHeight*1.5.
      * @param pbSrc Source buffer with size nDstWidth*nDstHeight*1.5.
      * @param nSrcWidth Source Image width.
      * @param nSrcHeight Source Image height.
      */
     static void YUV420_Planar_Rotate90_Flip(
-            uint8_t* pbDst, uint8_t* pbSrc, uint16_t nSrcWidth, uint16_t nSrcHeight);
+            uint8_t* pOutBuffer, uint8_t* pbSrc, uint16_t nSrcWidth, uint16_t nSrcHeight);
 
     /**
      * @brief Rotates YUVImage_420_888 Image by 90 degrees.
-     * Supports zero pixel stride and zero row stride.
+     * Supports input row stride equal to width and adds padding when outputStride is not same
+     * as output image width.
      *
      *  Source Image    Destination Image
      *  + - - - - +     + - - - - +
@@ -52,18 +53,22 @@ public:
      *  | 7  8  9 |     | 9  6  3 |
      *  + - - - - +     + - - - - +
      *
-     * @param pbDst Destination buffer with size nDstWidth*nDstHeight*1.5.
+     * @param pOutBuffer Pointer to output buffer with size outputStride*nDstHeight*1.5.
+     * @param nOutBufSize size of output buffer.
+     * @param outputStride Stride of the output image >= nDstWidth.
      * @param pYPlane Y-Plane data of size nDstWidth*nDstHeight.
      * @param pUVPlane UV-Plane data of size (nDstWidth*nDstHeight)/2.
      * @param nSrcWidth Source Image width.
      * @param nSrcHeight Source Image height.
+     *
+     * @return -1 on error and 0 on success.
      */
-    static void YUV420_SP_Rotate90(uint8_t* pbDst, uint8_t* pYPlane, uint8_t* pUVPlane,
-            uint16_t nSrcWidth, uint16_t nSrcHeight);
+    static int YUV420_SP_Rotate90(uint8_t* pOutBuffer, size_t nOutBufSize, uint16_t outputStride,
+            uint8_t* pYPlane, uint8_t* pUVPlane, uint16_t nSrcWidth, uint16_t nSrcHeight);
 
     /**
      * @brief Rotates YUVImage_420_888 Image by 90 degrees and flip.
-     * Supports zero pixel stride and zero row stride.
+     * Supports input row stride equal to width.
      *
      *  Source Image    Destination Image
      *  + - - - - +     + - - - - +
@@ -72,18 +77,19 @@ public:
      *  | 7  8  9 |     | 7  4  1 |
      *  + - - - - +     + - - - - +
      *
-     * @param pbDst Destination buffer with size nDstWidth*nDstHeight*1.5.
+     * @param pOutBuffer Pointer to output buffer with size nDstWidth*nDstHeight*1.5.
      * @param pYPlane Y-Plane data of size nDstWidth*nDstHeight.
      * @param pUVPlane UV-Plane data of size (nDstWidth*nDstHeight)/2.
      * @param nSrcWidth Source Image width.
      * @param nSrcHeight Source Image height.
      */
-    static void YUV420_SP_Rotate90_Flip(uint8_t* pbDst, uint8_t* pYPlane, uint8_t* pUVPlane,
+    static void YUV420_SP_Rotate90_Flip(uint8_t* pOutBuffer, uint8_t* pYPlane, uint8_t* pUVPlane,
             uint16_t nSrcWidth, uint16_t nSrcHeight);
 
     /**
      * @brief Rotates YUVImage_420_888 Image by 270 degrees.
-     * Supports zero pixel stride and zero row stride.
+     * Supports input row stride equal to width and adds padding when outputStride is not same
+     * as output image width.
      *
      *  Source Image    Destination Image
      *  + - - - - +     + - - - - +
@@ -92,14 +98,18 @@ public:
      *  | 7  8  9 |     | 1  4  7 |
      *  + - - - - +     + - - - - +
      *
-     * @param pbDst Destination buffer with size nDstWidth*nDstHeight*1.5.
+     * @param pOutBuffer Pointer to output buffer with size nDstWidth*nDstHeight*1.5.
+     * @param nOutBufSize size of output buffer.
+     * @param outputStride Stride of the output image >= nDstWidth.
      * @param pYPlane Y-Plane data of size nDstWidth*nDstHeight.
      * @param pUVPlane UV-Plane data of size (nDstWidth*nDstHeight)/2.
      * @param nSrcWidth Source Image width.
      * @param nSrcHeight Source Image height.
+     *
+     * @return -1 on error and 0 on success.
      */
-    static void YUV420_SP_Rotate270(uint8_t* pbDst, uint8_t* pYPlane, uint8_t* pUVPlane,
-            uint16_t nSrcWidth, uint16_t nSrcHeight);
+    static int YUV420_SP_Rotate270(uint8_t* pOutBuffer, size_t nOutBufSize, uint16_t outputStride,
+            uint8_t* pYPlane, uint8_t* pUVPlane, uint16_t nSrcWidth, uint16_t nSrcHeight);
 };
 
 #endif  // IMS_MEDIA_IMAGE_ROTATE

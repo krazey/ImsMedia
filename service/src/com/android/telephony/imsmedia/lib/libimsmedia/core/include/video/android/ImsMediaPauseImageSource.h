@@ -31,10 +31,11 @@ public:
      *
      * @param width width of the video frames.
      * @param height height of the video frames.
+     * @param stride stride of the video frames.
      *
      * @return returns true if the image is loaded and false in case of failure.
      */
-    bool Initialize(int width, int height);
+    bool Initialize(int width, int height, int stride);
 
     /**
      * @brief Image YUV buffer loaded in memory is freed.
@@ -58,7 +59,7 @@ private:
 
     AAsset* getImageAsset();
     const char* getImageFilePath();
-    int8_t* ConvertRgbaToYuv(int8_t* pixels, int width, int height);
+    int8_t* ConvertRgbaToYuv(int8_t* pixels, int width, int height, int stride);
 };
 
 #endif  // IMSMEDIA_JPEG_SOURCE_H_INCLUDED
