@@ -87,7 +87,7 @@ ImsMediaResult IVideoRendererNode::Start()
         mVideoRenderer->SetDeviceOrientation(mDeviceOrientation);
         mVideoRenderer->SetSurface(mWindow);
 
-        if (mVideoRenderer->Start() == false)
+        if (!mVideoRenderer->Start())
         {
             return RESULT_NOT_READY;
         }
@@ -224,7 +224,7 @@ void IVideoRendererNode::ProcessData()
     // check Config String for updating config frame
     nBufferOffset = 0;
     if ((mCodecType == kVideoCodecHevc || mCodecType == kVideoCodecAvc) &&
-            IsConfigFrame(pDataBuff, nDatabufferSize, &nBufferOffset) == true)
+            IsConfigFrame(pDataBuff, nDatabufferSize, &nBufferOffset))
     {
         SaveConfigFrame(pDataBuff + nBufferOffset, nDatabufferSize - nBufferOffset, kConfigSps);
         SaveConfigFrame(pDataBuff + nBufferOffset, nDatabufferSize - nBufferOffset, kConfigPps);
@@ -234,7 +234,7 @@ void IVideoRendererNode::ProcessData()
             SaveConfigFrame(pDataBuff + nBufferOffset, nDatabufferSize - nBufferOffset, kConfigVps);
         }
 
-        if (IsSps(pDataBuff, nDatabufferSize, &nBufferOffset) == true)
+        if (IsSps(pDataBuff, nDatabufferSize, &nBufferOffset))
         {
             IMLOGD_PACKET1(
                     IM_PACKET_LOG_VIDEO, "[ProcessData] parse SPS - nOffset[%d]", nBufferOffset);
@@ -243,7 +243,7 @@ void IVideoRendererNode::ProcessData()
             if (mCodecType == kVideoCodecAvc)
             {
                 if (ImsMediaVideoUtil::ParseAvcSps(pDataBuff + nBufferOffset,
-                            nDatabufferSize - nBufferOffset, &codecConfig) == true)
+                            nDatabufferSize - nBufferOffset, &codecConfig))
                 {
                     CheckResolution(codecConfig.nWidth, codecConfig.nHeight);
                 }
@@ -251,7 +251,7 @@ void IVideoRendererNode::ProcessData()
             else if (mCodecType == kVideoCodecHevc)
             {
                 if (ImsMediaVideoUtil::ParseHevcSps(pDataBuff + nBufferOffset,
-                            nDatabufferSize - nBufferOffset, &codecConfig) == true)
+                            nDatabufferSize - nBufferOffset, &codecConfig))
                 {
                     CheckResolution(codecConfig.nWidth, codecConfig.nHeight);
                 }
@@ -289,7 +289,7 @@ void IVideoRendererNode::ProcessData()
         }
     }
 
-    if (mFirstFrame == false)
+    if (!mFirstFrame)
     {
         IMLOGD0("[ProcessData] notify first frame");
         mFirstFrame = true;
@@ -308,7 +308,8 @@ void IVideoRendererNode::ProcessData()
             subtype = MEDIASUBTYPE_ROT0;
         }
 
-        if (mSubtype != subtype)
+        // rotation changed
+        if (mSubtype != subtype && (subtype >= MEDIASUBTYPE_ROT0 && subtype <= MEDIASUBTYPE_ROT270))
         {
             mSubtype = subtype;
             int degree = 0;
@@ -610,18 +611,17 @@ void IVideoRendererNode::SaveConfigFrame(uint8_t* pbBuffer, uint32_t nBufferSize
                 if (nCurrBuff[0] == 0x00 && nCurrBuff[1] == 0x00 && nCurrBuff[2] == 0x00 &&
                         nCurrBuff[3] == 0x01)
                 {
-                    if (eMode == kConfigSps && bSPSString == false && ((nCurrBuff[4] & 0x1F) == 7))
+                    if (eMode == kConfigSps && !bSPSString && ((nCurrBuff[4] & 0x1F) == 7))
                     {
                         nOffset = nCurrSize;
                         bSPSString = true;
                     }
-                    else if (eMode == kConfigPps && bPPSString == false &&
-                            ((nCurrBuff[4] & 0x1F) == 8))
+                    else if (eMode == kConfigPps && !bPPSString && ((nCurrBuff[4] & 0x1F) == 8))
                     {
                         nOffset = nCurrSize;
                         bPPSString = true;
                     }
-                    else if (bSPSString == true || bPPSString == true)
+                    else if (bSPSString || bPPSString)
                     {
                         nConfigSize = nCurrSize - nOffset;
                         break;
@@ -684,21 +684,20 @@ void IVideoRendererNode::SaveConfigFrame(uint8_t* pbBuffer, uint32_t nBufferSize
                 if (nCurrBuff[0] == 0x00 && nCurrBuff[1] == 0x00 && nCurrBuff[2] == 0x00 &&
                         nCurrBuff[3] == 0x01)
                 {
-                    if (eMode == kConfigVps && bVPSString == false &&
-                            (((nCurrBuff[4] >> 1) & 0x3F) == 32))
+                    if (eMode == kConfigVps && !bVPSString && (((nCurrBuff[4] >> 1) & 0x3F) == 32))
                     {
                         nOffset = nCurrSize;
                         bVPSString = true;
                         break;
                     }
-                    else if (eMode == kConfigSps && bSPSString == false &&
+                    else if (eMode == kConfigSps && !bSPSString &&
                             (((nCurrBuff[4] >> 1) & 0x3F) == 33))
                     {
                         nOffset = nCurrSize;
                         bSPSString = true;
                         break;
                     }
-                    else if (eMode == kConfigPps && bPPSString == false &&
+                    else if (eMode == kConfigPps && !bPPSString &&
                             (((nCurrBuff[4] >> 1) & 0x3F) == 34))
                     {
                         nOffset = nCurrSize;
@@ -711,7 +710,7 @@ void IVideoRendererNode::SaveConfigFrame(uint8_t* pbBuffer, uint32_t nBufferSize
                 nCurrSize++;
             }
 
-            if (bVPSString == true || bSPSString == true || bPPSString == true)
+            if (bVPSString || bSPSString || bPPSString)
             {
                 if ((nBufferSize - nOffset) > 0)
                 {
@@ -783,7 +782,7 @@ bool IVideoRendererNode::RemoveAUDNalUnit(
 
             while (nCurrSize >= 5 && nCnt <= 12)
             {
-                if (bAUDUnit == true &&
+                if (bAUDUnit &&
                         (nCurrBuff[0] == 0x00 && nCurrBuff[1] == 0x00 && nCurrBuff[2] == 0x00 &&
                                 nCurrBuff[3] == 0x01))
                 {
@@ -869,7 +868,7 @@ void IVideoRendererNode::NotifyPeerDimensionChanged()
             {
                 mCallback->SendEvent(kImsMediaEventResolutionChanged, mWidth, mHeight);
             }
-            else
+            else if (mSubtype == MEDIASUBTYPE_ROT90 || mSubtype == MEDIASUBTYPE_ROT270)
             {
                 mCallback->SendEvent(kImsMediaEventResolutionChanged, mHeight, mWidth);
             }
@@ -881,7 +880,7 @@ void IVideoRendererNode::NotifyPeerDimensionChanged()
             {
                 mCallback->SendEvent(kImsMediaEventResolutionChanged, mHeight, mWidth);
             }
-            else
+            else if (mSubtype == MEDIASUBTYPE_ROT90 || mSubtype == MEDIASUBTYPE_ROT270)
             {
                 mCallback->SendEvent(kImsMediaEventResolutionChanged, mWidth, mHeight);
             }
@@ -894,7 +893,7 @@ void IVideoRendererNode::NotifyPeerDimensionChanged()
         {
             mCallback->SendEvent(kImsMediaEventResolutionChanged, mWidth, mHeight);
         }
-        else
+        else if (mSubtype == MEDIASUBTYPE_ROT90 || mSubtype == MEDIASUBTYPE_ROT270)
         {
             mCallback->SendEvent(kImsMediaEventResolutionChanged, mHeight, mWidth);
         }

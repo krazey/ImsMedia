@@ -337,6 +337,7 @@ bool RtpEncoderNode::SetCvoExtension(const int64_t facing, const int64_t orienta
         extensionData[2] = 0;  // padding
         extensionData[3] = 0;  // padding
 
+        mListRtpExtension.clear();
         mListRtpExtension.push_back(RtpHeaderExtensionInfo(
                 RtpHeaderExtensionInfo::kBitPatternForOneByteHeader, 1, extensionData, 4));
         return true;
@@ -522,8 +523,18 @@ bool RtpEncoderNode::ProcessAudioData(ImsMediaSubType subtype, uint8_t* data, ui
 void RtpEncoderNode::ProcessVideoData(
         ImsMediaSubType subtype, uint8_t* data, uint32_t size, uint32_t timestamp, bool mark)
 {
-    IMLOGD_PACKET2(
-            IM_PACKET_LOG_RTP, "[ProcessVideoData] nSize[%d], timestamp[%u]", size, timestamp);
+    IMLOGD_PACKET4(IM_PACKET_LOG_RTP, "[ProcessVideoData] subtype[%d], size[%d], TS[%u], mark[%d]",
+            subtype, size, timestamp, mark);
+
+#ifdef SIMULATE_VIDEO_CVO_UPDATE
+    const int64_t kCameraFacing = kCameraFacingFront;
+    static int64_t sDeviceOrientation = 0;
+    static int64_t sCount = 0;
+    if ((++sCount % 100) == 0)
+    {
+        SetCvoExtension(kCameraFacing, (sDeviceOrientation += 90) % 360);
+    }
+#endif
 
     if (mCvoValue > 0 && mark && subtype == MEDIASUBTYPE_VIDEO_IDR_FRAME)
     {
