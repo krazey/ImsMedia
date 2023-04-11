@@ -119,6 +119,7 @@ public class MainActivity extends AppCompatActivity {
     private static final int[] PACKET_LOSS_RATE = { 1, 3 };
     private static final int[] JITTER_THRESHOLD = { 100, 200 };
     private static final boolean NOTIFY_STATUS = false;
+    private static final int VIDEO_BITRATE_THRESHOLD_BPS = 100000;
 
     private Set<Integer> mSelectedCodecTypes = new HashSet<>();
     private Set<Integer> mSelectedAmrModes = new HashSet<>();
@@ -819,6 +820,28 @@ public class MainActivity extends AppCompatActivity {
             mVideoSession = (ImsVideoSession) session;
             Log.d(TAG, "onOpenSessionSuccess: id=" + mVideoSession.getSessionId());
             mIsVideoSessionOpened = true;
+
+            MediaQualityThreshold threshold = createMediaQualityThreshold(RTP_TIMEOUT,
+                    RTCP_TIMEOUT, RTP_HYSTERESIS_TIME, RTP_PACKET_LOSS_DURATION, PACKET_LOSS_RATE,
+                    JITTER_THRESHOLD, NOTIFY_STATUS);
+            mVideoSession.setMediaQualityThreshold(threshold);
+
+            int rtcpfbTypes = 0;
+            for (int types : mSelectedRtcpFbTypes) {
+                rtcpfbTypes |= types;
+            }
+
+            mVideoConfig = createVideoConfig(mSelectedVideoCodec, mSelectedVideoMode,
+                    mSelectedFramerate, mSelectedBitrate, mSelectedCodecProfile,
+                    mSelectedCodecLevel, mSelectedCameraId, mSelectedCameraZoom,
+                    mSelectedDeviceOrientationDegree,
+                    mSelectedCvoValue, rtcpfbTypes,
+                    getResolutionWidth(mSelectedVideoResolution),
+                    getResolutionHeight(mSelectedVideoResolution));
+
+            Log.d(TAG, "VideoConfig: " + mVideoConfig.toString());
+            mVideoSession.modifySession(mVideoConfig);
+
             runOnUiThread(() -> {
                 if (mIsPreviewSurfaceSet) {
                     mVideoSession.setPreviewSurface(mPreviewSurface);
@@ -827,6 +850,22 @@ public class MainActivity extends AppCompatActivity {
                     mVideoSession.setDisplaySurface(mDisplaySurface);
                 }
             });
+        }
+
+        @Override
+        public void onModifySessionResponse(VideoConfig config,
+                final @ImsMediaSession.SessionOperationResult int result) {
+            Log.d(TAG, "onModifySessionResponse");
+        }
+
+        @Override
+        public void onPeerDimensionChanged(final int width, final int height) {
+            Log.d(TAG, "onPeerDimensionChanged - width=" + width + ", height=" + height);
+        }
+
+        @Override
+        public void notifyBitrate(final int bitrate) {
+            Log.d(TAG, "notifyBitrate - bitrate=" + bitrate);
         }
     }
 
@@ -1517,6 +1556,7 @@ public class MainActivity extends AppCompatActivity {
                 .setRtpPacketLossRate(rtpPacketLossRate)
                 .setRtpJitterMillis(rtpJitterMillis)
                 .setNotifyCurrentStatus(notifyCurrentStatus)
+                .setVideoBitrateBps(VIDEO_BITRATE_THRESHOLD_BPS)
                 .build();
     }
 
@@ -1857,11 +1897,6 @@ public class MainActivity extends AppCompatActivity {
             mAudioConfig = determineAudioConfig(mLocalDeviceInfo, mRemoteDeviceInfo);
             Log.d(TAG, "AudioConfig: " + mAudioConfig.toString());
 
-            int rtcpfbTypes = 0;
-            for (int types : mSelectedRtcpFbTypes) {
-                rtcpfbTypes |= types;
-            }
-
             RtpAudioSessionCallback sessionAudioCallback = new RtpAudioSessionCallback();
             mImsMediaManager.openSession(mAudioRtp, mAudioRtcp,
                     ImsMediaSession.SESSION_TYPE_AUDIO,
@@ -1870,19 +1905,10 @@ public class MainActivity extends AppCompatActivity {
                     + mRemoteDeviceInfo.getAudioRtpPort());
 
             if (mVideoEnabled) {
-                mVideoConfig = createVideoConfig(mSelectedVideoCodec, mSelectedVideoMode,
-                        mSelectedFramerate, mSelectedBitrate, mSelectedCodecProfile,
-                        mSelectedCodecLevel, mSelectedCameraId, mSelectedCameraZoom,
-                        mSelectedDeviceOrientationDegree,
-                        mSelectedCvoValue, rtcpfbTypes,
-                        getResolutionWidth(mSelectedVideoResolution),
-                        getResolutionHeight(mSelectedVideoResolution));
-                Log.d(TAG, "VideoConfig: " + mVideoConfig.toString());
-
                 RtpVideoSessionCallback sessionVideoCallback = new RtpVideoSessionCallback();
                 mImsMediaManager.openSession(mVideoRtp, mVideoRtcp,
                         ImsMediaSession.SESSION_TYPE_VIDEO,
-                        mVideoConfig, mExecutor, sessionVideoCallback);
+                        null, mExecutor, sessionVideoCallback);
                 Log.d(TAG, "openSession(): video=" + mRemoteDeviceInfo.getInetAddress() + ":"
                         + mRemoteDeviceInfo.getVideoRtpPort());
             }

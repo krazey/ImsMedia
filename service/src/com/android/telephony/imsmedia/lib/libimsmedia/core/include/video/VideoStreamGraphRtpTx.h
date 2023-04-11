@@ -29,6 +29,7 @@ public:
     virtual ImsMediaResult create(RtpConfig* config);
     virtual ImsMediaResult update(RtpConfig* config);
     virtual ImsMediaResult start();
+    virtual bool setMediaQualityThreshold(MediaQualityThreshold* threshold);
     void setSurface(ANativeWindow* surface);
     virtual bool OnEvent(int32_t type, uint64_t param1, uint64_t param2);
 

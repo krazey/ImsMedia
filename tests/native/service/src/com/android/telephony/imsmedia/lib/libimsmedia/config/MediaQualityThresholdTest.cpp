@@ -26,6 +26,7 @@ const int32_t kRtpPacketLossDurationMillis = 5000;
 const std::vector<int32_t> kRtpPacketLossRate = {3, 5};
 const std::vector<int32_t> kRtpJitterMillis = {100, 200};
 const bool kNotifyCurrentStatus = false;
+const int32_t kVideoBitrateBps = 100000;
 
 class MediaQualityThresholdTest : public ::testing::Test
 {
@@ -42,6 +43,7 @@ protected:
         threshold.setRtpPacketLossRate(kRtpPacketLossRate);
         threshold.setRtpJitterMillis(kRtpJitterMillis);
         threshold.setNotifyCurrentStatus(kNotifyCurrentStatus);
+        threshold.setVideoBitrateBps(kVideoBitrateBps);
     }
 
     virtual void TearDown() override {}
@@ -56,6 +58,7 @@ TEST_F(MediaQualityThresholdTest, TestGetterSetter)
     EXPECT_EQ(threshold.getRtpPacketLossRate(), kRtpPacketLossRate);
     EXPECT_EQ(threshold.getRtpJitterMillis(), kRtpJitterMillis);
     EXPECT_EQ(threshold.getNotifyCurrentStatus(), kNotifyCurrentStatus);
+    EXPECT_EQ(threshold.getVideoBitrateBps(), kVideoBitrateBps);
 }
 
 TEST_F(MediaQualityThresholdTest, TestParcel)
@@ -85,6 +88,7 @@ TEST_F(MediaQualityThresholdTest, TestEqual)
     threshold2.setRtpPacketLossRate(kRtpPacketLossRate);
     threshold2.setRtpJitterMillis(kRtpJitterMillis);
     threshold2.setNotifyCurrentStatus(kNotifyCurrentStatus);
+    threshold2.setVideoBitrateBps(kVideoBitrateBps);
     EXPECT_EQ(threshold, threshold2);
 }
 
@@ -98,6 +102,7 @@ TEST_F(MediaQualityThresholdTest, TestNotEqual)
     threshold2.setRtpPacketLossRate(kRtpPacketLossRate);
     threshold2.setRtpJitterMillis(kRtpJitterMillis);
     threshold2.setNotifyCurrentStatus(kNotifyCurrentStatus);
+    threshold2.setVideoBitrateBps(kVideoBitrateBps);
 
     MediaQualityThreshold threshold3;
     threshold3.setRtpInactivityTimerMillis(kRtpInactivityTimerMillis);
@@ -107,6 +112,7 @@ TEST_F(MediaQualityThresholdTest, TestNotEqual)
     threshold3.setRtpPacketLossRate(std::vector<int32_t>{5, 10});
     threshold3.setRtpJitterMillis(kRtpJitterMillis);
     threshold3.setNotifyCurrentStatus(kNotifyCurrentStatus);
+    threshold3.setVideoBitrateBps(kVideoBitrateBps);
 
     EXPECT_NE(threshold, threshold2);
     EXPECT_NE(threshold, threshold3);

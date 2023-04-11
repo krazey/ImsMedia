@@ -58,6 +58,8 @@ public:
     std::vector<int32_t> getRtpJitterMillis() const;
     void setNotifyCurrentStatus(bool status);
     bool getNotifyCurrentStatus() const;
+    void setVideoBitrateBps(int32_t bitrate);
+    int32_t getVideoBitrateBps() const;
 
 private:
     /** The timer in milliseconds for monitoring RTP inactivity */
@@ -85,6 +87,13 @@ private:
      * of the current status.
      */
     bool mNotifyCurrentStatus;
+
+    /**
+     * The receiving bitrate threshold in bps for video call. If it is not zero, bitrate
+     * notification event is triggered when the receiving frame bitrate is less than the
+     * threshold.
+     */
+    int mVideoBitrateBps;
 };
 
 }  // namespace imsmedia

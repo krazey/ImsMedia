@@ -165,14 +165,14 @@ public class VideoListenerTest extends ImsMediaTest {
     }
 
     @Test
-    public void testEventPacketLossInd() throws RemoteException {
-        Parcel parcel = createParcel(VideoSession.EVENT_PACKET_LOSS_IND,
+    public void testEventNotifyBitrateInd() throws RemoteException {
+        Parcel parcel = createParcel(VideoSession.EVENT_NOTIFY_BITRATE_IND,
                 ImsMediaSession.PACKET_TYPE_RTCP);
         mVideoListener.onMessage(parcel);
         processAllMessages();
         parcel.recycle();
         verify(mMockIImsVideoSessionCallback,
-                times(1)).notifyPacketLoss(eq(ImsMediaSession.PACKET_TYPE_RTCP));
+                times(1)).notifyBitrate(eq(ImsMediaSession.PACKET_TYPE_RTCP));
     }
 
     @Test

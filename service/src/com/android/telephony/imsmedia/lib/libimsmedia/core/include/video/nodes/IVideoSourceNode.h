@@ -46,6 +46,14 @@ public:
      * @param window surface buffer to update
      */
     void UpdateSurface(ANativeWindow* window);
+
+    /**
+     * @brief Set the bitrate threshold to notify the indication when the encoding video bitrate is
+     * less than the threshold values
+     *
+     * @param bitrate The video encoding bitrate in bps unit
+     */
+    void SetBitrateThreshold(int32_t bitrate);
     // callback from ImsMediaVideoSource
     virtual void OnUplinkEvent(uint8_t* pBitstream, uint32_t nSize, int64_t pstUsec, uint32_t flag);
     virtual void OnEvent(int32_t type, int32_t param1, int32_t param2);
@@ -68,6 +76,8 @@ protected:
     android::String8 mImagePath;
     uint32_t mDeviceOrientation;
     ANativeWindow* mWindow;
+    int32_t mMinBitrateThreshold;
+    bool mBitrateNotified;
 };
 
 #endif

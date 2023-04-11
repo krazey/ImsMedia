@@ -35,6 +35,6 @@ oneway interface IImsVideoSessionCallback {
     void onPeerDimensionChanged(in int width, in int height);
     void onHeaderExtensionReceived(in List<RtpHeaderExtension> extensions);
     void notifyMediaInactivity(int packetType);
-    void notifyPacketLoss(int packetLossPercentage);
+    void notifyBitrate(int bitate);
     void notifyVideoDataUsage(long bytes);
 }

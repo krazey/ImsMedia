@@ -137,7 +137,7 @@ public:
      *
      * @param bitrate The bitrate in bps units
      */
-    void changeBitrate(const uint32_t bitrate);
+    bool changeBitrate(const uint32_t bitrate);
 
     /**
      * @brief Request a new IDR frame to the codec output streaming

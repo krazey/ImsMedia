@@ -448,14 +448,14 @@ void ImsMediaVideoSource::onCameraFrame(AImage* pImage)
     processOutputBuffer();
 }
 
-void ImsMediaVideoSource::changeBitrate(const uint32_t bitrate)
+bool ImsMediaVideoSource::changeBitrate(const uint32_t bitrate)
 {
     IMLOGD1("[changeBitrate] bitrate[%d]", bitrate);
     std::lock_guard<std::mutex> guard(mMutex);
 
     if (mStopped)
     {
-        return;
+        return false;
     }
 
     AMediaFormat* params = AMediaFormat_new();
@@ -465,7 +465,10 @@ void ImsMediaVideoSource::changeBitrate(const uint32_t bitrate)
     if (status != AMEDIA_OK)
     {
         IMLOGE1("[changeBitrate] error[%d]", status);
+        return false;
     }
+
+    return true;
 }
 
 void ImsMediaVideoSource::requestIdrFrame()

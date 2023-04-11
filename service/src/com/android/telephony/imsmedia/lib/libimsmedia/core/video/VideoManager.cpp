@@ -407,12 +407,7 @@ void VideoManager::ResponseHandler::processEvent(
             // TODO : add implementation
             break;
         case kVideoMediaInactivityInd:
-            parcel.writeInt32(event);
-            parcel.writeInt32(static_cast<int>(paramA));  // type
-            parcel.writeInt32(static_cast<int>(paramB));  // duration
-            VideoManager::getInstance()->sendResponse(sessionId, parcel);
-            break;
-        case kVideoPacketLossInd:
+        case kVideoBitrateInd:
             parcel.writeInt32(event);
             parcel.writeInt32(static_cast<int>(paramA));
             VideoManager::getInstance()->sendResponse(sessionId, parcel);

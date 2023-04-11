@@ -151,12 +151,12 @@ public class VideoSessionCallback extends ImsMediaManager.SessionCallback {
         }
 
         @Override
-        public void notifyPacketLoss(final int packetLossPercentage) {
+        public void notifyBitrate(final int bitrate) {
             if (mLocalCallback == null) return;
 
             final long callingIdentity = Binder.clearCallingIdentity();
             try {
-                mExecutor.execute(() -> mLocalCallback.notifyPacketLoss(packetLossPercentage));
+                mExecutor.execute(() -> mLocalCallback.notifyBitrate(bitrate));
             } finally {
                 restoreCallingIdentity(callingIdentity);
             }
@@ -234,13 +234,12 @@ public class VideoSessionCallback extends ImsMediaManager.SessionCallback {
     }
 
     /**
-     * Notifies RTP packet loss observed as per thresholds set by
+     * Notifies when the video bitrate decreased below the threshold set by
      * setMediaQualityThreshold() API
      *
-     * @param packetLossPercentage percentage of packet loss calculated
-     * over the duration
+     * @param bitrate The bitrate of sending video packets in bps unit
      */
-    public void notifyPacketLoss(final int packetLossPercentage) {
+    public void notifyBitrate(final int bitrate) {
         // Base Implementation
     }
 

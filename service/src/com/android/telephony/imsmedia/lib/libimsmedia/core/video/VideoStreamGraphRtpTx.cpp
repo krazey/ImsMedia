@@ -234,6 +234,23 @@ ImsMediaResult VideoStreamGraphRtpTx::start()
     return RESULT_SUCCESS;
 }
 
+bool VideoStreamGraphRtpTx::setMediaQualityThreshold(MediaQualityThreshold* threshold)
+{
+    if (threshold != nullptr)
+    {
+        BaseNode* node = findNode(kNodeIdVideoSource);
+
+        if (node != nullptr)
+        {
+            IVideoSourceNode* source = reinterpret_cast<IVideoSourceNode*>(node);
+            source->SetBitrateThreshold(threshold->getVideoBitrateBps());
+            return true;
+        }
+    }
+
+    return false;
+}
+
 void VideoStreamGraphRtpTx::setSurface(ANativeWindow* surface)
 {
     IMLOGI1("[setSurface] state[%d]", mGraphState);

@@ -45,6 +45,8 @@ IVideoSourceNode::IVideoSourceNode(BaseSessionCallback* callback) :
     mImagePath = "";
     mDeviceOrientation = 0;
     mWindow = nullptr;
+    mMinBitrateThreshold = 0;
+    mBitrateNotified = false;
 }
 
 IVideoSourceNode::~IVideoSourceNode() {}
@@ -83,12 +85,13 @@ ImsMediaResult IVideoSourceNode::Start()
 
         mVideoSource->SetSurface(mWindow);
 
-        if (mVideoSource->Start() == false)
+        if (!mVideoSource->Start())
         {
             return RESULT_NOT_READY;
         }
 
         mVideoSource->SetDeviceOrientation(mDeviceOrientation);
+        mBitrateNotified = false;
     }
 
     mNodeState = kNodeStateRunning;
@@ -275,6 +278,12 @@ void IVideoSourceNode::OnUplinkEvent(
     }
 }
 
+void IVideoSourceNode::SetBitrateThreshold(int32_t bitrate)
+{
+    IMLOGD1("[SetBitrateThreshold] bitrate[%d]", bitrate);
+    mMinBitrateThreshold = bitrate;
+}
+
 void IVideoSourceNode::OnEvent(int32_t type, int32_t param1, int32_t param2)
 {
     IMLOGD3("[OnEvent] type[%d], param1[%d], param2[%d]", type, param1, param2);
@@ -296,7 +305,15 @@ void IVideoSourceNode::OnEvent(int32_t type, int32_t param1, int32_t param2)
         case kRequestVideoBitrateChange:
             if (mVideoSource != nullptr)
             {
-                mVideoSource->changeBitrate(param1);
+                if (mVideoSource->changeBitrate(param1))
+                {
+                    if (mMinBitrateThreshold != 0 && param1 <= mMinBitrateThreshold &&
+                            mCallback != nullptr && !mBitrateNotified)
+                    {
+                        mCallback->SendEvent(kImsMediaEventNotifyVideoLowestBitrate, param1);
+                        mBitrateNotified = true;
+                    }
+                }
             }
             break;
         case kRequestVideoIdrFrame:

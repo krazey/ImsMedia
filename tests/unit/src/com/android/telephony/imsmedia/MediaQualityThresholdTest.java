@@ -37,6 +37,7 @@ public class MediaQualityThresholdTest {
     private static final int[] PACKET_LOSS_RATE = { 1, 3 };
     private static final int[] JITTER_THRESHOLD = { 100, 200 };
     private static final boolean NOTIFY_STATUS = false;
+    private static final int VIDEO_BITRATE_BPS = 100000;
 
     @Test
     public void testConstructorAndGetters() {
@@ -48,6 +49,7 @@ public class MediaQualityThresholdTest {
         assertThat(Arrays.equals(threshold.getRtpPacketLossRate(), PACKET_LOSS_RATE)).isTrue();
         assertThat(Arrays.equals(threshold.getRtpJitterMillis(), JITTER_THRESHOLD)).isTrue();
         assertThat(threshold.getNotifyCurrentStatus()).isEqualTo(NOTIFY_STATUS);
+        assertThat(threshold.getVideoBitrateBps()).isEqualTo(VIDEO_BITRATE_BPS);
     }
 
     @Test
@@ -82,6 +84,7 @@ public class MediaQualityThresholdTest {
                 .setRtpPacketLossRate(PACKET_LOSS_RATE)
                 .setRtpJitterMillis(JITTER_THRESHOLD)
                 .setNotifyCurrentStatus(NOTIFY_STATUS)
+                .setVideoBitrateBps(VIDEO_BITRATE_BPS)
                 .build();
 
         assertThat(threshold1).isNotEqualTo(threshold2);
@@ -94,6 +97,7 @@ public class MediaQualityThresholdTest {
                 .setRtpPacketLossRate(PACKET_LOSS_RATE)
                 .setRtpJitterMillis(JITTER_THRESHOLD)
                 .setNotifyCurrentStatus(NOTIFY_STATUS)
+                .setVideoBitrateBps(VIDEO_BITRATE_BPS)
                 .build();
 
         assertThat(threshold1).isNotEqualTo(threshold3);
@@ -106,6 +110,7 @@ public class MediaQualityThresholdTest {
                 .setRtpPacketLossRate(PACKET_LOSS_RATE)
                 .setRtpJitterMillis(JITTER_THRESHOLD)
                 .setNotifyCurrentStatus(NOTIFY_STATUS)
+                .setVideoBitrateBps(VIDEO_BITRATE_BPS)
                 .build();
 
         assertThat(threshold1).isNotEqualTo(threshold4);
@@ -119,6 +124,7 @@ public class MediaQualityThresholdTest {
                 .setRtpPacketLossRate(PACKET_LOSS_RATE)
                 .setRtpJitterMillis(JITTER_THRESHOLD)
                 .setNotifyCurrentStatus(NOTIFY_STATUS)
+                .setVideoBitrateBps(VIDEO_BITRATE_BPS)
                 .build();
 
         assertThat(threshold1).isNotEqualTo(threshold5);
@@ -133,6 +139,20 @@ public class MediaQualityThresholdTest {
                 .setRtpPacketLossRate(PACKET_LOSS_RATE)
                 .setRtpJitterMillis(JITTER_THRESHOLD)
                 .setNotifyCurrentStatus(NOTIFY_STATUS)
+                .setVideoBitrateBps(VIDEO_BITRATE_BPS)
+                .build();
+    }
+
+    static MediaQualityThreshold createMediaQualityThresholdForHal() {
+        return new MediaQualityThreshold.Builder()
+                .setRtpInactivityTimerMillis(RTP_TIMEOUT)
+                .setRtcpInactivityTimerMillis(RTCP_TIMEOUT)
+                .setRtpHysteresisTimeInMillis(RTP_HYSTERESIS_TIME)
+                .setRtpPacketLossDurationMillis(RTP_PACKET_LOSS_DURATION)
+                .setRtpPacketLossRate(PACKET_LOSS_RATE)
+                .setRtpJitterMillis(JITTER_THRESHOLD)
+                .setNotifyCurrentStatus(NOTIFY_STATUS)
+                .setVideoBitrateBps(0)
                 .build();
     }
 }

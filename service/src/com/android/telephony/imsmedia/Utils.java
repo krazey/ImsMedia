@@ -392,6 +392,7 @@ public final class Utils {
                 .setRtpPacketLossRate(in.rtpPacketLossRate)
                 .setRtpJitterMillis(in.rtpJitterMillis)
                 .setNotifyCurrentStatus(in.notifyCurrentStatus)
+                .setVideoBitrateBps(0)
                 .build();
     }
 

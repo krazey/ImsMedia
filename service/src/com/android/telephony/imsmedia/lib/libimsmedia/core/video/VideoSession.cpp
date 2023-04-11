@@ -106,6 +106,7 @@ ImsMediaResult VideoSession::startGraph(RtpConfig* config)
 
     if (mGraphRtpTx != nullptr)
     {
+        mGraphRtpTx->setMediaQualityThreshold(&mThreshold);
         ret = mGraphRtpTx->update(config);
 
         if (ret != RESULT_SUCCESS)
@@ -135,6 +136,7 @@ ImsMediaResult VideoSession::startGraph(RtpConfig* config)
                 if (pConfig->getMediaDirection() == RtpConfig::MEDIA_DIRECTION_SEND_ONLY ||
                         pConfig->getMediaDirection() == RtpConfig::MEDIA_DIRECTION_SEND_RECEIVE)
                 {
+                    mGraphRtpTx->setMediaQualityThreshold(&mThreshold);
                     ret = mGraphRtpTx->start();
                 }
             }
@@ -264,6 +266,10 @@ void VideoSession::onEvent(int32_t type, uint64_t param1, uint64_t param2)
         case kImsMediaEventNotifyVideoDataUsage:
             ImsMediaEventHandler::SendEvent(
                     "VIDEO_RESPONSE_EVENT", kVideoDataUsageInd, mSessionId, param1, param2);
+            break;
+        case kImsMediaEventNotifyVideoLowestBitrate:
+            ImsMediaEventHandler::SendEvent(
+                    "VIDEO_RESPONSE_EVENT", kVideoBitrateInd, mSessionId, param1, param2);
             break;
         case kRequestVideoCvoUpdate:
         case kRequestVideoBitrateChange:

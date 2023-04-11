@@ -285,12 +285,12 @@ public class VideoSessionTest extends ImsMediaTest {
     @Test
     public void testPacketLossInd() {
         // Receive Packet Loss
-        Utils.sendMessage(mHandler, VideoSession.EVENT_PACKET_LOSS_IND, PACKET_LOSS, UNUSED);
+        Utils.sendMessage(mHandler, VideoSession.EVENT_NOTIFY_BITRATE_IND, PACKET_LOSS, UNUSED);
         processAllMessages();
         try {
-            verify(mCallback, times(1)).notifyPacketLoss(eq(PACKET_LOSS));
+            verify(mCallback, times(1)).notifyBitrate(eq(PACKET_LOSS));
         } catch (RemoteException e) {
-            fail("Failed to notify notifyPacketLoss: " + e);
+            fail("Failed to notify notifyBitrate: " + e);
         }
     }
 

@@ -34,6 +34,7 @@ MediaQualityThreshold::MediaQualityThreshold()
     mRtpPacketLossRate.clear();
     mRtpJitterMillis.clear();
     mNotifyCurrentStatus = false;
+    mVideoBitrateBps = 0;
 }
 
 MediaQualityThreshold::MediaQualityThreshold(const MediaQualityThreshold& threshold)
@@ -45,6 +46,7 @@ MediaQualityThreshold::MediaQualityThreshold(const MediaQualityThreshold& thresh
     mRtpPacketLossRate = threshold.mRtpPacketLossRate;
     mRtpJitterMillis = threshold.mRtpJitterMillis;
     mNotifyCurrentStatus = threshold.mNotifyCurrentStatus;
+    mVideoBitrateBps = threshold.mVideoBitrateBps;
 }
 
 MediaQualityThreshold::~MediaQualityThreshold() {}
@@ -60,6 +62,7 @@ MediaQualityThreshold& MediaQualityThreshold::operator=(const MediaQualityThresh
         mRtpPacketLossRate = threshold.mRtpPacketLossRate;
         mRtpJitterMillis = threshold.mRtpJitterMillis;
         mNotifyCurrentStatus = threshold.mNotifyCurrentStatus;
+        mVideoBitrateBps = threshold.mVideoBitrateBps;
     }
     return *this;
 }
@@ -72,7 +75,8 @@ bool MediaQualityThreshold::operator==(const MediaQualityThreshold& threshold) c
             mRtpPacketLossDurationMillis == threshold.mRtpPacketLossDurationMillis &&
             mRtpPacketLossRate == threshold.mRtpPacketLossRate &&
             mRtpJitterMillis == threshold.mRtpJitterMillis &&
-            mNotifyCurrentStatus == threshold.mNotifyCurrentStatus);
+            mNotifyCurrentStatus == threshold.mNotifyCurrentStatus &&
+            mVideoBitrateBps == threshold.mVideoBitrateBps);
 }
 
 bool MediaQualityThreshold::operator!=(const MediaQualityThreshold& threshold) const
@@ -83,7 +87,8 @@ bool MediaQualityThreshold::operator!=(const MediaQualityThreshold& threshold) c
             mRtpPacketLossDurationMillis != threshold.mRtpPacketLossDurationMillis ||
             mRtpPacketLossRate != threshold.mRtpPacketLossRate ||
             mRtpJitterMillis != threshold.mRtpJitterMillis ||
-            mNotifyCurrentStatus != threshold.mNotifyCurrentStatus);
+            mNotifyCurrentStatus != threshold.mNotifyCurrentStatus ||
+            mVideoBitrateBps != threshold.mVideoBitrateBps);
 }
 
 status_t MediaQualityThreshold::writeToParcel(Parcel* out) const
@@ -113,6 +118,7 @@ status_t MediaQualityThreshold::writeToParcel(Parcel* out) const
     }
 
     out->writeInt32(mNotifyCurrentStatus ? 1 : 0);
+    out->writeInt32(mVideoBitrateBps);
     return NO_ERROR;
 }
 
@@ -149,7 +155,7 @@ status_t MediaQualityThreshold::readFromParcel(const Parcel* in)
     int32_t value;
     in->readInt32(&value);
     value == 1 ? mNotifyCurrentStatus = true : mNotifyCurrentStatus = false;
-
+    in->readInt32(&mVideoBitrateBps);
     return NO_ERROR;
 }
 
@@ -221,6 +227,16 @@ void MediaQualityThreshold::setNotifyCurrentStatus(bool status)
 bool MediaQualityThreshold::getNotifyCurrentStatus() const
 {
     return mNotifyCurrentStatus;
+}
+
+void MediaQualityThreshold::setVideoBitrateBps(int32_t bitrate)
+{
+    mVideoBitrateBps = bitrate;
+}
+
+int32_t MediaQualityThreshold::getVideoBitrateBps() const
+{
+    return mVideoBitrateBps;
 }
 
 }  // namespace imsmedia

@@ -52,6 +52,7 @@ enum kImsMediaEventType
     kImsMediaEventResolutionChanged,
     kImsMediaEventNotifyVideoDataUsage,
     kImsMediaEventNotifyRttReceived,
+    kImsMediaEventNotifyVideoLowestBitrate,
 };
 
 // Internal Request Event
@@ -331,7 +332,7 @@ enum ImsMediaVideoMsgResponse
     kVideoPeerDimensionChanged,
     kVideoRtpHeaderExtensionInd,
     kVideoMediaInactivityInd,
-    kVideoPacketLossInd,
+    kVideoBitrateInd,
     kVideoDataUsageInd,
     kVideoSessionClosed,
 };

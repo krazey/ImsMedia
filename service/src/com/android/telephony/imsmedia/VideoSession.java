@@ -59,7 +59,7 @@ public final class VideoSession extends IImsVideoSession.Stub implements IMediaS
     public static final int EVENT_PEER_DIMENSION_CHANGED = 205;
     public static final int EVENT_RTP_HEADER_EXTENSION_IND = 206;
     public static final int EVENT_MEDIA_INACTIVITY_IND = 207;
-    public static final int EVENT_PACKET_LOSS_IND = 208;
+    public static final int EVENT_NOTIFY_BITRATE_IND = 208;
     public static final int EVENT_VIDEO_DATA_USAGE_IND = 209;
     public static final int EVENT_SESSION_CLOSED = 210;
 
@@ -233,8 +233,8 @@ public final class VideoSession extends IImsVideoSession.Stub implements IMediaS
                 case EVENT_MEDIA_INACTIVITY_IND:
                     handleNotifyMediaInactivityInd(msg.arg1);
                     break;
-                case EVENT_PACKET_LOSS_IND:
-                    handleNotifyPacketLossInd(msg.arg1);
+                case EVENT_NOTIFY_BITRATE_IND:
+                    handleNotifyBitrateInd(msg.arg1);
                     break;
                 case EVENT_VIDEO_DATA_USAGE_IND:
                     handleNotifyVideoDataUsage((long) msg.obj);
@@ -344,9 +344,9 @@ public final class VideoSession extends IImsVideoSession.Stub implements IMediaS
         }
     }
 
-    private void handleNotifyPacketLossInd(int percentage) {
+    private void handleNotifyBitrateInd(int percentage) {
         try {
-            mCallback.notifyPacketLoss(percentage);
+            mCallback.notifyBitrate(percentage);
         } catch (RemoteException e) {
             Log.e(TAG, "Failed to notify packet loss: " + e);
         }

@@ -259,7 +259,8 @@ public class AudioOffloadTest extends ImsMediaTest {
     @Test
     public void testSetMediaQualityThreshold() {
         // Set Media Quality Threshold
-        MediaQualityThreshold threshold = MediaQualityThresholdTest.createMediaQualityThreshold();
+        MediaQualityThreshold threshold =
+                MediaQualityThresholdTest.createMediaQualityThresholdForHal();
         audioSession.setMediaQualityThreshold(threshold);
         processAllMessages();
         try {

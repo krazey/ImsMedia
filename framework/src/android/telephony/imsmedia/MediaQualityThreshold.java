@@ -38,6 +38,7 @@ public final class MediaQualityThreshold implements Parcelable {
     private final int[] mRtpPacketLossRate;
     private final int[] mRtpJitterMillis;
     private final boolean mNotifyCurrentStatus;
+    private final int mVideoBitrateBps;
 
     /** @hide **/
     public MediaQualityThreshold(Parcel in) {
@@ -60,6 +61,7 @@ public final class MediaQualityThreshold implements Parcelable {
             mRtpJitterMillis[i] = in.readInt();
         }
         mNotifyCurrentStatus = in.readBoolean();
+        mVideoBitrateBps = in.readInt();
     }
 
     /** @hide **/
@@ -74,6 +76,7 @@ public final class MediaQualityThreshold implements Parcelable {
         mRtpJitterMillis = Arrays.copyOf(builder.mRtpJitterMillis,
             builder.mRtpJitterMillis.length);
         mNotifyCurrentStatus = builder.mNotifyCurrentStatus;
+        mVideoBitrateBps = builder.mVideoBitrateBps;
     }
 
     /** @hide **/
@@ -111,6 +114,10 @@ public final class MediaQualityThreshold implements Parcelable {
         return mNotifyCurrentStatus;
     }
 
+    public int getVideoBitrateBps() {
+        return mVideoBitrateBps;
+    }
+
     @NonNull
     @Override
     public String toString() {
@@ -122,6 +129,7 @@ public final class MediaQualityThreshold implements Parcelable {
             + ", mRtpPacketLossRate=" + Arrays.toString(mRtpPacketLossRate)
             + ", mRtpJitterMillis=" + Arrays.toString(mRtpJitterMillis)
             + ", mNotifyCurrentStatus=" + mNotifyCurrentStatus
+            + ", mVideoBitrateBps=" + mVideoBitrateBps
             + " }";
     }
 
@@ -130,7 +138,7 @@ public final class MediaQualityThreshold implements Parcelable {
         return Objects.hash(Arrays.hashCode(mRtpInactivityTimerMillis), mRtcpInactivityTimerMillis,
             mRtpHysteresisTimeInMillis, mRtpPacketLossDurationMillis,
             Arrays.hashCode(mRtpPacketLossRate), Arrays.hashCode(mRtpJitterMillis),
-            mNotifyCurrentStatus);
+            mNotifyCurrentStatus, mVideoBitrateBps);
     }
 
     @Override
@@ -151,7 +159,8 @@ public final class MediaQualityThreshold implements Parcelable {
             && mRtpPacketLossDurationMillis == s.mRtpPacketLossDurationMillis
             && Arrays.equals(mRtpPacketLossRate, s.mRtpPacketLossRate)
             && Arrays.equals(mRtpJitterMillis, s.mRtpJitterMillis)
-            && mNotifyCurrentStatus == s.mNotifyCurrentStatus);
+            && mNotifyCurrentStatus == s.mNotifyCurrentStatus
+            && mVideoBitrateBps == s.mVideoBitrateBps);
     }
 
     /**
@@ -172,6 +181,7 @@ public final class MediaQualityThreshold implements Parcelable {
         dest.writeIntArray(mRtpPacketLossRate);
         dest.writeIntArray(mRtpJitterMillis);
         dest.writeBoolean(mNotifyCurrentStatus);
+        dest.writeInt(mVideoBitrateBps);
     }
 
     public static final @NonNull Parcelable.Creator<MediaQualityThreshold>
@@ -198,6 +208,7 @@ public final class MediaQualityThreshold implements Parcelable {
         private int[] mRtpPacketLossRate;
         private int[] mRtpJitterMillis;
         private boolean mNotifyCurrentStatus;
+        private int mVideoBitrateBps;
 
         /**
          * Default constructor for Builder.
@@ -209,6 +220,7 @@ public final class MediaQualityThreshold implements Parcelable {
             mRtpPacketLossDurationMillis = 0;
             mRtpPacketLossRate = new int[0];
             mRtpJitterMillis = new int[0];
+            mVideoBitrateBps = 0;
         }
 
         /**
@@ -299,6 +311,16 @@ public final class MediaQualityThreshold implements Parcelable {
          */
         public @NonNull Builder setNotifyCurrentStatus(final boolean notify) {
             this.mNotifyCurrentStatus = notify;
+            return this;
+        }
+
+        /**
+         * The receiving bitrate threshold in bps for video call. If it is not zero, bitrate
+         * notification event is triggered when the receiving frame bitrate is less than the
+         * threshold.
+         */
+        public @NonNull Builder setVideoBitrateBps(final int bitrate) {
+            this.mVideoBitrateBps = bitrate;
             return this;
         }
 
