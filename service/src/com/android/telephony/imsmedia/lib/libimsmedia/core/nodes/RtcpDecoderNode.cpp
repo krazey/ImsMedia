@@ -88,7 +88,10 @@ void RtcpDecoderNode::OnDataFromFrontNode(ImsMediaSubType subtype, uint8_t* pDat
     IMLOGD_PACKET6(IM_PACKET_LOG_RTCP,
             "[OnMediaDataInd] media[%d] subtype[%d], Size[%d], TS[%u], Mark[%d], Seq[%d]",
             mMediaType, subtype, nDataSize, nTimeStamp, bMark, nSeqNum);
-    mRtpSession->ProcRtcpPacket(pData, nDataSize);
+    if (mRtpSession != nullptr)
+    {
+        mRtpSession->ProcRtcpPacket(pData, nDataSize);
+    }
 }
 
 bool RtcpDecoderNode::IsRunTime()
