@@ -40,7 +40,14 @@ ImsMediaAudioPlayer::ImsMediaAudioPlayer()
 {
     mAudioStream = nullptr;
     mCodec = nullptr;
+    mFormat = nullptr;
+    mCodecType = 0;
+    mCodecMode = 0;
     mSamplingRate = DEFAULT_SAMPLING_RATE;
+    mEvsChAwOffset = 0;
+    mEvsBandwidth = kEvsBandwidthNone;
+    memset(mBuffer, 0, sizeof(mBuffer));
+    mEvsBitRate = 0;
     mEvsCodecHeaderMode = kRtpPyaloadHeaderModeEvsHeaderFull;
     mIsFirstFrame = false;
     mIsEvsInitialized = false;
