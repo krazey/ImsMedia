@@ -23,9 +23,18 @@ using namespace android;
 
 AudioManager* AudioManager::sManager = nullptr;
 
-AudioManager::AudioManager() {}
+AudioManager::AudioManager()
+{
+    mRequestHandler.Init("AUDIO_REQUEST_EVENT");
+    mResponseHandler.Init("AUDIO_RESPONSE_EVENT");
+}
 
-AudioManager::~AudioManager() {}
+AudioManager::~AudioManager()
+{
+    mRequestHandler.Deinit();
+    mResponseHandler.Deinit();
+    sManager = nullptr;
+}
 
 AudioManager* AudioManager::getInstance()
 {
@@ -203,6 +212,22 @@ void AudioManager::setMediaQualityThreshold(int sessionId, MediaQualityThreshold
     }
 }
 
+void AudioManager::SendInternalEvent(
+        uint32_t event, uint64_t sessionId, uint64_t paramA, uint64_t paramB)
+{
+    auto session = mSessions.find(sessionId);
+    IMLOGI1("[SendInternalEvent] sessionId[%d]", sessionId);
+
+    if (session != mSessions.end())
+    {
+        (session->second)->SendInternalEvent(event, paramA, paramB);
+    }
+    else
+    {
+        IMLOGE1("[SendInternalEvent] no session id[%d]", sessionId);
+    }
+}
+
 void AudioManager::sendMessage(const int sessionId, const android::Parcel& parcel)
 {
     int nMsg = parcel.readInt32();
@@ -283,35 +308,19 @@ void AudioManager::sendMessage(const int sessionId, const android::Parcel& parce
     }
 }
 
-void AudioManager::SendInternalEvent(
-        uint32_t event, uint64_t sessionId, uint64_t paramA, uint64_t paramB)
-{
-    auto session = mSessions.find(sessionId);
-    IMLOGI1("[SendInternalEvent] sessionId[%d]", sessionId);
-
-    if (session != mSessions.end())
-    {
-        (session->second)->SendInternalEvent(event, paramA, paramB);
-    }
-    else
-    {
-        IMLOGE1("[SendInternalEvent] no session id[%d]", sessionId);
-    }
-}
-
-AudioManager::RequestHandler::RequestHandler() :
-        ImsMediaEventHandler("AUDIO_REQUEST_EVENT")
-{
-}
-
-AudioManager::RequestHandler::~RequestHandler() {}
-
 void AudioManager::RequestHandler::processEvent(
         uint32_t event, uint64_t sessionId, uint64_t paramA, uint64_t paramB)
 {
     IMLOGI4("[processEvent] event[%d], sessionId[%d], paramA[%d], paramB[%d]", event, sessionId,
             paramA, paramB);
     ImsMediaResult result = RESULT_SUCCESS;
+
+    if (sManager == nullptr)
+    {
+        IMLOGE0("[processEvent] not ready");
+        return;
+    }
+
     switch (event)
     {
         case kAudioOpenSession:
@@ -320,7 +329,7 @@ void AudioManager::RequestHandler::processEvent(
             if (param != nullptr)
             {
                 AudioConfig* pConfig = reinterpret_cast<AudioConfig*>(param->mConfig);
-                result = AudioManager::getInstance()->openSession(
+                result = sManager->openSession(
                         static_cast<int>(sessionId), param->rtpFd, param->rtcpFd, pConfig);
 
                 if (result == RESULT_SUCCESS)
@@ -349,8 +358,7 @@ void AudioManager::RequestHandler::processEvent(
         }
         break;
         case kAudioCloseSession:
-            if (AudioManager::getInstance()->closeSession(static_cast<int>(sessionId)) ==
-                    RESULT_SUCCESS)
+            if (sManager->closeSession(static_cast<int>(sessionId)) == RESULT_SUCCESS)
             {
                 ImsMediaEventHandler::SendEvent(
                         "AUDIO_RESPONSE_EVENT", kAudioSessionClosed, sessionId, 0, 0);
@@ -359,8 +367,7 @@ void AudioManager::RequestHandler::processEvent(
         case kAudioModifySession:
         {
             AudioConfig* config = reinterpret_cast<AudioConfig*>(paramA);
-            result =
-                    AudioManager::getInstance()->modifySession(static_cast<int>(sessionId), config);
+            result = sManager->modifySession(static_cast<int>(sessionId), config);
             ImsMediaEventHandler::SendEvent(
                     "AUDIO_RESPONSE_EVENT", kAudioModifySessionResponse, sessionId, result, paramA);
         }
@@ -368,7 +375,7 @@ void AudioManager::RequestHandler::processEvent(
         case kAudioAddConfig:
         {
             AudioConfig* config = reinterpret_cast<AudioConfig*>(paramA);
-            result = AudioManager::getInstance()->addConfig(static_cast<int>(sessionId), config);
+            result = sManager->addConfig(static_cast<int>(sessionId), config);
             ImsMediaEventHandler::SendEvent(
                     "AUDIO_RESPONSE_EVENT", kAudioAddConfigResponse, sessionId, result, paramA);
         }
@@ -376,8 +383,7 @@ void AudioManager::RequestHandler::processEvent(
         case kAudioConfirmConfig:
         {
             AudioConfig* config = reinterpret_cast<AudioConfig*>(paramA);
-            result =
-                    AudioManager::getInstance()->confirmConfig(static_cast<int>(sessionId), config);
+            result = sManager->confirmConfig(static_cast<int>(sessionId), config);
             ImsMediaEventHandler::SendEvent(
                     "AUDIO_RESPONSE_EVENT", kAudioConfirmConfigResponse, sessionId, result, paramA);
         }
@@ -387,7 +393,7 @@ void AudioManager::RequestHandler::processEvent(
             AudioConfig* config = reinterpret_cast<AudioConfig*>(paramA);
             if (config != nullptr)
             {
-                AudioManager::getInstance()->deleteConfig(static_cast<int>(sessionId), config);
+                sManager->deleteConfig(static_cast<int>(sessionId), config);
                 delete config;
             }
         }
@@ -397,8 +403,7 @@ void AudioManager::RequestHandler::processEvent(
             EventParamDtmf* param = reinterpret_cast<EventParamDtmf*>(paramA);
             if (param != nullptr)
             {
-                AudioManager::getInstance()->sendDtmf(
-                        static_cast<int>(sessionId), param->digit, param->duration);
+                sManager->sendDtmf(static_cast<int>(sessionId), param->digit, param->duration);
                 delete param;
             }
         }
@@ -410,8 +415,7 @@ void AudioManager::RequestHandler::processEvent(
 
             if (listExtension != nullptr)
             {
-                AudioManager::getInstance()->sendRtpHeaderExtension(
-                        static_cast<int>(sessionId), listExtension);
+                sManager->sendRtpHeaderExtension(static_cast<int>(sessionId), listExtension);
                 delete listExtension;
             }
         }
@@ -421,34 +425,32 @@ void AudioManager::RequestHandler::processEvent(
             MediaQualityThreshold* threshold = reinterpret_cast<MediaQualityThreshold*>(paramA);
             if (threshold != nullptr)
             {
-                AudioManager::getInstance()->setMediaQualityThreshold(
-                        static_cast<int>(sessionId), threshold);
+                sManager->setMediaQualityThreshold(static_cast<int>(sessionId), threshold);
                 delete threshold;
             }
         }
         break;
         case kRequestAudioCmr:
         case kRequestSendRtcpXrReport:
-            AudioManager::getInstance()->SendInternalEvent(
-                    event, static_cast<int>(sessionId), paramA, paramB);
+            sManager->SendInternalEvent(event, static_cast<int>(sessionId), paramA, paramB);
             break;
         default:
             break;
     }
 }
 
-AudioManager::ResponseHandler::ResponseHandler() :
-        ImsMediaEventHandler("AUDIO_RESPONSE_EVENT")
-{
-}
-
-AudioManager::ResponseHandler::~ResponseHandler() {}
-
 void AudioManager::ResponseHandler::processEvent(
         uint32_t event, uint64_t sessionId, uint64_t paramA, uint64_t paramB)
 {
     IMLOGI4("[processEvent] event[%d], sessionId[%d], paramA[%d], paramB[%d]", event, sessionId,
             paramA, paramB);
+
+    if (sManager == nullptr)
+    {
+        IMLOGE0("[processEvent] not ready");
+        return;
+    }
+
     android::Parcel parcel;
     switch (event)
     {
@@ -461,7 +463,7 @@ void AudioManager::ResponseHandler::processEvent(
                 // fail reason
                 parcel.writeInt32(static_cast<int>(paramA));
             }
-            AudioManager::getInstance()->sendResponse(sessionId, parcel);
+            sManager->sendResponse(sessionId, parcel);
             break;
         case kAudioModifySessionResponse:  // fall through
         case kAudioAddConfigResponse:      // fall through
@@ -473,7 +475,7 @@ void AudioManager::ResponseHandler::processEvent(
             if (config != nullptr)
             {
                 config->writeToParcel(&parcel);
-                AudioManager::getInstance()->sendResponse(sessionId, parcel);
+                sManager->sendResponse(sessionId, parcel);
                 delete config;
             }
         }
@@ -485,7 +487,7 @@ void AudioManager::ResponseHandler::processEvent(
             if (config != nullptr)
             {
                 config->writeToParcel(&parcel);
-                AudioManager::getInstance()->sendResponse(sessionId, parcel);
+                sManager->sendResponse(sessionId, parcel);
                 delete config;
             }
         }
@@ -505,7 +507,7 @@ void AudioManager::ResponseHandler::processEvent(
                     extension.writeToParcel(&parcel);
                 }
 
-                AudioManager::getInstance()->sendResponse(sessionId, parcel);
+                sManager->sendResponse(sessionId, parcel);
                 delete listExtension;
             }
         }
@@ -517,7 +519,7 @@ void AudioManager::ResponseHandler::processEvent(
             if (status != nullptr)
             {
                 status->writeToParcel(&parcel);
-                AudioManager::getInstance()->sendResponse(sessionId, parcel);
+                sManager->sendResponse(sessionId, parcel);
                 delete status;
             }
         }
@@ -529,7 +531,7 @@ void AudioManager::ResponseHandler::processEvent(
             parcel.writeInt32(event);
             parcel.writeByte(static_cast<uint8_t>(paramA));
             parcel.writeInt32(static_cast<int>(paramB));
-            AudioManager::getInstance()->sendResponse(sessionId, parcel);
+            sManager->sendResponse(sessionId, parcel);
             break;
         case kAudioCallQualityChangedInd:
         {
@@ -538,7 +540,7 @@ void AudioManager::ResponseHandler::processEvent(
             if (quality != nullptr)
             {
                 quality->writeToParcel(&parcel);
-                AudioManager::getInstance()->sendResponse(sessionId, parcel);
+                sManager->sendResponse(sessionId, parcel);
                 delete quality;
             }
         }
@@ -546,7 +548,7 @@ void AudioManager::ResponseHandler::processEvent(
         case kAudioSessionClosed:
             parcel.writeInt32(event);
             parcel.writeInt32(static_cast<int>(sessionId));
-            AudioManager::getInstance()->sendResponse(sessionId, parcel);
+            sManager->sendResponse(sessionId, parcel);
             break;
         default:
             break;

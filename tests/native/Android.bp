@@ -22,6 +22,7 @@ cc_library_headers {
     name: "libimsmedia_tests_headers",
     export_include_dirs: [
         "service/src/com/android/telephony/imsmedia/lib/libimsmedia/include",
+        "service/src/com/android/telephony/imsmedia/lib/libimsmedia/include/core/audio",
     ],
 }
 

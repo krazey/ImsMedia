@@ -46,8 +46,10 @@ private:
     std::mutex mMutexEvent;
 
 public:
-    ImsMediaEventHandler(const char* strName);
+    ImsMediaEventHandler();
     virtual ~ImsMediaEventHandler();
+    void Init(const char* strName);
+    void Deinit();
     static void SendEvent(const char* strEventHandlerName, uint32_t event, uint64_t paramA,
             uint64_t paramB = 0, uint64_t paramC = 0);
     char* getName();

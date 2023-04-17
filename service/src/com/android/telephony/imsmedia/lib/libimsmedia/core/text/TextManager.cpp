@@ -21,9 +21,18 @@
 using namespace android;
 TextManager* TextManager::manager;
 
-TextManager::TextManager() {}
+TextManager::TextManager()
+{
+    mRequestHandler.Init("TEXT_REQUEST_EVENT");
+    mResponseHandler.Init("TEXT_RESPONSE_EVENT");
+}
 
-TextManager::~TextManager() {}
+TextManager::~TextManager()
+{
+    mRequestHandler.Deinit();
+    mResponseHandler.Deinit();
+    manager = nullptr;
+}
 
 TextManager* TextManager::getInstance()
 {
@@ -200,13 +209,6 @@ void TextManager::sendMessage(const int sessionId, const android::Parcel& parcel
     }
 }
 
-TextManager::RequestHandler::RequestHandler() :
-        ImsMediaEventHandler("TEXT_REQUEST_EVENT")
-{
-}
-
-TextManager::RequestHandler::~RequestHandler() {}
-
 void TextManager::RequestHandler::processEvent(
         uint32_t event, uint64_t sessionId, uint64_t paramA, uint64_t paramB)
 {
@@ -293,13 +295,6 @@ void TextManager::RequestHandler::processEvent(
             break;
     }
 }
-
-TextManager::ResponseHandler::ResponseHandler() :
-        ImsMediaEventHandler("TEXT_RESPONSE_EVENT")
-{
-}
-
-TextManager::ResponseHandler::~ResponseHandler() {}
 
 void TextManager::ResponseHandler::processEvent(
         uint32_t event, uint64_t sessionId, uint64_t paramA, uint64_t paramB)

@@ -22,24 +22,29 @@
 std::list<ImsMediaEventHandler*> ImsMediaEventHandler::gListEventHandler;
 std::mutex ImsMediaEventHandler::mMutex;
 
-ImsMediaEventHandler::ImsMediaEventHandler(const char* strName)
+ImsMediaEventHandler::ImsMediaEventHandler() {}
+
+ImsMediaEventHandler::~ImsMediaEventHandler() {}
+
+void ImsMediaEventHandler::Init(const char* strName)
 {
     strncpy(mName, strName, MAX_EVENTHANDLER_NAME);
     mbTerminate = false;
     gListEventHandler.push_back(this);
-    IMLOGD1("[ImsMediaEventHandler] %s", mName);
+    IMLOGD1("[Init] %s", mName);
     StartThread();
 }
 
-ImsMediaEventHandler::~ImsMediaEventHandler()
+void ImsMediaEventHandler::Deinit()
 {
-    IMLOGD1("[~ImsMediaEventHandler] %s", mName);
+    IMLOGD2("[Deinit] %s, queue size[%d]", mName, mListevent.size());
+    std::lock_guard<std::mutex> guard(mMutexEvent);
+    StopThread();
     gListEventHandler.remove(this);
     mListevent.clear();
     mListParamA.clear();
     mListParamB.clear();
     mListParamC.clear();
-    StopThread();
     mCondition.signal();
     mConditionExit.wait();
 }
@@ -73,13 +78,12 @@ char* ImsMediaEventHandler::getName()
 void ImsMediaEventHandler::AddEvent(
         uint32_t event, uint64_t paramA, uint64_t paramB, uint64_t paramC)
 {
+    std::lock_guard<std::mutex> guard(mMutexEvent);
     IMLOGD3("[AddEvent] %s, event[%d], size[%d]", mName, event, mListevent.size());
-    mMutexEvent.lock();
     mListevent.push_back(event);
     mListParamA.push_back(paramA);
     mListParamB.push_back(paramB);
     mListParamC.push_back(paramC);
-    mMutexEvent.unlock();
     mCondition.signal();
 }
 
@@ -94,17 +98,22 @@ void* ImsMediaEventHandler::run()
 
         for (;;)
         {
-            // lock
+            if (IsThreadStopped())
+            {
+                break;
+            }
+
             mMutexEvent.lock();
-            if (IsThreadStopped() || mListevent.size() == 0)
+
+            if (mListevent.size() == 0)
             {
                 mMutexEvent.unlock();
                 break;
             }
-            mMutexEvent.unlock();
+
             processEvent(mListevent.front(), mListParamA.front(), mListParamB.front(),
                     mListParamC.front());
-            mMutexEvent.lock();
+
             mListevent.pop_front();
             mListParamA.pop_front();
             mListParamB.pop_front();

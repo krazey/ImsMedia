@@ -37,10 +37,6 @@ public:
      */
     class RequestHandler : public ImsMediaEventHandler
     {
-    public:
-        RequestHandler();
-        virtual ~RequestHandler();
-
     protected:
         virtual void processEvent(
                 uint32_t event, uint64_t sessionId, uint64_t paramA, uint64_t paramB);
@@ -51,10 +47,6 @@ public:
      */
     class ResponseHandler : public ImsMediaEventHandler
     {
-    public:
-        ResponseHandler();
-        virtual ~ResponseHandler();
-
     protected:
         virtual void processEvent(
                 uint32_t event, uint64_t sessionId, uint64_t paramA, uint64_t paramB);
@@ -63,20 +55,22 @@ public:
     static AudioManager* getInstance();
     virtual int getState(int sessionId);
     virtual void sendMessage(const int sessionId, const android::Parcel& parcel);
-    void SendInternalEvent(uint32_t event, uint64_t sessionId, uint64_t paramA, uint64_t paramB);
 
-private:
+protected:
     AudioManager();
     virtual ~AudioManager();
     ImsMediaResult openSession(int sessionId, int rtpFd, int rtcpFd, AudioConfig* config);
     ImsMediaResult closeSession(int sessionId);
     ImsMediaResult modifySession(int sessionId, AudioConfig* config);
     ImsMediaResult addConfig(int sessionId, AudioConfig* config);
-    ImsMediaResult deleteConfig(int sessionId, AudioConfig* config);
+    virtual ImsMediaResult deleteConfig(int sessionId, AudioConfig* config);
     ImsMediaResult confirmConfig(int sessionId, AudioConfig* config);
-    void sendDtmf(int sessionId, char dtmfDigit, int duration);
-    void sendRtpHeaderExtension(int sessionId, std::list<RtpHeaderExtension>* listExtension);
-    void setMediaQualityThreshold(int sessionId, MediaQualityThreshold* threshold);
+    virtual void sendDtmf(int sessionId, char dtmfDigit, int duration);
+    virtual void sendRtpHeaderExtension(
+            int sessionId, std::list<RtpHeaderExtension>* listExtension);
+    virtual void setMediaQualityThreshold(int sessionId, MediaQualityThreshold* threshold);
+    virtual void SendInternalEvent(
+            uint32_t event, uint64_t sessionId, uint64_t paramA, uint64_t paramB);
 
     static AudioManager* sManager;
     std::unordered_map<int, std::unique_ptr<AudioSession>> mSessions;
