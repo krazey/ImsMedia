@@ -83,6 +83,7 @@ private:
     int8_t mRtpTxDtmfPayload;
     int8_t mRtpRxDtmfPayload;
     int8_t mDtmfSamplingRate;
+    int32_t mDtmfTimestamp;
     int32_t mCvoValue;
     int8_t mRedundantPayload;
     int8_t mRedundantLevel;
