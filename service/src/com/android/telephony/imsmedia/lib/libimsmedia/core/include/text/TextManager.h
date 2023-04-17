@@ -37,10 +37,6 @@ public:
      */
     class RequestHandler : public ImsMediaEventHandler
     {
-    public:
-        RequestHandler();
-        virtual ~RequestHandler();
-
     protected:
         virtual void processEvent(
                 uint32_t event, uint64_t sessionId, uint64_t paramA, uint64_t paramB);
@@ -51,10 +47,6 @@ public:
      */
     class ResponseHandler : public ImsMediaEventHandler
     {
-    public:
-        ResponseHandler();
-        virtual ~ResponseHandler();
-
     protected:
         virtual void processEvent(
                 uint32_t event, uint64_t sessionId, uint64_t paramA, uint64_t paramB);
