@@ -74,7 +74,8 @@ TEST_F(MediaQualityThresholdTest, TestParcel)
 
 TEST_F(MediaQualityThresholdTest, TestAssign)
 {
-    MediaQualityThreshold threshold2 = threshold;
+    MediaQualityThreshold threshold2;
+    threshold2 = threshold;
     EXPECT_EQ(threshold, threshold2);
 }
 

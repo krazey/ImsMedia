@@ -62,7 +62,8 @@ TEST_F(MediaQualityStatusTest, TestParcel)
 
 TEST_F(MediaQualityStatusTest, TestAssign)
 {
-    MediaQualityStatus status2 = status;
+    MediaQualityStatus status2;
+    status2 = status;
     EXPECT_EQ(status, status2);
 }
 

@@ -30,6 +30,8 @@ using ::testing::Pointee;
 using ::testing::Ref;
 using ::testing::Return;
 
+namespace
+{
 // RtpConfig
 const int32_t kMediaDirection = RtpConfig::MEDIA_DIRECTION_SEND_RECEIVE;
 const android::String8 kRemoteAddress("127.0.0.1");
@@ -68,7 +70,6 @@ const bool kUseHeaderFullOnly = false;
 const int8_t kcodecModeRequest = 15;
 
 int32_t kSessionId = 0;
-
 static ImsMediaCondition gCondition;
 
 class AudioManagerCallback
@@ -681,3 +682,4 @@ TEST_F(AudioManagerTest, testCallQualityInd)
     EXPECT_EQ(callback.response, kAudioCallQualityChangedInd);
     EXPECT_EQ(callback.callQuality, quality);
 }
+}  // namespace
