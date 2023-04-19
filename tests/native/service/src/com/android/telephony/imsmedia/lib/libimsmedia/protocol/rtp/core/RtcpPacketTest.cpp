@@ -671,6 +671,39 @@ TEST_F(RtcpPacketTest, DecodeOnlyRtcpSRHeader)
     EXPECT_EQ(pRtcpHeader.getLength(), 0 * RTP_WORD_SIZE);
 }
 
+/**
+ * Test RTCP XR packet.
+ */
+TEST_F(RtcpPacketTest, TestDecodeRtcpXrPacket)
+{
+    RtcpPacket rtcpPacket;
+
+    /*
+     * Real-time Transport Control Protocol (Sender Report)
+     * 10.. .... = Version: RFC 1889 Version (2)
+     * ..1. .... = Padding: False
+     * ...0 0001 = Report count: 1
+     * Packet type: XR (207)
+     * Length: 5 (24 bytes)
+     * SSRC : 0xb1c8cb02 (2982726402)
+     * 0x00, 0x00, 0x00, 0x01, // XR block type: VoIP Metrics Report Block (207)
+     * 0x00, 0x0A,             // Length of the XR block in 32-bit words: 10
+     * 0x02, 0x01,             // Loss rate (packets lost per million packets sent): 2 bytes;
+     * Type-specific: 1 0x00, 0x64,             // Loss rate: 100 0x03, 0x01,             // Delay
+     * since last report (milliseconds): 2 bytes; Type-specific: 1 0x00, 0x3C,             // Delay:
+     * 60 milliseconds
+     */
+    uint8_t bufPacket[] = {0xa1, 0xcf, 0x00, 0x05, 0xb1, 0xc8, 0xcb, 0x02, 0x00, 0x00, 0x00, 0x01,
+            0x00, 0x0A, 0x02, 0x01, 0x00, 0x64, 0x03, 0x01, 0x00, 0x3C, 0x00, 0x02};
+
+    RtcpConfigInfo rtcpConfigInfo;
+    RtpBuffer rtpBuffer(24, bufPacket);
+    eRTP_STATUS_CODE res = rtcpPacket.decodeRtcpPacket(&rtpBuffer, 0, &rtcpConfigInfo);
+    EXPECT_EQ(res, RTP_SUCCESS);
+
+    // TODO: After Rtcp-Xr decoder function is implemented, add checks for each files in XR report.
+}
+
 TEST_F(RtcpPacketTest, CheckAllGetSets)
 {
     RtcpPacket rtcpPacket;

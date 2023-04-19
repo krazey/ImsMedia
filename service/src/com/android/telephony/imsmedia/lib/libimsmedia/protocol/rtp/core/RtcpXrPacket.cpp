@@ -58,9 +58,11 @@ eRTP_STATUS_CODE RtcpXrPacket::decodeRtcpXrPacket(
     (RtpDt_Void) pucRtcpXrBuf;
     (RtpDt_Void) usRtcpXrLen;
     (RtpDt_Void) ucPktType;
-    RTP_TRACE_ERROR("decodeRtcpXrPacket not implemented.", RTP_ZERO, RTP_ZERO);
+    RTP_TRACE_WARNING("decodeRtcpXrPacket not implemented.", RTP_ZERO, RTP_ZERO);
 
-    return RTP_FAILURE;
+    /* TODO: Currently, there is no requirement to handle XR packets. Returning success to avoid
+    RTCP decoding issues. */
+    return RTP_SUCCESS;
 }
 
 eRTP_STATUS_CODE RtcpXrPacket::formRtcpXrPacket(OUT RtpBuffer* pobjRtcpPktBuf)

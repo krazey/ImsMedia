@@ -213,8 +213,8 @@ eRTP_STATUS_CODE RtcpPacket::decodeRtcpPacket(IN RtpBuffer* pobjRtcpPktBuf,
         usPktLen -= RTP_WORD_SIZE;
         if (usPktLen > iTrackCompLen)
         {
-            RTP_TRACE_ERROR(
-                    "[DecodeRtcpPacket] RTCP packet length is Invalid.", usPktLen, iTrackCompLen);
+            RTP_TRACE_ERROR("[DecodeRtcpPacket] Report length is Invalid. ReportLen:%d, RtcpLen:%d",
+                    usPktLen, iTrackCompLen);
             return RTP_INVALID_MSG;
         }
 
@@ -265,6 +265,9 @@ eRTP_STATUS_CODE RtcpPacket::decodeRtcpPacket(IN RtpBuffer* pobjRtcpPktBuf,
             case RTCP_SDES:
             {
                 RTP_TRACE_MESSAGE("[DecodeRtcpPacket] Decoding RTCP_SDES", 0, 0);
+                if (m_pobjSdesPkt != nullptr)
+                    delete m_pobjSdesPkt;
+
                 m_pobjSdesPkt = new RtcpSdesPacket();
                 if (m_pobjSdesPkt == nullptr)
                 {
@@ -279,6 +282,9 @@ eRTP_STATUS_CODE RtcpPacket::decodeRtcpPacket(IN RtpBuffer* pobjRtcpPktBuf,
             case RTCP_BYE:
             {
                 RTP_TRACE_MESSAGE("[DecodeRtcpPacket] Decoding RTCP_BYE", 0, 0);
+                if (m_pobjByePkt != nullptr)
+                    delete m_pobjByePkt;
+
                 m_pobjByePkt = new RtcpByePacket();
                 if (m_pobjByePkt == nullptr)
                 {
@@ -293,6 +299,9 @@ eRTP_STATUS_CODE RtcpPacket::decodeRtcpPacket(IN RtpBuffer* pobjRtcpPktBuf,
             case RTCP_APP:
             {
                 RTP_TRACE_MESSAGE("[DecodeRtcpPacket] Decoding RTCP_APP", 0, 0);
+                if (m_pobjAppPkt != nullptr)
+                    delete m_pobjAppPkt;
+
                 m_pobjAppPkt = new RtcpAppPacket();
                 if (m_pobjAppPkt == nullptr)
                 {
@@ -321,11 +330,30 @@ eRTP_STATUS_CODE RtcpPacket::decodeRtcpPacket(IN RtpBuffer* pobjRtcpPktBuf,
                 bFbPkt = eRTP_TRUE;
                 break;
             }  // RTCP_RTPFB || RTCP_PSFB
+            case RTCP_XR:
+            {
+                RTP_TRACE_MESSAGE("[DecodeRtcpPacket] Decoding RTCP_XR", 0, 0);
+                if (m_pobjRtcpXrPkt != nullptr)
+                    delete m_pobjRtcpXrPkt;
+
+                m_pobjRtcpXrPkt = new RtcpXrPacket();
+                if (m_pobjRtcpXrPkt == nullptr)
+                {
+                    RTP_TRACE_ERROR("[Memory Error] new returned NULL.", RTP_ZERO, RTP_ZERO);
+                    return RTP_MEMORY_FAIL;
+                }
+                m_pobjRtcpXrPkt->setRtcpHdrInfo(m_objHeader);
+                eDecodeRes = m_pobjRtcpXrPkt->decodeRtcpXrPacket(pucBuffer, usPktLen, uiPktType);
+                bOtherPkt = eRTP_TRUE;
+                break;
+            }  // RTCP_XR
             default:
             {
-                RTP_TRACE_WARNING(
-                        "[DecodeRtcpPacket], Invalid RTCP MSG type received", RTP_ZERO, RTP_ZERO);
-                return RTP_INVALID_MSG;
+                RTP_TRACE_WARNING("[DecodeRtcpPacket], Invalid RTCP MSG type[%d] received",
+                        uiPktType, RTP_ZERO);
+                // Instead of returning failure, ignore unknown report block and continue to decode
+                // next report block.
+                eDecodeRes = RTP_SUCCESS;
             }  // default
         };     // switch
 
