@@ -290,7 +290,7 @@ bool RtpEncoderNode::SetCvoExtension(const int64_t facing, const int64_t orienta
     IMLOGD3("[SetCvoExtension] cvoValue[%d], facing[%ld], orientation[%ld]", mCvoValue, facing,
             orientation);
 
-    if (mCvoValue != -1)
+    if (mCvoValue > 0)
     {
         uint32_t rotation = 0;
         uint32_t cameraId = 0;

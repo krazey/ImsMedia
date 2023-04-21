@@ -53,7 +53,6 @@ IVideoRendererNode::IVideoRendererNode(BaseSessionCallback* callback) :
     mFirstFrame = false;
     mSubtype = MEDIASUBTYPE_UNDEFINED;
     mFramerate = 0;
-    mWaitIntraFrame = 0;
     mLossDuration = 0;
     mLossRateThreshold = 0;
 }
@@ -162,132 +161,103 @@ bool IVideoRendererNode::IsSameConfig(void* config)
 void IVideoRendererNode::ProcessData()
 {
     std::lock_guard<std::mutex> guard(mMutex);
-    uint8_t* pData = nullptr;
-    uint32_t nDataSize = 0;
-    uint32_t nTimeStamp = 0;
-    bool bMark = false;
-    uint32_t nSeqNum = 0;
+    uint8_t* data = nullptr;
+    uint32_t dataSize = 0;
+    uint32_t prevTimestamp = 0;
+    bool mark = false;
+    uint32_t seq = 0;
     uint32_t timestamp = 0;
-    uint32_t nBitstreamSize = 0;
+    uint32_t frameSize = 0;
     ImsMediaSubType subtype = MEDIASUBTYPE_UNDEFINED;
-    uint32_t nInitialSeqNum = 0;
-    uint32_t nBufferOffset = 0;
+    uint32_t initialSeq = 0;
     ImsMediaSubType dataType;
 
-    while (GetData(&subtype, &pData, &nDataSize, &nTimeStamp, &bMark, &nSeqNum, &dataType))
+    while (GetData(&subtype, &data, &dataSize, &timestamp, &mark, &seq, &dataType))
     {
         IMLOGD_PACKET4(IM_PACKET_LOG_VIDEO,
-                "[ProcessData] subtype[%d], Size[%d], TimeStamp[%d] nBitstreamSize[%d]", subtype,
-                nDataSize, nTimeStamp, nBitstreamSize);
+                "[ProcessData] subtype[%d], Size[%d], TS[%d] frameSize[%d]", subtype, dataSize,
+                timestamp, frameSize);
 
-        if (timestamp == 0)
+        if (prevTimestamp == 0)
         {
-            timestamp = nTimeStamp;
+            prevTimestamp = timestamp;
         }
-        else if (timestamp != nTimeStamp)
+        else if (timestamp != prevTimestamp || (frameSize != 0 && hasStartingCode(data, dataSize)))
         {
+            // break when the timestamp is changed or next data has another starting code
             break;
         }
 
-        if (nDataSize >= MAX_RTP_PAYLOAD_BUFFER_SIZE)
+        if (dataSize >= MAX_RTP_PAYLOAD_BUFFER_SIZE)
         {
-            IMLOGE1("[ProcessData] exceed buffer size[%d]", nDataSize);
+            IMLOGE1("[ProcessData] exceed buffer size[%d]", dataSize);
             return;
         }
 
-        memcpy(mBuffer + nBitstreamSize, pData, nDataSize);
-        nBitstreamSize += nDataSize;
+        memcpy(mBuffer + frameSize, data, dataSize);
+        frameSize += dataSize;
 
-        if (nInitialSeqNum == 0)
+        if (initialSeq == 0)
         {
-            nInitialSeqNum = nSeqNum;
+            initialSeq = seq;
         }
 
         DeleteData();
 
-        if (bMark)
+        if (mark)
         {
             break;
         }
     }
 
-    if (nBitstreamSize == 0)
+    if (frameSize == 0)
     {
         return;
     }
 
     // remove AUD nal unit
-    uint32_t nDatabufferSize = nBitstreamSize;
-    uint8_t* pDataBuff = mBuffer;
-    RemoveAUDNalUnit(mBuffer, nBitstreamSize, &pDataBuff, &nDatabufferSize);
+    uint32_t size = frameSize;
+    uint8_t* buffer = mBuffer;
+    RemoveAUDNalUnit(mBuffer, frameSize, &buffer, &size);
 
-    // check Config String for updating config frame
-    nBufferOffset = 0;
-    if ((mCodecType == kVideoCodecHevc || mCodecType == kVideoCodecAvc) &&
-            IsConfigFrame(pDataBuff, nDatabufferSize, &nBufferOffset))
+    FrameType frameType = GetFrameType(buffer, size);
+
+    if (frameType == SPS)
     {
-        SaveConfigFrame(pDataBuff + nBufferOffset, nDatabufferSize - nBufferOffset, kConfigSps);
-        SaveConfigFrame(pDataBuff + nBufferOffset, nDatabufferSize - nBufferOffset, kConfigPps);
+        SaveConfigFrame(buffer, size, kConfigSps);
+        tCodecConfig codecConfig;
 
-        if (mCodecType == kVideoCodecHevc)
+        if (mCodecType == kVideoCodecAvc)
         {
-            SaveConfigFrame(pDataBuff + nBufferOffset, nDatabufferSize - nBufferOffset, kConfigVps);
-        }
-
-        if (IsSps(pDataBuff, nDatabufferSize, &nBufferOffset))
-        {
-            IMLOGD_PACKET1(
-                    IM_PACKET_LOG_VIDEO, "[ProcessData] parse SPS - nOffset[%d]", nBufferOffset);
-            tCodecConfig codecConfig;
-
-            if (mCodecType == kVideoCodecAvc)
+            if (ImsMediaVideoUtil::ParseAvcSps(buffer, size, &codecConfig))
             {
-                if (ImsMediaVideoUtil::ParseAvcSps(pDataBuff + nBufferOffset,
-                            nDatabufferSize - nBufferOffset, &codecConfig))
-                {
-                    CheckResolution(codecConfig.nWidth, codecConfig.nHeight);
-                }
+                CheckResolution(codecConfig.nWidth, codecConfig.nHeight);
             }
-            else if (mCodecType == kVideoCodecHevc)
+        }
+        else if (mCodecType == kVideoCodecHevc)
+        {
+            if (ImsMediaVideoUtil::ParseHevcSps(buffer, size, &codecConfig))
             {
-                if (ImsMediaVideoUtil::ParseHevcSps(pDataBuff + nBufferOffset,
-                            nDatabufferSize - nBufferOffset, &codecConfig))
-                {
-                    CheckResolution(codecConfig.nWidth, codecConfig.nHeight);
-                }
+                CheckResolution(codecConfig.nWidth, codecConfig.nHeight);
             }
         }
 
         return;
     }
-
-    IMLOGD_PACKET2(IM_PACKET_LOG_VIDEO, "[ProcessData] nBitstreamSize[%d] nDatabufferSize[%d]",
-            nBitstreamSize, nDatabufferSize);
-
-    bool isIntraFrame = IsIntraFrame(pDataBuff, nDatabufferSize);
-
-    // drop non-idr frame when idr frame is not received
-    if (mWaitIntraFrame > 0 && nDatabufferSize > 0)
+    else if (frameType == PPS)
     {
-        if (isIntraFrame)
-        {
-            mWaitIntraFrame = 0;
-        }
-        else
-        {
-            // Send FIR when I-frame wasn't received
-            if ((mWaitIntraFrame % mFramerate) == 0)  // every 1 sec
-            {
-                // TODO: send PLI event
-                IMLOGD0("[ProcessData] request Send PLI");
-            }
-
-            mWaitIntraFrame--;
-            nDatabufferSize = 0;  // drop non-DIR frame
-
-            IMLOGD1("[ProcessData] wait intra frame[%d]", mWaitIntraFrame);
-        }
+        SaveConfigFrame(buffer, size, kConfigPps);
+        return;
     }
+    else if (frameType == VPS)
+    {
+        SaveConfigFrame(buffer, size, kConfigVps);
+        return;
+    }
+
+    IMLOGD_PACKET2(IM_PACKET_LOG_VIDEO, "[ProcessData] frame type[%d] size[%d]", frameType, size);
+
+    // TODO: Send PLI or FIR when I-frame wasn't received since beginning.
 
     if (!mFirstFrame)
     {
@@ -297,6 +267,11 @@ void IVideoRendererNode::ProcessData()
         if (mCallback != nullptr)
         {
             mCallback->SendEvent(kImsMediaEventFirstPacketReceived);
+
+            if (mCvoValue <= 0)
+            {
+                mCallback->SendEvent(kImsMediaEventResolutionChanged, mWidth, mHeight);
+            }
         }
     }
 
@@ -336,13 +311,13 @@ void IVideoRendererNode::ProcessData()
         }
     }
 
-    // send sps/pps before send I frame
-    if (isIntraFrame)
+    // send config frames before send I frame
+    if (frameType == IDR)
     {
         QueueConfigFrame(timestamp);
     }
 
-    mVideoRenderer->OnDataFrame(pDataBuff, nDatabufferSize, timestamp, false);
+    mVideoRenderer->OnDataFrame(buffer, size, timestamp, false);
 }
 
 void IVideoRendererNode::UpdateSurface(ANativeWindow* window)
@@ -372,214 +347,84 @@ void IVideoRendererNode::SetPacketLossParam(uint32_t time, uint32_t rate)
     mLossRateThreshold = rate;
 }
 
-bool IVideoRendererNode::IsIntraFrame(uint8_t* pbBuffer, uint32_t nBufferSize)
+bool IVideoRendererNode::hasStartingCode(uint8_t* buffer, uint32_t bufferSize)
 {
-    bool bIntraFrame = false;
-
-    if (nBufferSize <= 4)
+    if (bufferSize <= 4)
     {
         return false;
     }
 
-    IMLOGD_PACKET2(IM_PACKET_LOG_VIDEO, "[IsIntraFrame] size[%d], data[%s]", nBufferSize,
-            ImsMediaTrace::IMTrace_Bin2String(
-                    reinterpret_cast<const char*>(pbBuffer), nBufferSize > 16 ? 16 : nBufferSize));
-
-    switch (mCodecType)
+    // Check for NAL unit delimiter 0x00000001
+    if (buffer[0] == 0x00 && buffer[1] == 0x00 && buffer[2] == 0x00 && buffer[3] == 0x01)
     {
-        case kVideoCodecAvc:
-        {
-            uint32_t nCurrSize = nBufferSize;
-            uint8_t* nCurrBuff = pbBuffer;
-
-            while (nCurrSize >= 5)
-            {
-                if (nCurrBuff[0] == 0x00 && nCurrBuff[1] == 0x00 && nCurrBuff[2] == 0x00 &&
-                        nCurrBuff[3] == 0x01 && (nCurrBuff[4] & 0x1F) == 5)
-                {
-                    bIntraFrame = true;
-                    break;
-                }
-                nCurrBuff++;
-                nCurrSize--;
-            }
-
-            break;
-        }
-        case kVideoCodecHevc:
-        {
-            uint32_t nCurrSize = nBufferSize;
-            uint8_t* nCurrBuff = pbBuffer;
-            while (nCurrSize >= 5)
-            {
-                if (nCurrBuff[0] == 0x00 && nCurrBuff[1] == 0x00 && nCurrBuff[2] == 0x00 &&
-                        nCurrBuff[3] == 0x01 &&
-                        (((nCurrBuff[4] >> 1) & 0x3F) == 19 || ((nCurrBuff[4] >> 1) & 0x3F) == 20))
-                {
-                    bIntraFrame = true;
-                    break;
-                }
-                nCurrBuff++;
-                nCurrSize--;
-            }
-            break;
-        }
-        default:
-            IMLOGE1("[IsIntraFrame] Invalid video codec type %d", mCodecType);
-            return true;
+        return true;
     }
 
-    return bIntraFrame;
+    return false;
 }
 
-bool IVideoRendererNode::IsConfigFrame(
-        uint8_t* pbBuffer, uint32_t nBufferSize, uint32_t* nBufferOffset)
+FrameType IVideoRendererNode::GetFrameType(uint8_t* buffer, uint32_t bufferSize)
 {
-    bool bConfigFrame = false;
+    if (!hasStartingCode(buffer, bufferSize))
+    {
+        return UNKNOWN;
+    }
 
-    if (nBufferSize <= 4)
-        return false;
-
-    IMLOGD_PACKET2(IM_PACKET_LOG_VIDEO, "[IsConfigFrame] size[%d], data[%s]", nBufferSize,
-            ImsMediaTrace::IMTrace_Bin2String(
-                    reinterpret_cast<const char*>(pbBuffer), nBufferSize > 16 ? 16 : nBufferSize));
+    uint8_t nalType = buffer[4];
 
     switch (mCodecType)
     {
         case kVideoCodecAvc:
         {
-            uint32_t nOffset = 0;
-            uint32_t nCurrSize = nBufferSize;
-            uint8_t* nCurrBuff = pbBuffer;
-
-            while (nCurrSize >= 5)
+            if ((nalType & 0x1F) == 5)
             {
-                if (nCurrBuff[0] == 0x00 && nCurrBuff[1] == 0x00 && nCurrBuff[2] == 0x00 &&
-                        nCurrBuff[3] == 0x01 &&
-                        ((nCurrBuff[4] & 0x1F) == 7 || ((nCurrBuff[4] & 0x1F) == 8)))
-                {
-                    bConfigFrame = true;
-
-                    if (nBufferOffset)
-                    {
-                        *nBufferOffset = nOffset;
-                    }
-                    break;
-                }
-
-                nOffset++;
-                nCurrBuff++;
-                nCurrSize--;
+                return IDR;
             }
-            break;
-        }
-        case kVideoCodecHevc:
-        {
-            uint32_t nOffset = 0;
-            uint32_t nCurrSize = nBufferSize;
-            uint8_t* nCurrBuff = pbBuffer;
-
-            while (nCurrSize >= 5)
+            else if ((nalType & 0x1F) == 7)
             {
-                if (nCurrBuff[0] == 0x00 && nCurrBuff[1] == 0x00 && nCurrBuff[2] == 0x00 &&
-                        nCurrBuff[3] == 0x01 &&
-                        (((nCurrBuff[4] >> 1) & 0x3F) == 32 || ((nCurrBuff[4] >> 1) & 0x3F) == 33 ||
-                                ((nCurrBuff[4] >> 1) & 0x3F) == 34))
-                {
-                    bConfigFrame = true;
-                    if (nBufferOffset)
-                    {
-                        *nBufferOffset = nOffset;
-                    }
-                    break;
-                }
-                nOffset++;
-                nCurrBuff++;
-                nCurrSize--;
+                return SPS;
             }
-            break;
-        }
-        default:
-            return false;
-    }
-
-    return bConfigFrame;
-}
-
-bool IVideoRendererNode::IsSps(uint8_t* pbBuffer, uint32_t nBufferSize, uint32_t* nBufferOffset)
-{
-    bool bSPS = false;
-    if (nBufferSize <= 4)
-    {
-        return false;
-    }
-
-    IMLOGD_PACKET2(IM_PACKET_LOG_VIDEO, "[IsSps] size[%d], data[%s]", nBufferSize,
-            ImsMediaTrace::IMTrace_Bin2String(
-                    reinterpret_cast<const char*>(pbBuffer), nBufferSize > 16 ? 16 : nBufferSize));
-
-    switch (mCodecType)
-    {
-        case kVideoCodecAvc:
-        {
-            uint32_t nOffset = 0;
-            uint32_t nCurrSize = nBufferSize;
-            uint8_t* nCurrBuff = pbBuffer;
-
-            while (nCurrSize >= 5)
+            else if ((nalType & 0x1F) == 8)
             {
-                if (nCurrBuff[0] == 0x00 && nCurrBuff[1] == 0x00 && nCurrBuff[2] == 0x00 &&
-                        nCurrBuff[3] == 0x01 && (nCurrBuff[4] & 0x1F) == 7)
-                {
-                    bSPS = true;
-
-                    if (nBufferOffset)
-                    {
-                        *nBufferOffset = nOffset;
-                    }
-
-                    break;
-                }
-
-                nOffset++;
-                nCurrBuff++;
-                nCurrSize--;
+                return PPS;
+            }
+            else
+            {
+                return NonIDR;
             }
 
             break;
         }
         case kVideoCodecHevc:
         {
-            uint32_t nOffset = 0;
-            uint32_t nCurrSize = nBufferSize;
-            uint8_t* nCurrBuff = pbBuffer;
-
-            while (nCurrSize >= 5)
+            if (((nalType >> 1) & 0x3F) == 19 || ((nalType >> 1) & 0x3F) == 20)
             {
-                if (nCurrBuff[0] == 0x00 && nCurrBuff[1] == 0x00 && nCurrBuff[2] == 0x00 &&
-                        nCurrBuff[3] == 0x01 && ((nCurrBuff[4] >> 1) & 0x3F) == 33)
-                {
-                    bSPS = true;
-
-                    if (nBufferOffset)
-                    {
-                        *nBufferOffset = nOffset;
-                    }
-
-                    break;
-                }
-
-                nOffset++;
-                nCurrBuff++;
-                nCurrSize--;
+                return IDR;
             }
+            else if (((nalType >> 1) & 0x3F) == 32)
+            {
+                return VPS;
+            }
+            else if (((nalType >> 1) & 0x3F) == 33)
+            {
+                return SPS;
+            }
+            else if (((nalType >> 1) & 0x3F) == 34)
+            {
+                return PPS;
+            }
+            else
+            {
+                return NonIDR;
+            }
+
             break;
         }
         default:
-            return false;
+            IMLOGE1("[GetFrameType] Invalid video codec type %d", mCodecType);
     }
 
-    return bSPS;
+    return UNKNOWN;
 }
 
 void IVideoRendererNode::SaveConfigFrame(uint8_t* pbBuffer, uint32_t nBufferSize, uint32_t eMode)
@@ -761,13 +606,13 @@ void IVideoRendererNode::SaveConfigFrame(uint8_t* pbBuffer, uint32_t nBufferSize
 }
 
 bool IVideoRendererNode::RemoveAUDNalUnit(
-        uint8_t* pInBuffer, uint32_t nInBufferSize, uint8_t** ppOutBuffer, uint32_t* pOutBufferSize)
+        uint8_t* inBuffer, uint32_t inBufferSize, uint8_t** outBuffer, uint32_t* outBufferSize)
 {
-    bool bAUDUnit = false;
-    *ppOutBuffer = pInBuffer;
-    *pOutBufferSize = nInBufferSize;
+    bool IsAudUnit = false;
+    *outBuffer = inBuffer;
+    *outBufferSize = inBufferSize;
 
-    if (nInBufferSize <= 4)
+    if (inBufferSize <= 4)
     {
         return false;
     }
@@ -776,29 +621,29 @@ bool IVideoRendererNode::RemoveAUDNalUnit(
     {
         case kVideoCodecAvc:
         {
-            uint32_t nCurrSize = nInBufferSize;
-            uint8_t* nCurrBuff = pInBuffer;
-            uint32_t nCnt = 0;
+            uint32_t currSize = inBufferSize;
+            uint8_t* currBuffer = inBuffer;
+            uint32_t count = 0;
 
-            while (nCurrSize >= 5 && nCnt <= 12)
+            while (currSize >= 5 && count <= 12)
             {
-                if (bAUDUnit &&
-                        (nCurrBuff[0] == 0x00 && nCurrBuff[1] == 0x00 && nCurrBuff[2] == 0x00 &&
-                                nCurrBuff[3] == 0x01))
+                if (IsAudUnit &&
+                        (currBuffer[0] == 0x00 && currBuffer[1] == 0x00 && currBuffer[2] == 0x00 &&
+                                currBuffer[3] == 0x01))
                 {
-                    *ppOutBuffer = nCurrBuff;
-                    *pOutBufferSize = nCurrSize;
+                    *outBuffer = currBuffer;
+                    *outBufferSize = currSize;
                     break;
                 }
-                if (nCurrBuff[0] == 0x00 && nCurrBuff[1] == 0x00 && nCurrBuff[2] == 0x00 &&
-                        nCurrBuff[3] == 0x01 && nCurrBuff[4] == 0x09)
+                if (currBuffer[0] == 0x00 && currBuffer[1] == 0x00 && currBuffer[2] == 0x00 &&
+                        currBuffer[3] == 0x01 && currBuffer[4] == 0x09)
                 {
-                    bAUDUnit = true;
+                    IsAudUnit = true;
                 }
 
-                nCurrBuff++;
-                nCurrSize--;
-                nCnt++;
+                currBuffer++;
+                currSize--;
+                count++;
             }
         }
         break;
@@ -807,7 +652,7 @@ bool IVideoRendererNode::RemoveAUDNalUnit(
             return false;
     }
 
-    return bAUDUnit;
+    return IsAudUnit;
 }
 
 void IVideoRendererNode::CheckResolution(uint32_t nWidth, uint32_t nHeight)
@@ -837,16 +682,16 @@ void IVideoRendererNode::QueueConfigFrame(uint32_t timestamp)
 
     for (int32_t i = 0; i < nNumOfConfigString; i++)
     {
-        uint8_t* pConfigData = nullptr;
-        uint32_t nConfigLen = mConfigLen[i];
-        pConfigData = mConfigBuffer[i];
+        uint8_t* configFrame = nullptr;
+        uint32_t configLen = mConfigLen[i];
+        configFrame = mConfigBuffer[i];
 
-        if (nConfigLen == 0 || mVideoRenderer == nullptr)
+        if (configLen == 0 || mVideoRenderer == nullptr)
         {
             continue;
         }
 
-        mVideoRenderer->OnDataFrame(pConfigData, nConfigLen, timestamp, true);
+        mVideoRenderer->OnDataFrame(configFrame, configLen, timestamp, true);
     }
 }
 
@@ -856,6 +701,8 @@ void IVideoRendererNode::NotifyPeerDimensionChanged()
     {
         return;
     }
+
+    IMLOGD1("[NotifyPeerDimensionChanged] subtype[%d]", mSubtype);
 
     // assume the device is portrait
     if (mWidth > mHeight)  // landscape

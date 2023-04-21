@@ -210,10 +210,12 @@ void ImsMediaVideoRenderer::processBuffers()
         }
 
         auto index = AMediaCodec_dequeueInputBuffer(mCodec, CODEC_TIMEOUT_NANO);
+
         if (index >= 0)
         {
             size_t bufferSize = 0;
             uint8_t* inputBuffer = AMediaCodec_getInputBuffer(mCodec, index, &bufferSize);
+
             if (inputBuffer != nullptr)
             {
                 FrameData* frame = mFrameDatas.front();
@@ -223,17 +225,8 @@ void ImsMediaVideoRenderer::processBuffers()
                         "config[%d]",
                         index, frame->size, frame->timestamp, frame->isConfig);
 
-                media_status_t err;
-                if (frame->isConfig)
-                {
-                    err = AMediaCodec_queueInputBuffer(mCodec, index, 0, frame->size,
-                            frame->timestamp * 1000, AMEDIACODEC_BUFFER_FLAG_CODEC_CONFIG);
-                }
-                else
-                {
-                    err = AMediaCodec_queueInputBuffer(
-                            mCodec, index, 0, frame->size, frame->timestamp * 1000, 0);
-                }
+                media_status_t err = AMediaCodec_queueInputBuffer(
+                        mCodec, index, 0, frame->size, frame->timestamp * 1000, 0);
 
                 if (err != AMEDIA_OK)
                 {

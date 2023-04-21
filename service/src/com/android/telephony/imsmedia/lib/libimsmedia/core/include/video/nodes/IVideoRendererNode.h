@@ -29,6 +29,16 @@
 #define USE_JITTER_BUFFER  // off this definition ONLY for test purpose.
 #define DEMON_NTP2MSEC 65.55
 
+enum FrameType
+{
+    UNKNOWN,
+    SPS,
+    PPS,
+    VPS,
+    IDR,
+    NonIDR,
+};
+
 /**
  * @brief This class describes an interface between depacketization module and audio device
  */
@@ -69,25 +79,25 @@ public:
     void SetPacketLossParam(uint32_t time, uint32_t rate);
 
 private:
-    bool IsIntraFrame(uint8_t* pbBuffer, uint32_t nBufferSize);
-    bool IsConfigFrame(uint8_t* pbBuffer, uint32_t nBufferSize, uint32_t* nBufferOffset = nullptr);
-    bool IsSps(uint8_t* pbBuffer, uint32_t nBufferSize, uint32_t* nBufferOffset = nullptr);
-    void SaveConfigFrame(uint8_t* pbBuffer, uint32_t nBufferSize, uint32_t type);
+    bool hasStartingCode(uint8_t* buffer, uint32_t bufferSize);
+    FrameType GetFrameType(uint8_t* buffer, uint32_t bufferSize);
+    void SaveConfigFrame(uint8_t* buffer, uint32_t bufferSize, uint32_t type);
+
     /**
      * @brief Remove Access Uint Delimiter Nal Unit.
      *
-     * @param pInBuffer
-     * @param nInBufferSize
-     * @param pOutBuffer
-     * @param pOutBufferSize
+     * @param inBuffer
+     * @param ibufferSize
+     * @param outBuffer
+     * @param outBufferSize
      * @return true
      * @return false
      */
-    bool RemoveAUDNalUnit(uint8_t* pInBuffer, uint32_t nInBufferSize, uint8_t** pOutBuffer,
-            uint32_t* pOutBufferSize);
+    bool RemoveAUDNalUnit(
+            uint8_t* inBuffer, uint32_t ibufferSize, uint8_t** outBuffer, uint32_t* outBufferSize);
     void CheckResolution(uint32_t nWidth, uint32_t nHeight);
-    ImsMediaResult ParseAvcSps(uint8_t* pbBuffer, uint32_t nBufferSize, tCodecConfig* pInfo);
-    ImsMediaResult ParseHevcSps(uint8_t* pbBuffer, uint32_t nBufferSize, tCodecConfig* pInfo);
+    ImsMediaResult ParseAvcSps(uint8_t* buffer, uint32_t bufferSize, tCodecConfig* config);
+    ImsMediaResult ParseHevcSps(uint8_t* buffer, uint32_t bufferSize, tCodecConfig* config);
     void QueueConfigFrame(uint32_t timestamp);
     void NotifyPeerDimensionChanged();
 
@@ -107,7 +117,6 @@ private:
     bool mFirstFrame;
     ImsMediaSubType mSubtype;
     uint32_t mFramerate;
-    uint32_t mWaitIntraFrame;
     uint32_t mLossDuration;
     uint32_t mLossRateThreshold;
 };

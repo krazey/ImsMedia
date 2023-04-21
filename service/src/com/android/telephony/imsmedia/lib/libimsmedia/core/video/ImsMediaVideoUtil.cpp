@@ -590,22 +590,20 @@ bool ImsMediaVideoUtil::ParseHevcSps(uint8_t* pbBuffer, uint32_t nBufferSize, tC
 
     ImsMediaBitReader objBitReader;
     objBitReader.SetBuffer(pbBuffer + nOffset, nBufferSize - nOffset);
-    objBitReader.Read(4);  // sps_video_parameter_set_id;
-    uint32_t sps_max_sub_layers_minus1 = objBitReader.Read(3);
-    objBitReader.Read(1);  // sps_temporal_id_nesting_flag;
+    objBitReader.Read(4);                                       // sps_video_parameter_set_id;
+    uint32_t sps_max_sub_layers_minus1 = objBitReader.Read(3);  // 0
+    objBitReader.Read(1);                                       // sps_temporal_id_nesting_flag;
 
-    /*-----------profile_tier_level start-----------------------*/
-    objBitReader.Read(3);  // general_profile_spac, general_tier_flag
-    objBitReader.Read(5);  // general_profile_idc
+    objBitReader.Read(3);                    // general_profile_spac, general_tier_flag
+    pInfo->nProfile = objBitReader.Read(5);  // general_profile_idc
 
-    // skip 13byte - flags, not handle
-    objBitReader.Read(24);
+    // skip 10byte - flags, not handle
     objBitReader.Read(24);
     objBitReader.Read(24);
     objBitReader.Read(24);
     objBitReader.Read(8);
 
-    objBitReader.Read(8);  // general_level_idc
+    pInfo->nLevel = objBitReader.Read(8);  // general_level_idc
 
     uint8_t sub_layer_profile_present_flag[sps_max_sub_layers_minus1];
     uint8_t sub_layer_level_present_flag[sps_max_sub_layers_minus1];
@@ -645,19 +643,15 @@ bool ImsMediaVideoUtil::ParseHevcSps(uint8_t* pbBuffer, uint32_t nBufferSize, tC
 
     objBitReader.ReadByUEMode();  // sps_seq_parameter_set_id
 
-    uint32_t chroma_format_idc;
-    chroma_format_idc = objBitReader.ReadByUEMode();
+    uint32_t chroma_format_idc = objBitReader.ReadByUEMode();
 
     if (chroma_format_idc == 3)
     {
         objBitReader.Read(1);  // separate_colour_plane_flag
     }
 
-    int32_t pic_width_in_luma_samples = objBitReader.ReadByUEMode();
-    int32_t pic_height_in_luma_samples = objBitReader.ReadByUEMode();
-
-    pInfo->nWidth = pic_width_in_luma_samples;
-    pInfo->nHeight = pic_height_in_luma_samples;
+    pInfo->nWidth = objBitReader.ReadByUEMode();
+    pInfo->nHeight = objBitReader.ReadByUEMode();
 
     uint8_t conformance_window_flag = objBitReader.Read(1);
 

@@ -502,7 +502,7 @@ void VideoRtpPayloadEncoderNode::EncodeHevc(
             memset(mPPS, 0, MAX_CONFIG_LEN);
             memcpy(mPPS, pCurDataPos, nCurDataSize);
             mPpsSize = nCurDataSize;
-            IMLOGD1("[EncodeHevc] PPS Size [%d]", mSpsSize);
+            IMLOGD1("[EncodeHevc] PPS Size [%d]", mPpsSize);
         }
 
         if (nDataSize < nCurDataSize + 4)
