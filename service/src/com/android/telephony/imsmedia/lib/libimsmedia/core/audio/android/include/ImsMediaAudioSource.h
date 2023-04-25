@@ -143,6 +143,8 @@ public:
 private:
     void openAudioStream();
     void restartAudioStream();
+    bool startCodec();
+    void stopCodec();
     void queueInputBuffer(int16_t* buffer, uint32_t size);
     void dequeueOutputBuffer();
     static void audioErrorCallback(AAudioStream* stream, void* userData, aaudio_result_t error);

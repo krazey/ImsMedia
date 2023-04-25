@@ -188,18 +188,18 @@ void IAudioSourceNode::onDataFrame(uint8_t* buffer, uint32_t size, int64_t times
     }
 }
 
-void IAudioSourceNode::ProcessCmr(uint32_t cmr)
+void IAudioSourceNode::ProcessCmr(const uint32_t cmrType, const uint32_t cmrDefine)
 {
-    IMLOGD1("[ProcessCmr] cmr[%d]", cmr);
+    IMLOGD2("[ProcessCmr] cmr type[%d], define[%d]", cmrType, cmrDefine);
 
     if (mAudioSource == nullptr)
     {
         return;
     }
 
-    if (cmr == 15)  // change mode to original one
+    if (mCodecType == kAudioCodecAmr || mCodecType == kAudioCodecAmrWb)
     {
-        if (mCodecType == kAudioCodecAmr || mCodecType == kAudioCodecAmrWb)
+        if (cmrType == 15)  // change mode to original one
         {
             int32_t mode = ImsMediaAudioUtil::GetMaximumAmrMode(mCodecMode);
 
@@ -209,17 +209,17 @@ void IAudioSourceNode::ProcessCmr(uint32_t cmr)
                 mRunningCodecMode = mode;
             }
         }
-        else if (mCodecType == kAudioCodecEvs)
+        else
         {
-            /** TODO: add implementation */
+            if (mRunningCodecMode != cmrType)
+            {
+                mAudioSource->ProcessCmr(cmrType);
+                mRunningCodecMode = cmrType;
+            }
         }
     }
-    else
+    else if (mCodecType == kAudioCodecEvs)
     {
-        if (mRunningCodecMode != cmr)
-        {
-            mAudioSource->ProcessCmr(cmr);
-            mRunningCodecMode = cmr;
-        }
+        /** TODO: add implementation */
     }
 }

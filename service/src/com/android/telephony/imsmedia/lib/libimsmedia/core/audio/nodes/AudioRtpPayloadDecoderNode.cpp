@@ -179,6 +179,16 @@ void AudioRtpPayloadDecoderNode::DecodePayloadAmr(uint8_t* pData, uint32_t nData
         mBitReader.Read(4);
     }
 
+#ifdef SIMULATE_CMR_AMR
+    const int kMaxMode = mCodecType == kAudioCodecAmrWb ? 9 : 8;
+    static int sCmr = 0;
+    static int sCount = 0;
+    if ((sCount++ % 250) == 0)  // every 5 second
+    {
+        mCallback->SendEvent(kRequestAudioCmr, (sCmr++ % kMaxMode));
+    }
+#endif
+
     if (cmr != mPrevCMR)
     {
         if ((mCodecType == kAudioCodecAmr && cmr <= 7) ||
@@ -733,6 +743,11 @@ bool AudioRtpPayloadDecoderNode::ProcessCMRForEVS(
 
     IMLOGD2("[ProcessCMRForEVS] Change request bnadwidth[%d], bitrate[%d]", eNewEVSCMRCodeType,
             eNewEVSCMRCodeDefine);
-    // TODO: replace this with latest params
+
+    if (mCallback)
+    {
+        mCallback->SendEvent(kRequestAudioCmrEvs, eNewEVSCMRCodeType, eNewEVSCMRCodeDefine);
+    }
+
     return true;
 }
