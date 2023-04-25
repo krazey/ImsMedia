@@ -431,6 +431,7 @@ void AudioManager::RequestHandler::processEvent(
         }
         break;
         case kRequestAudioCmr:
+        case kRequestAudioCmrEvs:
         case kRequestSendRtcpXrReport:
             sManager->SendInternalEvent(event, static_cast<int>(sessionId), paramA, paramB);
             break;
