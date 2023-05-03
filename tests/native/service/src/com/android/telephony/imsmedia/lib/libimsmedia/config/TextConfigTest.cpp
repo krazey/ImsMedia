@@ -96,7 +96,8 @@ TEST_F(TextConfigTest, TestParcel)
 
 TEST_F(TextConfigTest, TestAssign)
 {
-    TextConfig testConfig = config1;
+    TextConfig testConfig;
+    testConfig = config1;
     EXPECT_EQ(config1, testConfig);
 
     TextConfig* testConfig2 = new TextConfig(config1);

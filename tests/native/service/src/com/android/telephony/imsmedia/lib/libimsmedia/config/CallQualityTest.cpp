@@ -93,7 +93,8 @@ TEST_F(CallQualityTest, TestParcel)
 
 TEST_F(CallQualityTest, TestAssign)
 {
-    CallQuality testQuality = quality1;
+    CallQuality testQuality;
+    testQuality = quality1;
     EXPECT_EQ(quality1, testQuality);
 }
 
