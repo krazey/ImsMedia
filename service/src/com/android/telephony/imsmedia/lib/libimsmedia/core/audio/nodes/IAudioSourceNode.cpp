@@ -23,6 +23,8 @@
 #include <RtpConfig.h>
 #include <EvsParams.h>
 
+#define MAX_CODEC_EVS_AMR_IO_MODE 9
+
 IAudioSourceNode::IAudioSourceNode(BaseSessionCallback* callback) :
         BaseNode(callback)
 {
@@ -220,6 +222,90 @@ void IAudioSourceNode::ProcessCmr(const uint32_t cmrType, const uint32_t cmrDefi
     }
     else if (mCodecType == kAudioCodecEvs)
     {
-        /** TODO: add implementation */
+        if (cmrType == kEvsCmrCodeTypeNoReq || cmrDefine == kEvsCmrCodeDefineNoReq)
+        {
+            int32_t mode = ImsMediaAudioUtil::GetMaximumEvsMode(mCodecMode);
+
+            if (mRunningCodecMode != mode)
+            {
+                mAudioSource->ProcessCmr(mode);
+                mRunningCodecMode = mode;
+            }
+        }
+        else
+        {
+            int mode = MAX_CODEC_EVS_AMR_IO_MODE;
+            switch (cmrType)
+            {
+                case kEvsCmrCodeTypeNb:
+                    mEvsBandwidth = kEvsBandwidthNB;
+                    mode += cmrDefine;
+                    break;
+                case kEvsCmrCodeTypeWb:
+                    mEvsBandwidth = kEvsBandwidthWB;
+                    mode += cmrDefine;
+                    break;
+                case kEvsCmrCodeTypeSwb:
+                    mEvsBandwidth = kEvsBandwidthSWB;
+                    mode += cmrDefine;
+                    break;
+                case kEvsCmrCodeTypeFb:
+                    mEvsBandwidth = kEvsBandwidthFB;
+                    mode += cmrDefine;
+                    break;
+                case kEvsCmrCodeTypeWbCha:
+                    mEvsBandwidth = kEvsBandwidthWB;
+                    mode = kImsAudioEvsPrimaryMode13200;
+                    break;
+                case kEvsCmrCodeTypeSwbCha:
+                    mEvsBandwidth = kEvsBandwidthSWB;
+                    mode = kImsAudioEvsPrimaryMode13200;
+                    break;
+                case kEvsCmrCodeTypeAmrIO:
+                    mode = cmrDefine;
+                    break;
+                default:
+                    break;
+            }
+
+            if (cmrType == kEvsCmrCodeTypeWbCha || cmrType == kEvsCmrCodeTypeSwbCha)
+            {
+                switch (cmrDefine)
+                {
+                    case kEvsCmrCodeDefineChaOffset2:
+                    case kEvsCmrCodeDefineChaOffsetH2:
+                        mEvsChAwOffset = 2;
+                        break;
+                    case kEvsCmrCodeDefineChaOffset3:
+                    case kEvsCmrCodeDefineChaOffsetH3:
+                        mEvsChAwOffset = 3;
+                        break;
+                    case kEvsCmrCodeDefineChaOffset5:
+                    case kEvsCmrCodeDefineChaOffsetH5:
+                        mEvsChAwOffset = 5;
+                        break;
+                    case kEvsCmrCodeDefineChaOffset7:
+                    case kEvsCmrCodeDefineChaOffsetH7:
+                        mEvsChAwOffset = 7;
+                        break;
+                    default:
+                        mEvsChAwOffset = 3;
+                        break;
+                }
+            }
+
+            mAudioSource->SetEvsBandwidth((int32_t)mEvsBandwidth);
+            mAudioSource->SetEvsChAwOffset(mEvsChAwOffset);
+
+            if (mode != mRunningCodecMode)
+            {
+                mRunningCodecMode = mode;
+                mAudioSource->SetEvsBitRate(
+                        ImsMediaAudioUtil::ConvertEVSModeToBitRate(mRunningCodecMode));
+                mAudioSource->SetCodecMode(mRunningCodecMode);
+            }
+
+            mAudioSource->ProcessCmr(mRunningCodecMode);
+        }
     }
 }

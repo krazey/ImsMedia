@@ -104,6 +104,15 @@ void ImsMediaAudioPlayer::SetOctetAligned(bool isOctetAligned)
     mIsOctetAligned = isOctetAligned;
 }
 
+void ImsMediaAudioPlayer::ProcessCmr(const uint32_t cmr)
+{
+    IMLOGD1("[ProcessCmr] cmr[%d]", cmr);
+
+    mCodecMode = cmr;
+    Stop();
+    Start();
+}
+
 bool ImsMediaAudioPlayer::Start()
 {
     char kMimeType[128] = {'\0'};
