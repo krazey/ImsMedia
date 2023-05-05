@@ -23,6 +23,8 @@
 #include <RtpConfig.h>
 #include <string.h>
 
+#define MAX_CODEC_EVS_AMR_IO_MODE 9
+
 IAudioPlayerNode::IAudioPlayerNode(BaseSessionCallback* callback) :
         JitterBufferControlNode(callback, IMS_MEDIA_AUDIO)
 {
@@ -70,9 +72,11 @@ ImsMediaResult IAudioPlayerNode::ProcessStart()
         {
             mAudioPlayer->SetEvsBandwidth((int32_t)mEvsBandwidth);
             mAudioPlayer->SetEvsPayloadHeaderMode(mEvsPayloadHeaderMode);
-            mAudioPlayer->SetEvsBitRate(ImsMediaAudioUtil::ConvertEVSModeToBitRate(
-                    ImsMediaAudioUtil::GetMaximumEvsMode(mMode)));
             mAudioPlayer->SetEvsChAwOffset(mEvsChannelAwOffset);
+            mRunningCodecMode = ImsMediaAudioUtil::GetMaximumEvsMode(mMode);
+            mAudioPlayer->SetEvsBitRate(
+                    ImsMediaAudioUtil::ConvertEVSModeToBitRate(mRunningCodecMode));
+            mAudioPlayer->SetCodecMode(mRunningCodecMode);
         }
         mAudioPlayer->SetCodecMode(mode);
 
@@ -189,6 +193,105 @@ bool IAudioPlayerNode::IsSameConfig(void* config)
     return false;
 }
 
+void IAudioPlayerNode::ProcessCmr(const uint32_t cmrType, const uint32_t cmrDefine)
+{
+    IMLOGD2("[ProcessCmr] cmr type[%d], define[%d]", cmrType, cmrDefine);
+
+    if (mAudioPlayer == nullptr)
+    {
+        return;
+    }
+
+    if (mCodecType == kAudioCodecEvs)
+    {
+        if (cmrType == kEvsCmrCodeTypeNoReq || cmrDefine == kEvsCmrCodeDefineNoReq)
+        {
+            int32_t mode = ImsMediaAudioUtil::GetMaximumEvsMode(mMode);
+
+            if (mRunningCodecMode != mode)
+            {
+                mAudioPlayer->ProcessCmr(mode);
+                mRunningCodecMode = mode;
+            }
+        }
+        else
+        {
+            int mode = MAX_CODEC_EVS_AMR_IO_MODE;
+            switch (cmrType)
+            {
+                case kEvsCmrCodeTypeNb:
+                    mEvsBandwidth = kEvsBandwidthNB;
+                    mode += cmrDefine;
+                    break;
+                case kEvsCmrCodeTypeWb:
+                    mEvsBandwidth = kEvsBandwidthWB;
+                    mode += cmrDefine;
+                    break;
+                case kEvsCmrCodeTypeSwb:
+                    mEvsBandwidth = kEvsBandwidthSWB;
+                    mode += cmrDefine;
+                    break;
+                case kEvsCmrCodeTypeFb:
+                    mEvsBandwidth = kEvsBandwidthFB;
+                    mode += cmrDefine;
+                    break;
+                case kEvsCmrCodeTypeWbCha:
+                    mEvsBandwidth = kEvsBandwidthWB;
+                    mode = kImsAudioEvsPrimaryMode13200;
+                    break;
+                case kEvsCmrCodeTypeSwbCha:
+                    mEvsBandwidth = kEvsBandwidthSWB;
+                    mode = kImsAudioEvsPrimaryMode13200;
+                    break;
+                case kEvsCmrCodeTypeAmrIO:
+                    mode = cmrDefine;
+                    break;
+                default:
+                    break;
+            }
+
+            if (cmrType == kEvsCmrCodeTypeWbCha || cmrType == kEvsCmrCodeTypeSwbCha)
+            {
+                switch (cmrDefine)
+                {
+                    case kEvsCmrCodeDefineChaOffset2:
+                    case kEvsCmrCodeDefineChaOffsetH2:
+                        mEvsChannelAwOffset = 2;
+                        break;
+                    case kEvsCmrCodeDefineChaOffset3:
+                    case kEvsCmrCodeDefineChaOffsetH3:
+                        mEvsChannelAwOffset = 3;
+                        break;
+                    case kEvsCmrCodeDefineChaOffset5:
+                    case kEvsCmrCodeDefineChaOffsetH5:
+                        mEvsChannelAwOffset = 5;
+                        break;
+                    case kEvsCmrCodeDefineChaOffset7:
+                    case kEvsCmrCodeDefineChaOffsetH7:
+                        mEvsChannelAwOffset = 7;
+                        break;
+                    default:
+                        mEvsChannelAwOffset = 3;
+                        break;
+                }
+            }
+
+            mAudioPlayer->SetEvsBandwidth((int32_t)mEvsBandwidth);
+            mAudioPlayer->SetEvsChAwOffset(mEvsChannelAwOffset);
+
+            if (mode != mRunningCodecMode)
+            {
+                mRunningCodecMode = mode;
+                mAudioPlayer->SetEvsBitRate(
+                        ImsMediaAudioUtil::ConvertEVSModeToBitRate(mRunningCodecMode));
+                mAudioPlayer->SetCodecMode(mRunningCodecMode);
+            }
+
+            mAudioPlayer->ProcessCmr(mRunningCodecMode);
+        }
+    }
+}
+
 void* IAudioPlayerNode::run()
 {
     IMLOGD0("[run] enter");
@@ -232,7 +335,7 @@ void* IAudioPlayerNode::run()
         }
         else if (isFirstFrameReceived)
         {
-            IMLOGE0("[run] GetData returned 0 bytes");
+            IMLOGD_PACKET0(IM_PACKET_LOG_AUDIO, "[run] GetData returned 0 bytes");
             mAudioPlayer->onDataFrame(nullptr, 0);
         }
 

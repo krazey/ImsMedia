@@ -605,6 +605,21 @@ void AudioSession::SendInternalEvent(int32_t type, uint64_t param1, uint64_t par
                                                        static_cast<uint32_t>(param2));
                 }
             }
+
+            if (type == kRequestAudioCmrEvs)
+            {
+                for (std::list<AudioStreamGraphRtpRx*>::iterator iter = mListGraphRtpRx.begin();
+                        iter != mListGraphRtpRx.end(); iter++)
+                {
+                    AudioStreamGraphRtpRx* graph = *iter;
+
+                    if (graph != nullptr && graph->getState() == kStreamStateRunning)
+                    {
+                        graph->processCmr(
+                                static_cast<uint32_t>(param1), static_cast<uint32_t>(param2));
+                    }
+                }
+            }
             break;
         case kRequestSendRtcpXrReport:
             for (std::list<AudioStreamGraphRtcp*>::iterator iter = mListGraphRtcp.begin();

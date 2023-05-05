@@ -150,6 +150,16 @@ ImsMediaResult AudioStreamGraphRtpRx::update(RtpConfig* config)
     return ret;
 }
 
+void AudioStreamGraphRtpRx::processCmr(const uint32_t cmrType, const uint32_t cmrDefine)
+{
+    BaseNode* node = findNode(kNodeIdAudioPlayer);
+
+    if (node != nullptr)
+    {
+        (reinterpret_cast<IAudioPlayerNode*>(node))->ProcessCmr(cmrType, cmrDefine);
+    }
+}
+
 ImsMediaResult AudioStreamGraphRtpRx::start()
 {
     if (mConfig == nullptr)

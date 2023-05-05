@@ -280,6 +280,16 @@ void AudioRtpPayloadDecoderNode::DecodePayloadEvs(uint8_t* pData, uint32_t nData
     kRtpPyaloadHeaderMode eEVSReceivedPHFormat = kRtpPyaloadHeaderModeEvsCompact;
     kEvsCodecMode kEvsCodecMode = kEvsCodecModePrimary;
 
+#ifdef SIMULATE_CMR_EVS
+    const int kMaxMode = 12;
+    static int sCmr = 1;
+    static int sCount = 0;
+    if ((sCount++ % 250) == 0)  // every 5 second
+    {
+        mCallback->SendEvent(kRequestAudioCmrEvs, kEvsCmrCodeTypeSwb, (sCmr++ % kMaxMode));
+    }
+#endif
+
     // uint32_t nEVSBW = 0;
     // uint32_t nEVSBR = 0;
     uint32_t nEVSCompactId = 0;

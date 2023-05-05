@@ -68,6 +68,22 @@ static const uint32_t gaEVSPrimaryByteLen[32] = {
         0,
 };
 
+static const uint32_t gaEVSPrimaryHeaderFullByteLen[32] = {
+        8,    // 2.8 special case
+        19,   // 7.2
+        21,   // 8.0
+        25,   // 9.6
+        34,   // 13.2
+        42,   // 16.4
+        62,   // 24.4
+        81,   // 32.0
+        121,  // 48.0
+        161,  // 64.0
+        241,  // 96.0
+        321,  // 128.0
+        7,    // SID
+};
+
 static const uint32_t gaEVSPrimaryBitLen[32] = {
         56,    // 2.8 Special case
         144,   // 7.2
@@ -265,6 +281,19 @@ uint32_t ImsMediaAudioUtil::ConvertLenToAmrWbMode(uint32_t nLen)
     return 0;
 }
 
+bool ImsMediaAudioUtil::CheckEVSPrimaryHeaderFullModeFromSize(uint32_t size)
+{
+    auto it = std::find(std::begin(gaEVSPrimaryHeaderFullByteLen),
+            std::end(gaEVSPrimaryHeaderFullByteLen), size);
+
+    // Check if the Evs size is headerfull or not
+    if (it != std::end(gaEVSPrimaryHeaderFullByteLen))
+    {
+        return true;
+    }
+
+    return false;
+}
 uint32_t ImsMediaAudioUtil::ConvertLenToEVSAudioMode(uint32_t nLen)
 {
     uint32_t i = 0;

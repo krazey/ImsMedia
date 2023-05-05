@@ -97,6 +97,13 @@ public:
     void SetOctetAligned(bool isOctetAligned);
 
     /**
+     * @brief Set the cmr value to change the audio mode
+     *
+     * @param cmr The 4 bit of cmr define code for EVS modes and not used for AMR/AMR-WB codec
+     */
+    void ProcessCmr(const uint32_t cmr);
+
+    /**
      * @brief Starts audio player to play the decoded audio frame and ndk audio decoder to decode
      * the given data
      *
