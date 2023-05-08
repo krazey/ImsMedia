@@ -78,21 +78,21 @@ public:
      * @param event The event type
      * @param sessionId The session id
      */
-    void SendInternalEvent(
+    virtual void SendInternalEvent(
             uint32_t event, uint64_t sessionId, uint64_t paramA = 0, uint64_t paramB = 0);
 
-private:
+protected:
     VideoManager();
     virtual ~VideoManager();
     ImsMediaResult openSession(
             const int sessionId, const int rtpFd, const int rtcpFd, VideoConfig* config);
     ImsMediaResult closeSession(const int sessionId);
-    ImsMediaResult setPreviewSurfaceToSession(const int sessionId, ANativeWindow* surface);
-    ImsMediaResult setDisplaySurfaceToSession(const int sessionId, ANativeWindow* surface);
+    virtual ImsMediaResult setPreviewSurfaceToSession(const int sessionId, ANativeWindow* surface);
+    virtual ImsMediaResult setDisplaySurfaceToSession(const int sessionId, ANativeWindow* surface);
     ImsMediaResult modifySession(const int sessionId, VideoConfig* config);
-    void setMediaQualityThreshold(const int sessionId, MediaQualityThreshold* threshold);
+    virtual void setMediaQualityThreshold(const int sessionId, MediaQualityThreshold* threshold);
 
-    static VideoManager* manager;
+    static VideoManager* sManager;
     std::unordered_map<int, std::unique_ptr<VideoSession>> mSessions;
     RequestHandler mRequestHandler;
     ResponseHandler mResponseHandler;
