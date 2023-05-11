@@ -219,7 +219,7 @@ TEST_F(AudioStreamGraphRtpTxTest, TestDtmf)
     EXPECT_EQ(mockRtpEncoder->GetState(), kNodeStateRunning);
     EXPECT_EQ(graph->start(), RESULT_SUCCESS);
 
-    EXPECT_CALL(*mockRtpEncoder, OnDataFromFrontNode(MEDIASUBTYPE_DTMFSTART, _, 0, 0, 0, 0, _, _))
+    EXPECT_CALL(*mockRtpEncoder, OnDataFromFrontNode(MEDIASUBTYPE_DTMFSTART, _, 0, _, _, 0, _, _))
             .Times(1)
             .WillOnce(Return());
     EXPECT_CALL(*mockRtpEncoder,
@@ -230,7 +230,7 @@ TEST_F(AudioStreamGraphRtpTxTest, TestDtmf)
             OnDataFromFrontNode(MEDIASUBTYPE_DTMF_PAYLOAD, NotNull(), 4, _, false, _, _, _))
             .Times(11)
             .WillRepeatedly(Return());
-    EXPECT_CALL(*mockRtpEncoder, OnDataFromFrontNode(MEDIASUBTYPE_DTMFEND, _, 0, 0, 0, 0, _, _))
+    EXPECT_CALL(*mockRtpEncoder, OnDataFromFrontNode(MEDIASUBTYPE_DTMFEND, _, 0, _, _, 0, _, _))
             .Times(1)
             .WillOnce(Return());
 
