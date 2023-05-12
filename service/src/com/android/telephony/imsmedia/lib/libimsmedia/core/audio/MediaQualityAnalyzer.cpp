@@ -448,7 +448,7 @@ void MediaQualityAnalyzer::processMediaQuality()
     mQualityStatus.setRtcpInactivityTimeMillis(mCountRtcpInactivity);
     mQualityStatus.setRtpJitterMillis(mJitterRxPacket);
 
-    if (mPacketLossDuration != 0 && !mListLostPacket.empty())
+    if (mPacketLossDuration != 0)
     {
         // counts received packets for the duration
         int32_t numReceivedPacketsInDuration =
@@ -459,22 +459,27 @@ void MediaQualityAnalyzer::processMediaQuality()
                                     mPacketLossDuration);
                         });
 
-        // cumulates the number of lost packets for the duration
-        std::list<LostPacket*> listLostPacketInDuration;
-        std::copy_if(mListLostPacket.begin(), mListLostPacket.end(),
-                std::back_inserter(listLostPacketInDuration),
-                [=](LostPacket* packet)
-                {
-                    return (ImsMediaTimer::GetTimeInMilliSeconds() - packet->markedTime <=
-                            mPacketLossDuration);
-                });
+        int32_t numLostPacketsInDuration = 0;
 
-        int32_t numLostPacketsInDuration =
-                std::accumulate(begin(listLostPacketInDuration), end(listLostPacketInDuration), 0,
-                        [=](int i, const LostPacket* packet)
-                        {
-                            return packet->numLoss + i;
-                        });
+        if (!mListLostPacket.empty())
+        {
+            // cumulates the number of lost packets for the duration
+            std::list<LostPacket*> listLostPacketInDuration;
+            std::copy_if(mListLostPacket.begin(), mListLostPacket.end(),
+                    std::back_inserter(listLostPacketInDuration),
+                    [=](LostPacket* packet)
+                    {
+                        return (ImsMediaTimer::GetTimeInMilliSeconds() - packet->markedTime <=
+                                mPacketLossDuration);
+                    });
+
+            numLostPacketsInDuration = std::accumulate(begin(listLostPacketInDuration),
+                    end(listLostPacketInDuration), 0,
+                    [=](int i, const LostPacket* packet)
+                    {
+                        return packet->numLoss + i;
+                    });
+        }
 
         if (numLostPacketsInDuration == 0 || numReceivedPacketsInDuration == 0)
         {
@@ -497,8 +502,8 @@ void MediaQualityAnalyzer::processMediaQuality()
 
     bool shouldNotify = false;
 
-    // check jitter notification
-    if (!mJitterThreshold.empty() && mIsRxRtpEnabled)
+    // check jitter notification, this notification should be triggered when the RTPs are receiving
+    if (!mJitterThreshold.empty() && mIsRxRtpEnabled && mCountRtpInactivity == 0)
     {
         if (mJitterChecker.checkNotifiable(mJitterThreshold, mQualityStatus.getRtpJitterMillis()))
         {
@@ -506,8 +511,9 @@ void MediaQualityAnalyzer::processMediaQuality()
         }
     }
 
-    // check packet loss notification
-    if (!mPacketLossThreshold.empty() && mIsRxRtpEnabled)
+    // check packet loss notification, this notification should be triggered when the RTPs are
+    // receiving
+    if (!mPacketLossThreshold.empty() && mIsRxRtpEnabled && mCountRtpInactivity == 0)
     {
         if (mPacketLossChecker.checkNotifiable(
                     mPacketLossThreshold, mQualityStatus.getRtpPacketLossRate()))
