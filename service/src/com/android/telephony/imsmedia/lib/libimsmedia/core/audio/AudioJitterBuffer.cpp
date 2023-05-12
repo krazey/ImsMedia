@@ -394,6 +394,13 @@ bool AudioJitterBuffer::Get(ImsMediaSubType* psubtype, uint8_t** ppData, uint32_
                 mSIDCount = 0;
             }
 
+            // discard case that latest packet is about to cut by the jitter then update the
+            // sequence number to avoid incorrect lost counting
+            if (pEntry->nSeqNum >= mLastPlayedSeqNum)
+            {
+                mLastPlayedSeqNum = pEntry->nSeqNum;
+            }
+
             CollectRxRtpStatus(pEntry->nSeqNum, kRtpStatusLate);
             mDeleteCount++;
             mDataQueue.Delete();
@@ -410,6 +417,11 @@ bool AudioJitterBuffer::Get(ImsMediaSubType* psubtype, uint8_t** ppData, uint32_
                     "[Get] delete SID - seq[%d], mark[%d], TS[%u], currTS[%u], queue[%d]",
                     pEntry->nSeqNum, pEntry->bMark, pEntry->nTimestamp, mCurrPlayingTS,
                     mDataQueue.GetCount());
+
+            if (pEntry->nSeqNum >= mLastPlayedSeqNum)
+            {
+                mLastPlayedSeqNum = pEntry->nSeqNum;
+            }
 
             mSIDCount++;
             mDtxOn = true;
@@ -452,6 +464,11 @@ bool AudioJitterBuffer::Get(ImsMediaSubType* psubtype, uint8_t** ppData, uint32_
                     mSIDCount = 0;
                     mDtxOn = false;
                     IMLOGD_PACKET0(IM_PACKET_LOG_JITTER, "[Get] Dtx Off");
+                }
+
+                if (pEntry->nSeqNum >= mLastPlayedSeqNum)
+                {
+                    mLastPlayedSeqNum = pEntry->nSeqNum;
                 }
 
                 CollectRxRtpStatus(pEntry->nSeqNum, kRtpStatusDiscarded);
