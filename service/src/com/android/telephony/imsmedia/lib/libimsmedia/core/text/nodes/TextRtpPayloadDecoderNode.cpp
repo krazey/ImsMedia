@@ -136,7 +136,7 @@ void TextRtpPayloadDecoderNode::DecodeT140(uint8_t* data, uint32_t size, ImsMedi
         */
 
         // Primary Data Only
-        if (subtype == MEDIASUBTYPE_BITSTREAM_T140)
+        if (subtype == MEDIASUBTYPE_BITSTREAM_T140 || size == 0)
         {
             SendDataToRearNode(MEDIASUBTYPE_BITSTREAM_T140, data, size, timestamp, mark, seq);
             return;
