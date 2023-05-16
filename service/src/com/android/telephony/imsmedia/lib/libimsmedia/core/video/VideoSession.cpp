@@ -249,7 +249,7 @@ void VideoSession::onEvent(int32_t type, uint64_t param1, uint64_t param2)
             break;
         case kImsMediaEventFirstPacketReceived:
             ImsMediaEventHandler::SendEvent(
-                    "VIDEO_RESPONSE_EVENT", kVideoFirstMediaPacketInd, param1, param2);
+                    "VIDEO_RESPONSE_EVENT", kVideoFirstMediaPacketInd, mSessionId, param1, param2);
             break;
         case kImsMediaEventResolutionChanged:
             ImsMediaEventHandler::SendEvent(
