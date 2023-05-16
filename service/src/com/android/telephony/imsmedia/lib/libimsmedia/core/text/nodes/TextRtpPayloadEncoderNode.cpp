@@ -65,15 +65,10 @@ bool TextRtpPayloadEncoderNode::IsSourceNode()
     return false;
 }
 
-void TextRtpPayloadEncoderNode::OnDataFromFrontNode(ImsMediaSubType subtype, uint8_t* data,
-        uint32_t size, uint32_t timestamp, bool mark, uint32_t seqNum, ImsMediaSubType dataType,
-        uint32_t arrivalTime)
+void TextRtpPayloadEncoderNode::OnDataFromFrontNode(ImsMediaSubType /*subtype*/, uint8_t* data,
+        uint32_t size, uint32_t timestamp, bool mark, uint32_t /*seq*/,
+        ImsMediaSubType /*dataType*/, uint32_t /*arrivalTime*/)
 {
-    (void)subtype;
-    (void)seqNum;
-    (void)dataType;
-    (void)arrivalTime;
-
     switch (mCodecType)
     {
         case TextConfig::TEXT_T140:
@@ -148,7 +143,7 @@ void TextRtpPayloadEncoderNode::EncodeT140(
     if (codecType == TextConfig::TEXT_T140_RED)
     {
         // Remove overflowed data
-        while (mBufferQueue.GetCount() >= mRedundantLevel)
+        while (mBufferQueue.GetCount() > mRedundantLevel)
         {
             mBufferQueue.Delete();
         }
@@ -223,7 +218,7 @@ void TextRtpPayloadEncoderNode::EncodeT140(
         {
             // add empty redundant payload
             uint32_t nTempRedCount = mBufferQueue.GetCount();
-            for (uint32_t indexRed = 0; indexRed < mRedundantLevel - nTempRedCount - 1; indexRed++)
+            for (uint32_t indexRed = 0; indexRed < mRedundantLevel - nTempRedCount; indexRed++)
             {
                 DataEntry nullRED = DataEntry();
                 nullRED.subtype = MEDIASUBTYPE_RTPPAYLOAD;
@@ -309,7 +304,8 @@ void TextRtpPayloadEncoderNode::EncodeT140(
         newEntry.pbBuffer = data;
         newEntry.nBufferSize = size;
         newEntry.nTimestamp = timestamp;
-        newEntry.arrivalTime = mRedundantLevel - 1;  // Remained time to be retransmitted
+        newEntry.arrivalTime = static_cast<uint32_t>(std::make_unsigned_t<int8_t>(
+                mRedundantLevel));  // Remained time to be retransmitted
         mBufferQueue.Add(&newEntry);
     }
     else  // TEXT_T140

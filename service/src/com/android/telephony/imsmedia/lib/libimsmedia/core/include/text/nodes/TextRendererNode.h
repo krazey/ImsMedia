@@ -39,7 +39,6 @@ public:
 private:
     char mBuffer[MAX_RTT_LEN + 1];
     int32_t mCodecType;
-    int8_t mRedundantLevel;
     bool mBOMReceived;
     uint16_t mLastPlayedSeq;
     uint32_t mLossWaitTime;
