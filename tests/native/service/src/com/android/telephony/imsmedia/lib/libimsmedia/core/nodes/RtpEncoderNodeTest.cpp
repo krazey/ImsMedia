@@ -77,7 +77,7 @@ const int32_t kRtcpFbTypes = VideoConfig::RTP_FB_NONE;
 
 // TextConfig
 const int8_t kRedundantPayload = 102;
-const int8_t kRedundantLevel = 3;
+const int8_t kRedundantLevel = 2;
 const bool kKeepRedundantLevel = true;
 
 const int32_t kRtpHeaderSize = 12;

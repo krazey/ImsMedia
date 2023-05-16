@@ -42,7 +42,7 @@ const int32_t kRtcpXrBlockTypes = RtcpConfig::FLAG_RTCPXR_STATISTICS_SUMMARY_REP
 const int32_t kCodecType = TextConfig::TEXT_T140_RED;
 const int32_t kBitrate = 100;
 const int8_t kRedundantPayload = 102;
-const int8_t kRedundantLevel = 3;
+const int8_t kRedundantLevel = 2;
 const bool kKeepRedundantLevel = true;
 
 class TextStreamGraphRtpTxTest : public ::testing::Test

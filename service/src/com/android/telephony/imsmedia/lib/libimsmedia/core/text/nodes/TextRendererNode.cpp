@@ -81,7 +81,6 @@ void TextRendererNode::SetConfig(void* config)
 
     TextConfig* pConfig = reinterpret_cast<TextConfig*>(config);
     mCodecType = pConfig->getCodecType();
-    mRedundantLevel = pConfig->getRedundantLevel();
 }
 
 bool TextRendererNode::IsSameConfig(void* config)
@@ -93,8 +92,7 @@ bool TextRendererNode::IsSameConfig(void* config)
 
     TextConfig* pConfig = reinterpret_cast<TextConfig*>(config);
 
-    return (mCodecType == pConfig->getCodecType() &&
-            mRedundantLevel == pConfig->getRedundantLevel());
+    return (mCodecType == pConfig->getCodecType());
 }
 
 void TextRendererNode::ProcessData()

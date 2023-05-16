@@ -1538,7 +1538,7 @@ public class MainActivity extends AppCompatActivity {
                 .setCodecType(codecType)
                 .setBitrate(1000)
                 .setRedundantPayload((byte) TEXT_REDUNDANT_PAYLOAD_TYPE_NUMBER)
-                .setRedundantLevel((byte) 3)
+                .setRedundantLevel((byte) 2)
                 .setKeepRedundantLevel(true)
                 .build();
         return config;

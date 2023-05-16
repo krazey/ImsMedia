@@ -129,12 +129,7 @@ void TextSourceNode::ProcessData()
         SendDataToRearNode(MEDIASUBTYPE_BITSTREAM_T140, data, size, mTimeLastSent, false, 0);
         DeleteData();
 
-        mRedundantCount = mRedundantLevel;
-
-        if (mRedundantCount == 0)
-        {
-            mRedundantCount = 1;
-        }
+        mRedundantCount = mRedundantLevel + 1;
     }
     else if (mRedundantCount > 0)
     {
