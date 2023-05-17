@@ -19,7 +19,7 @@
 #include <ImsMediaNetworkUtil.h>
 
 using namespace android;
-VideoManager* VideoManager::manager;
+VideoManager* VideoManager::sManager;
 
 VideoManager::VideoManager()
 {
@@ -31,17 +31,17 @@ VideoManager::~VideoManager()
 {
     mRequestHandler.Deinit();
     mResponseHandler.Deinit();
-    manager = nullptr;
+    sManager = nullptr;
 }
 
 VideoManager* VideoManager::getInstance()
 {
-    if (manager == nullptr)
+    if (sManager == nullptr)
     {
-        manager = new VideoManager();
+        sManager = new VideoManager();
     }
 
-    return manager;
+    return sManager;
 }
 
 int VideoManager::getState(int sessionId)
@@ -261,6 +261,11 @@ void VideoManager::RequestHandler::processEvent(
             paramA, paramB);
     ImsMediaResult result = RESULT_SUCCESS;
 
+    if (sManager == nullptr)
+    {
+        return;
+    }
+
     switch (event)
     {
         case kVideoOpenSession:
@@ -270,7 +275,7 @@ void VideoManager::RequestHandler::processEvent(
             if (param != nullptr)
             {
                 VideoConfig* pConfig = reinterpret_cast<VideoConfig*>(param->mConfig);
-                result = VideoManager::getInstance()->openSession(
+                result = sManager->openSession(
                         static_cast<int>(sessionId), param->rtpFd, param->rtcpFd, pConfig);
 
                 if (result == RESULT_SUCCESS)
@@ -299,26 +304,24 @@ void VideoManager::RequestHandler::processEvent(
         }
         break;
         case kVideoCloseSession:
-            if (VideoManager::getInstance()->closeSession(static_cast<int>(sessionId)) ==
-                    RESULT_SUCCESS)
+            if (sManager->closeSession(static_cast<int>(sessionId)) == RESULT_SUCCESS)
             {
                 ImsMediaEventHandler::SendEvent(
                         "VIDEO_RESPONSE_EVENT", kVideoSessionClosed, sessionId, 0, 0);
             }
             break;
         case kVideoSetPreviewSurface:
-            VideoManager::getInstance()->setPreviewSurfaceToSession(
+            sManager->setPreviewSurfaceToSession(
                     static_cast<int>(sessionId), reinterpret_cast<ANativeWindow*>(paramA));
             break;
         case kVideoSetDisplaySurface:
-            VideoManager::getInstance()->setDisplaySurfaceToSession(
+            sManager->setDisplaySurfaceToSession(
                     static_cast<int>(sessionId), reinterpret_cast<ANativeWindow*>(paramA));
             break;
         case kVideoModifySession:
         {
             VideoConfig* config = reinterpret_cast<VideoConfig*>(paramA);
-            result =
-                    VideoManager::getInstance()->modifySession(static_cast<int>(sessionId), config);
+            result = sManager->modifySession(static_cast<int>(sessionId), config);
             ImsMediaEventHandler::SendEvent(
                     "VIDEO_RESPONSE_EVENT", kVideoModifySessionResponse, sessionId, result, paramA);
         }
@@ -332,8 +335,7 @@ void VideoManager::RequestHandler::processEvent(
 
             if (threshold != nullptr)
             {
-                VideoManager::getInstance()->setMediaQualityThreshold(
-                        static_cast<int>(sessionId), threshold);
+                sManager->setMediaQualityThreshold(static_cast<int>(sessionId), threshold);
                 delete threshold;
             }
         }
@@ -346,7 +348,7 @@ void VideoManager::RequestHandler::processEvent(
         case kRequestVideoSendTmmbr:
         case kRequestVideoSendTmmbn:
         case kRequestRoundTripTimeDelayUpdate:
-            VideoManager::getInstance()->SendInternalEvent(event, sessionId, paramA, paramB);
+            sManager->SendInternalEvent(event, sessionId, paramA, paramB);
             break;
         default:
             break;
@@ -358,7 +360,14 @@ void VideoManager::ResponseHandler::processEvent(
 {
     IMLOGI4("[processEvent] event[%d], sessionId[%d], paramA[%d], paramB[%d]", event, sessionId,
             paramA, paramB);
+
+    if (sManager == nullptr)
+    {
+        return;
+    }
+
     android::Parcel parcel;
+
     switch (event)
     {
         case kVideoOpenSessionSuccess:
@@ -372,7 +381,7 @@ void VideoManager::ResponseHandler::processEvent(
                 parcel.writeInt32(static_cast<int>(paramA));
             }
 
-            VideoManager::getInstance()->sendResponse(sessionId, parcel);
+            sManager->sendResponse(sessionId, parcel);
             break;
         case kVideoModifySessionResponse:  // fall through
         {
@@ -383,20 +392,20 @@ void VideoManager::ResponseHandler::processEvent(
             if (config != nullptr)
             {
                 config->writeToParcel(&parcel);
-                VideoManager::getInstance()->sendResponse(sessionId, parcel);
+                sManager->sendResponse(sessionId, parcel);
                 delete config;
             }
         }
         break;
         case kVideoFirstMediaPacketInd:
             parcel.writeInt32(event);
-            VideoManager::getInstance()->sendResponse(sessionId, parcel);
+            sManager->sendResponse(sessionId, parcel);
             break;
         case kVideoPeerDimensionChanged:
             parcel.writeInt32(event);
             parcel.writeInt32(static_cast<int>(paramA));
             parcel.writeInt32(static_cast<int>(paramB));
-            VideoManager::getInstance()->sendResponse(sessionId, parcel);
+            sManager->sendResponse(sessionId, parcel);
             break;
         case kVideoRtpHeaderExtensionInd:
             // TODO : add implementation
@@ -405,17 +414,17 @@ void VideoManager::ResponseHandler::processEvent(
         case kVideoBitrateInd:
             parcel.writeInt32(event);
             parcel.writeInt32(static_cast<int>(paramA));
-            VideoManager::getInstance()->sendResponse(sessionId, parcel);
+            sManager->sendResponse(sessionId, parcel);
             break;
         case kVideoDataUsageInd:
             parcel.writeInt32(event);
             parcel.writeInt64(static_cast<int>(paramA));
-            VideoManager::getInstance()->sendResponse(sessionId, parcel);
+            sManager->sendResponse(sessionId, parcel);
             break;
         case kVideoSessionClosed:
             parcel.writeInt32(event);
             parcel.writeInt32(static_cast<int>(sessionId));
-            VideoManager::getInstance()->sendResponse(sessionId, parcel);
+            sManager->sendResponse(sessionId, parcel);
             break;
         default:
             break;
