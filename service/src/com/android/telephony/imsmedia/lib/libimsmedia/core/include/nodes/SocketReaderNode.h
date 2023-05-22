@@ -34,6 +34,7 @@ public:
     virtual bool IsSourceNode();
     void SetConfig(void* config);
     virtual bool IsSameConfig(void* config);
+    virtual ImsMediaResult UpdateConfig(void* config);
     virtual void OnReadDataFromSocket();
 
     /**
@@ -56,7 +57,12 @@ public:
      */
     void SetProtocolType(kProtocolType type) { mProtocolType = type; }
 
+    /* Get socket is opened */
+    bool IsSocketOpened() { return mSocketOpened; }
+
 private:
+    void CloseSocket();
+
     int mLocalFd;
     kProtocolType mProtocolType;
     ISocket* mSocket;
