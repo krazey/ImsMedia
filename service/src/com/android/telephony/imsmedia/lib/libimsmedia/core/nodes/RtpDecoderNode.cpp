@@ -21,23 +21,22 @@
 #include <VideoConfig.h>
 #include <TextConfig.h>
 
-#if defined(DEBUG_JITTER_GEN_SIMULATION_DELAY) || defined(DEBUG_JITTER_GEN_SIMULATION_REORDER) || \
-        defined(DEBUG_JITTER_GEN_SIMULATION_LOSS)
+#if defined(SIMULATION_DELAY) || defined(SIMULATION_REORDER) || defined(SIMULATION_LOSS)
 #include <ImsMediaTimer.h>
 #endif
-#ifdef DEBUG_JITTER_GEN_SIMULATION_DELAY
+#ifdef SIMULATION_DELAY
 #define DEBUG_JITTER_MAX_PACKET_INTERVAL 15  // milliseconds
 #endif
-#ifdef DEBUG_JITTER_GEN_SIMULATION_REORDER
+#ifdef SIMULATION_REORDER
 #include <ImsMediaDataQueue.h>
 #define DEBUG_JITTER_REORDER_MAX 4
 #define DEBUG_JITTER_REORDER_MIN 4
 #define DEBUG_JITTER_NORMAL      2
 #endif
-#ifdef DEBUG_JITTER_GEN_SIMULATION_LOSS
+#ifdef SIMULATION_LOSS
 #define DEBUG_JITTER_LOSS_PACKET_INTERVAL 20
 #endif
-#ifdef DEBUG_JITTER_GEN_SIMULATION_DUPLICATE
+#ifdef SIMULATION_DUPLICATE
 #define DEBUG_JITTER_DUPLICATE_PACKET_INTERVAL 30
 #endif
 
@@ -58,13 +57,13 @@ RtpDecoderNode::RtpDecoderNode(BaseSessionCallback* callback) :
     mArrivalTime = 0;
     mSubtype = MEDIASUBTYPE_UNDEFINED;
     mDtmfEndBit = false;
-#if defined(DEBUG_JITTER_GEN_SIMULATION_LOSS) || defined(DEBUG_JITTER_GEN_SIMULATION_DUPLICATE)
+#if defined(SIMULATION_LOSS) || defined(SIMULATION_DUPLICATE) || defined(SIMULATION_SSRC_CHANGE)
     mPacketCounter = 1;
 #endif
-#ifdef DEBUG_JITTER_GEN_SIMULATION_DELAY
+#ifdef SIMULATION_DELAY
     mNextTime = 0;
 #endif
-#ifdef DEBUG_JITTER_GEN_SIMULATION_REORDER
+#ifdef SIMULATION_REORDER
     mReorderDataCount = 0;
 #endif
 }
@@ -135,7 +134,7 @@ ImsMediaResult RtpDecoderNode::Start()
     mNoRtpTime = 0;
     mSubtype = MEDIASUBTYPE_UNDEFINED;
     mNodeState = kNodeStateRunning;
-#if defined(DEBUG_JITTER_GEN_SIMULATION_LOSS) || defined(DEBUG_JITTER_GEN_SIMULATION_DUPLICATE)
+#if defined(SIMULATION_LOSS) || defined(SIMULATION_DUPLICATE) || defined(SIMULATION_SSRC_CHANGE)
     mPacketCounter = 1;
 #endif
     return RESULT_SUCCESS;
@@ -165,7 +164,7 @@ void RtpDecoderNode::OnDataFromFrontNode(ImsMediaSubType subtype, uint8_t* data,
             mMediaType, subtype, datasize, timestamp, mark, seq, nDataType, arrivalTime);
 
     mArrivalTime = arrivalTime;
-#ifdef DEBUG_JITTER_GEN_SIMULATION_DELAY
+#ifdef SIMULATION_DELAY
     {
         ImsMediaCondition condition;
         uint32_t delay = ImsMediaTimer::GenerateRandom(DEBUG_JITTER_MAX_PACKET_INTERVAL);
@@ -174,24 +173,41 @@ void RtpDecoderNode::OnDataFromFrontNode(ImsMediaSubType subtype, uint8_t* data,
     }
 #endif
 
-#if defined(DEBUG_JITTER_GEN_SIMULATION_LOSS) || defined(DEBUG_JITTER_GEN_SIMULATION_DUPLICATE)
+#if defined(SIMULATION_LOSS) || defined(SIMULATION_DUPLICATE) || defined(SIMULATION_SSRC_CHANGE)
+#if defined(SIMULATION_LOSS) || defined(SIMULATION_DUPLICATE)
     bool flag = false;
-#ifdef DEBUG_JITTER_GEN_SIMULATION_LOSS
+#endif
+#ifdef SIMULATION_LOSS
+
     uint32_t seed = ImsMediaTimer::GenerateRandom(5);
     if (mPacketCounter % DEBUG_JITTER_LOSS_PACKET_INTERVAL == 0 || seed % 5 == 0)
     {
         flag = true;
     }
 #endif
-#ifdef DEBUG_JITTER_GEN_SIMULATION_DUPLICATE
+#ifdef SIMULATION_DUPLICATE
     if ((mPacketCounter % DEBUG_JITTER_DUPLICATE_PACKET_INTERVAL) == 0)
     {
         flag = true;
     }
 #endif
+#ifdef SIMULATION_SSRC_CHANGE
+    if (mPacketCounter == 1)
+    {
+        mTestSsrc = *reinterpret_cast<uint32_t*>(data + 8);
+        mTestSeq = 0;
+    }
+    else if (mPacketCounter % 15 == 0)
+    {
+        mTestSsrc += mPacketCounter;
+        mTestSeq += mPacketCounter;
+    }
+
+    *reinterpret_cast<uint32_t*>(data + 8) = mTestSsrc;
+#endif
     mPacketCounter++;
 #endif
-#ifdef DEBUG_JITTER_GEN_SIMULATION_REORDER
+#ifdef SIMULATION_REORDER
     {
         // add data to jitter gen buffer
         DataEntry entry;
@@ -254,13 +270,13 @@ void RtpDecoderNode::OnDataFromFrontNode(ImsMediaSubType subtype, uint8_t* data,
 
             if (jitterData.Get(&pEntry))
             {
-#ifdef DEBUG_JITTER_GEN_SIMULATION_LOSS
+#ifdef SIMULATION_LOSS
                 if (flag == false)
                 {
                     mRtpSession->ProcRtpPacket(pEntry->pbBuffer, pEntry->nBufferSize);
                 }
 #else
-#ifdef DEBUG_JITTER_GEN_SIMULATION_DUPLICATE
+#ifdef SIMULATION_DUPLICATE
                 if (flag == true)
                 {
                     mRtpSession->ProcRtpPacket(pEntry->pbBuffer, pEntry->nBufferSize);
@@ -273,13 +289,13 @@ void RtpDecoderNode::OnDataFromFrontNode(ImsMediaSubType subtype, uint8_t* data,
         }
     }
 #else
-#ifdef DEBUG_JITTER_GEN_SIMULATION_LOSS
+#ifdef SIMULATION_LOSS
     if (flag == false)
     {
         mRtpSession->ProcRtpPacket(data, datasize);
     }
 #else
-#ifdef DEBUG_JITTER_GEN_SIMULATION_DUPLICATE
+#ifdef SIMULATION_DUPLICATE
     if (flag == true)
     {
         mRtpSession->ProcRtpPacket(data, datasize);
@@ -411,7 +427,7 @@ void RtpDecoderNode::OnMediaDataInd(unsigned char* data, uint32_t datasize, uint
 
     if (mReceivingSSRC != ssrc)
     {
-        IMLOGD3("[OnMediaDataInd] media[%d] SSRC changed, [%x] -> [%x]", mMediaType, mReceivingSSRC,
+        IMLOGI3("[OnMediaDataInd] media[%d] SSRC changed, [%x] -> [%x]", mMediaType, mReceivingSSRC,
                 ssrc);
         mReceivingSSRC = ssrc;
         SendDataToRearNode(MEDIASUBTYPE_REFRESHED, nullptr, mReceivingSSRC, 0, 0, 0);
@@ -497,6 +513,9 @@ void RtpDecoderNode::OnMediaDataInd(unsigned char* data, uint32_t datasize, uint
         }
     }
 
+#ifdef SIMULATION_SSRC_CHANGE
+    seq += mTestSeq;
+#endif
     SendDataToRearNode(
             mSubtype, data, datasize, timestamp, mark, seq, MEDIASUBTYPE_UNDEFINED, mArrivalTime);
 }
