@@ -115,6 +115,7 @@ protected:
         mJitterBuffer->SetJitterBufferSize(
                 mStartJitterBufferSize, mMinJitterBufferSize, mMaxJitterBufferSize);
         mJitterBuffer->SetJitterOptions(80, 1, 2.5f, false);
+        mJitterBuffer->SetStartTime(0);
     }
 
     virtual void TearDown() override { delete mJitterBuffer; }
@@ -123,7 +124,7 @@ protected:
 TEST_F(AudioJitterBufferTest, TestNormalAddGet)
 {
     const int32_t kNumFrames = 50;
-    char buffer[TEST_BUFFER_SIZE] = {"\x1"};
+    char buffer[TEST_BUFFER_SIZE] = {"\x1\x2\x3\x4\x5\x6\x7\x0"};
     int32_t countGet = 0;
     int32_t countGetFrame = 0;
     int32_t countNotGet = 0;
@@ -139,14 +140,14 @@ TEST_F(AudioJitterBufferTest, TestNormalAddGet)
     for (int32_t i = 0; i < kNumFrames; i++)
     {
         int32_t addTime = i * TEST_FRAME_INTERVAL;
-        mJitterBuffer->Add(MEDIASUBTYPE_UNDEFINED, reinterpret_cast<uint8_t*>(buffer), 1,
-                i * TEST_FRAME_INTERVAL, false, i, MEDIASUBTYPE_UNDEFINED, addTime);
+        mJitterBuffer->Add(MEDIASUBTYPE_UNDEFINED, reinterpret_cast<uint8_t*>(buffer),
+                sizeof(buffer), i * TEST_FRAME_INTERVAL, false, i, MEDIASUBTYPE_UNDEFINED, addTime);
 
         getTime = countGet * TEST_FRAME_INTERVAL;
 
         if (mJitterBuffer->Get(&subtype, &data, &size, &timestamp, &mark, &seq, getTime))
         {
-            EXPECT_EQ(size, 1);
+            EXPECT_EQ(size, sizeof(buffer));
             EXPECT_EQ(timestamp, countGetFrame * TEST_FRAME_INTERVAL);
             EXPECT_EQ(seq, countGetFrame);
             mJitterBuffer->Delete();
@@ -166,7 +167,7 @@ TEST_F(AudioJitterBufferTest, TestNormalAddGet)
 
         if (mJitterBuffer->Get(&subtype, &data, &size, &timestamp, &mark, &seq, getTime))
         {
-            EXPECT_EQ(size, 1);
+            EXPECT_EQ(size, sizeof(buffer));
             EXPECT_EQ(timestamp, countGetFrame * TEST_FRAME_INTERVAL);
             EXPECT_EQ(seq, countGetFrame);
             mJitterBuffer->Delete();
@@ -187,7 +188,7 @@ TEST_F(AudioJitterBufferTest, TestNormalAddGet)
 TEST_F(AudioJitterBufferTest, TestNormalAddGetSeqRounding)
 {
     const int32_t kNumFrames = 20;
-    char buffer[TEST_BUFFER_SIZE] = {"\x1"};
+    char buffer[TEST_BUFFER_SIZE] = {"\x1\x2\x3\x4\x5\x6\x7\x0"};
     int32_t countGet = 0;
     int32_t countGetFrame = 0;
     int32_t countNotGet = 0;
@@ -207,15 +208,16 @@ TEST_F(AudioJitterBufferTest, TestNormalAddGetSeqRounding)
     {
         addSeq = startSeq + (uint16_t)i;
         int32_t addTime = i * TEST_FRAME_INTERVAL;
-        mJitterBuffer->Add(MEDIASUBTYPE_UNDEFINED, reinterpret_cast<uint8_t*>(buffer), 1,
-                i * TEST_FRAME_INTERVAL, false, addSeq, MEDIASUBTYPE_UNDEFINED, addTime);
+        mJitterBuffer->Add(MEDIASUBTYPE_UNDEFINED, reinterpret_cast<uint8_t*>(buffer),
+                sizeof(buffer), i * TEST_FRAME_INTERVAL, false, addSeq, MEDIASUBTYPE_UNDEFINED,
+                addTime);
 
         getTime = countGet * TEST_FRAME_INTERVAL;
 
         if (mJitterBuffer->Get(&subtype, &data, &size, &timestamp, &mark, &seq, getTime))
         {
             getSeq = startSeq + (uint16_t)countGetFrame;
-            EXPECT_EQ(size, 1);
+            EXPECT_EQ(size, sizeof(buffer));
             EXPECT_EQ(timestamp, countGetFrame * TEST_FRAME_INTERVAL);
             EXPECT_EQ(seq, getSeq);
             mJitterBuffer->Delete();
@@ -235,7 +237,7 @@ TEST_F(AudioJitterBufferTest, TestNormalAddGetSeqRounding)
         if (mJitterBuffer->Get(&subtype, &data, &size, &timestamp, &mark, &seq, getTime))
         {
             getSeq = startSeq + (uint16_t)countGetFrame;
-            EXPECT_EQ(size, 1);
+            EXPECT_EQ(size, sizeof(buffer));
             EXPECT_EQ(timestamp, countGetFrame * TEST_FRAME_INTERVAL);
             EXPECT_EQ(seq, getSeq);
             mJitterBuffer->Delete();
@@ -256,7 +258,7 @@ TEST_F(AudioJitterBufferTest, TestNormalAddGetSeqRounding)
 TEST_F(AudioJitterBufferTest, TestNormalAddGetTimestampRounding)
 {
     const int32_t kNumFrames = 50;
-    char buffer[TEST_BUFFER_SIZE] = {"\x1"};
+    char buffer[TEST_BUFFER_SIZE] = {"\x1\x2\x3\x4\x5\x6\x7\x0"};
     int32_t countGet = 0;
     int32_t countGetFrame = 0;
     int32_t countNotGet = 0;
@@ -276,15 +278,15 @@ TEST_F(AudioJitterBufferTest, TestNormalAddGetTimestampRounding)
     {
         addTimestamp = startTimestamp + i * TEST_FRAME_INTERVAL;
         int32_t addTime = i * TEST_FRAME_INTERVAL;
-        mJitterBuffer->Add(MEDIASUBTYPE_UNDEFINED, reinterpret_cast<uint8_t*>(buffer), 1,
-                addTimestamp, false, i, MEDIASUBTYPE_UNDEFINED, addTime);
+        mJitterBuffer->Add(MEDIASUBTYPE_UNDEFINED, reinterpret_cast<uint8_t*>(buffer),
+                sizeof(buffer), addTimestamp, false, i, MEDIASUBTYPE_UNDEFINED, addTime);
 
         getTime = countGet * TEST_FRAME_INTERVAL;
 
         if (mJitterBuffer->Get(&subtype, &data, &size, &timestamp, &mark, &seq, getTime))
         {
             getTimestamp = startTimestamp + countGetFrame * TEST_FRAME_INTERVAL;
-            EXPECT_EQ(size, 1);
+            EXPECT_EQ(size, sizeof(buffer));
             EXPECT_EQ(timestamp, getTimestamp);
             EXPECT_EQ(seq, countGetFrame);
             mJitterBuffer->Delete();
@@ -305,7 +307,7 @@ TEST_F(AudioJitterBufferTest, TestNormalAddGetTimestampRounding)
         if (mJitterBuffer->Get(&subtype, &data, &size, &timestamp, &mark, &seq, getTime))
         {
             getTimestamp = startTimestamp + countGetFrame * TEST_FRAME_INTERVAL;
-            EXPECT_EQ(size, 1);
+            EXPECT_EQ(size, sizeof(buffer));
             EXPECT_EQ(timestamp, getTimestamp);
             EXPECT_EQ(seq, countGetFrame);
             mJitterBuffer->Delete();
@@ -326,7 +328,7 @@ TEST_F(AudioJitterBufferTest, TestNormalAddGetTimestampRounding)
 TEST_F(AudioJitterBufferTest, TestAddGetDuplicatedSeqDetection)
 {
     const int32_t kNumFrames = 20;
-    char buffer[TEST_BUFFER_SIZE] = {"\x1"};
+    char buffer[TEST_BUFFER_SIZE] = {"\x1\x2\x3\x4\x5\x6\x7\x0"};
     int32_t countGet = 0;
     int32_t countGetFrame = 0;
     int32_t countNotGet = 0;
@@ -346,8 +348,9 @@ TEST_F(AudioJitterBufferTest, TestAddGetDuplicatedSeqDetection)
     {
         addSeq = startSeq + (uint16_t)i;
         int32_t addTime = i * TEST_FRAME_INTERVAL;
-        mJitterBuffer->Add(MEDIASUBTYPE_UNDEFINED, reinterpret_cast<uint8_t*>(buffer), 1,
-                i * TEST_FRAME_INTERVAL, false, addSeq, MEDIASUBTYPE_UNDEFINED, addTime);
+        mJitterBuffer->Add(MEDIASUBTYPE_UNDEFINED, reinterpret_cast<uint8_t*>(buffer),
+                sizeof(buffer), i * TEST_FRAME_INTERVAL, false, addSeq, MEDIASUBTYPE_UNDEFINED,
+                addTime);
 
         if (i == 5)
         {
@@ -360,7 +363,7 @@ TEST_F(AudioJitterBufferTest, TestAddGetDuplicatedSeqDetection)
         if (mJitterBuffer->Get(&subtype, &data, &size, &timestamp, &mark, &seq, getTime))
         {
             getSeq = startSeq + (uint16_t)countGetFrame;
-            EXPECT_EQ(size, 1);
+            EXPECT_EQ(size, sizeof(buffer));
             EXPECT_EQ(timestamp, countGetFrame * TEST_FRAME_INTERVAL);
             EXPECT_EQ(seq, getSeq);
             mJitterBuffer->Delete();
@@ -381,7 +384,7 @@ TEST_F(AudioJitterBufferTest, TestAddGetDuplicatedSeqDetection)
         if (mJitterBuffer->Get(&subtype, &data, &size, &timestamp, &mark, &seq, getTime))
         {
             getSeq = startSeq + (uint16_t)countGetFrame;
-            EXPECT_EQ(size, 1);
+            EXPECT_EQ(size, sizeof(buffer));
             EXPECT_EQ(timestamp, countGetFrame * TEST_FRAME_INTERVAL);
             EXPECT_EQ(seq, getSeq);
             mJitterBuffer->Delete();
@@ -405,7 +408,7 @@ TEST_F(AudioJitterBufferTest, TestAddGetDuplicatedSeqDetection)
 TEST_F(AudioJitterBufferTest, TestAddGetInBurstIncoming)
 {
     const int32_t kNumFrames = 20;
-    char buffer[TEST_BUFFER_SIZE] = {"\x1"};
+    char buffer[TEST_BUFFER_SIZE] = {"\x1\x2\x3\x4\x5\x6\x7\x0"};
     int32_t countGet = 0;
     int32_t countGetFrame = 0;
     int32_t countNotGet = 0;
@@ -421,9 +424,8 @@ TEST_F(AudioJitterBufferTest, TestAddGetInBurstIncoming)
     uint16_t addSeq = startSeq;
     uint16_t getSeq = startSeq;
     uint32_t addTimestamp = 0;
-
+    int32_t iter = 0;
     int32_t addTime = 0;
-    int iter = 0;
 
     while (addSeq < kNumFrames)
     {
@@ -431,17 +433,21 @@ TEST_F(AudioJitterBufferTest, TestAddGetInBurstIncoming)
         {
             addTime += TEST_FRAME_INTERVAL;
         }
-        else if (iter >= 10 && iter < 15)  // 5 frames burst added
+        else if (iter == 10)
         {
-            mJitterBuffer->Add(MEDIASUBTYPE_UNDEFINED, reinterpret_cast<uint8_t*>(buffer), 1,
-                    addTimestamp, false, addSeq++, MEDIASUBTYPE_UNDEFINED, addTime);
-            addTime += 1;  // 1ms burst
-            addTimestamp += TEST_FRAME_INTERVAL;
+            do  // 4 frames burst added
+            {
+                mJitterBuffer->Add(MEDIASUBTYPE_UNDEFINED, reinterpret_cast<uint8_t*>(buffer),
+                        sizeof(buffer), addTimestamp, false, addSeq++, MEDIASUBTYPE_UNDEFINED,
+                        addTime);
+                addTime += 1;  // 1ms burst
+                addTimestamp += TEST_FRAME_INTERVAL;
+            } while (++iter < 14);
         }
         else  // normal
         {
-            mJitterBuffer->Add(MEDIASUBTYPE_UNDEFINED, reinterpret_cast<uint8_t*>(buffer), 1,
-                    addTimestamp, false, addSeq++, MEDIASUBTYPE_UNDEFINED, addTime);
+            mJitterBuffer->Add(MEDIASUBTYPE_UNDEFINED, reinterpret_cast<uint8_t*>(buffer),
+                    sizeof(buffer), addTimestamp, false, addSeq++, MEDIASUBTYPE_UNDEFINED, addTime);
             addTime += TEST_FRAME_INTERVAL;
             addTimestamp += TEST_FRAME_INTERVAL;
         }
@@ -451,7 +457,7 @@ TEST_F(AudioJitterBufferTest, TestAddGetInBurstIncoming)
 
         if (mJitterBuffer->Get(&subtype, &data, &size, &timestamp, &mark, &seq, getTime))
         {
-            EXPECT_EQ(size, 1);
+            EXPECT_EQ(size, sizeof(buffer));
             EXPECT_EQ(timestamp, countGetFrame * TEST_FRAME_INTERVAL);
             EXPECT_EQ(seq, getSeq++);
             mJitterBuffer->Delete();
@@ -472,7 +478,7 @@ TEST_F(AudioJitterBufferTest, TestAddGetInBurstIncoming)
         if (mJitterBuffer->Get(&subtype, &data, &size, &timestamp, &mark, &seq, getTime))
         {
             getSeq = startSeq + (uint16_t)countGetFrame;
-            EXPECT_EQ(size, 1);
+            EXPECT_EQ(size, sizeof(buffer));
             EXPECT_EQ(timestamp, countGetFrame * TEST_FRAME_INTERVAL);
             EXPECT_EQ(seq, getSeq);
             mJitterBuffer->Delete();
@@ -496,8 +502,7 @@ TEST_F(AudioJitterBufferTest, TestAddGetInBurstIncoming)
 TEST_F(AudioJitterBufferTest, TestAddGetInReceivingSid)
 {
     const int32_t kNumFrames = 20;
-    char buffer[TEST_BUFFER_SIZE] = {"\x1"};
-    int32_t countFrames = 0;
+    char buffer[TEST_BUFFER_SIZE] = {"\x1\x2\x3\x4\x5\x6\x7\x0"};
     int32_t countGetFrame = 0;
     int32_t getTime = 0;
 
@@ -515,22 +520,36 @@ TEST_F(AudioJitterBufferTest, TestAddGetInReceivingSid)
     int32_t addTime = 0;
     const int32_t kSidInterval = 160;  // ms
 
-    while (countGetFrame < kNumFrames)
+    while (addSeq < kNumFrames)
     {
-        if (countFrames < kNumFrames)
+        if (getTime % kSidInterval == 0)
         {
-            addTime = kSidInterval * countFrames++;
+            addTime = kSidInterval * addSeq;
             addTimestamp = addTime;
-
-            mJitterBuffer->Add(MEDIASUBTYPE_UNDEFINED, reinterpret_cast<uint8_t*>(buffer), 1,
-                    addTimestamp, false, addSeq++, MEDIASUBTYPE_UNDEFINED, addTime);
+            mJitterBuffer->Add(MEDIASUBTYPE_UNDEFINED, reinterpret_cast<uint8_t*>(buffer),
+                    sizeof(buffer), addTimestamp, false, addSeq++, MEDIASUBTYPE_UNDEFINED, addTime);
         }
 
         if (mJitterBuffer->Get(&subtype, &data, &size, &timestamp, &mark, &seq, getTime))
         {
-            EXPECT_EQ(size, 1);
+            EXPECT_EQ(size, sizeof(buffer));
             EXPECT_EQ(timestamp, countGetFrame * kSidInterval);
             EXPECT_EQ(seq, getSeq++);
+            mJitterBuffer->Delete();
+            countGetFrame++;
+        }
+
+        getTime += TEST_FRAME_INTERVAL;
+    }
+
+    while (mJitterBuffer->GetCount() > 0)
+    {
+        if (mJitterBuffer->Get(&subtype, &data, &size, &timestamp, &mark, &seq, getTime))
+        {
+            getSeq = startSeq + (uint16_t)countGetFrame;
+            EXPECT_EQ(size, sizeof(buffer));
+            EXPECT_EQ(timestamp, countGetFrame * kSidInterval);
+            EXPECT_EQ(seq, getSeq);
             mJitterBuffer->Delete();
             countGetFrame++;
         }

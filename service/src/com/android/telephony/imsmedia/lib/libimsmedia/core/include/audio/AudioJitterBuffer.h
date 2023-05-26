@@ -20,6 +20,12 @@
 #include <BaseJitterBuffer.h>
 #include <JitterNetworkAnalyser.h>
 
+enum kDiscardFlag
+{
+    kFlagDiscardVoiceFrame = 0,
+    kFlagDiscardNonVoiceFrame,
+};
+
 class AudioJitterBuffer : public BaseJitterBuffer
 {
 public:
@@ -35,9 +41,13 @@ public:
     virtual bool Get(ImsMediaSubType* psubtype, uint8_t** ppData, uint32_t* pnDataSize,
             uint32_t* pnTimestamp, bool* pbMark, uint32_t* pnSeqNum, uint32_t currentTime);
 
+    /* set the start time in ms unit */
+    void SetStartTime(uint32_t time) { mTimeStarted = time; }
+
 private:
-    bool IsSID(uint32_t nBufferSize);
-    bool Resync(uint32_t currentTime);
+    bool IsSID(uint32_t frameSize);
+    bool IsNoData(uint32_t frameSize);
+    void Resync(kDiscardFlag flag);
     void CollectRxRtpStatus(int32_t seq, kRtpPacketStatus status);
     void CollectJitterBufferStatus(int32_t currSize, int32_t maxSize);
 
@@ -56,6 +66,7 @@ private:
     uint32_t mSIDCount;
     uint32_t mDeleteCount;
     uint32_t mNextJitterBufferSize;
+    uint32_t mTimeStarted;
 };
 
 #endif
