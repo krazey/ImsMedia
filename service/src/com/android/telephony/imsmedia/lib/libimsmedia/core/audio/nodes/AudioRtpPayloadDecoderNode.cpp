@@ -340,7 +340,8 @@ void AudioRtpPayloadDecoderNode::DecodePayloadEvs(uint8_t* pData, uint32_t nData
 
             mBitReader.ReadByteBuffer(mPayload, nDataBitSize);
 
-            IMLOGD6("[DecodePayloadEvs] Result=%02X %02X %02X %02X, len=%d,nFrameType=%d",
+            IMLOGD_PACKET6(IM_PACKET_LOG_PH,
+                    "[DecodePayloadEvs] Result=%02X %02X %02X %02X, len=%d,nFrameType=%d",
                     mPayload[0], mPayload[1], mPayload[2], mPayload[3], nDataSize, nFrameType);
 
             SendDataToRearNode(MEDIASUBTYPE_RTPPAYLOAD, mPayload, nDataSize, timestamp, bMark,
@@ -493,7 +494,8 @@ void AudioRtpPayloadDecoderNode::DecodePayloadEvs(uint8_t* pData, uint32_t nData
                 mPayload[0] = mPayload[0] + (nLastBit0 << 7);
             }
 
-            IMLOGD6("[DecodePayloadEvs] result = %02X %02X %02X %02X, len=%d, nFrameType=%d",
+            IMLOGD_PACKET6(IM_PACKET_LOG_PH,
+                    "[DecodePayloadEvs] result = %02X %02X %02X %02X, len=%d, nFrameType=%d",
                     mPayload[0], mPayload[1], mPayload[2], mPayload[3], nDataSize, nFrameType);
 
             SendDataToRearNode(MEDIASUBTYPE_RTPPAYLOAD, mPayload, nDataSize, timestamp, bMark,
@@ -672,7 +674,8 @@ void AudioRtpPayloadDecoderNode::DecodePayloadEvs(uint8_t* pData, uint32_t nData
                 mBitReader.Read(nPaddingSize);
             }
 
-            IMLOGD6("[DecodePayloadEvs] result = %02X %02X %02X %02X, len=%d, eRate=%d",
+            IMLOGD_PACKET6(IM_PACKET_LOG_PH,
+                    "[DecodePayloadEvs] result = %02X %02X %02X %02X, len=%d, eRate=%d",
                     mPayload[0], mPayload[1], mPayload[2], mPayload[3], bufferSize, toc_ft_b);
 
             SendDataToRearNode(MEDIASUBTYPE_RTPPAYLOAD, mPayload, bufferSize, timestamp,
