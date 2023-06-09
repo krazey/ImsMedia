@@ -23,6 +23,7 @@ import android.os.RemoteException;
 import android.support.annotation.VisibleForTesting;
 import android.telephony.imsmedia.IImsTextSession;
 import android.telephony.imsmedia.IImsTextSessionCallback;
+import android.telephony.imsmedia.ImsMediaSession;
 import android.telephony.imsmedia.MediaQualityThreshold;
 import android.telephony.imsmedia.TextConfig;
 import android.util.Log;
@@ -196,7 +197,10 @@ public final class TextSession extends IImsTextSession.Stub implements IMediaSes
     private void handleOpenSession(OpenSessionParams sessionParams) {
         mTextListener.setMediaCallback(sessionParams.getCallback());
         Log.d(TAG, "handleOpenSession");
-        mTextService.openSession(mSessionId, sessionParams);
+        int result = mTextService.openSession(mSessionId, sessionParams);
+        if (result != ImsMediaSession.RESULT_SUCCESS) {
+            handleOpenFailure(result);
+        }
     }
 
     private void handleCloseSession() {
