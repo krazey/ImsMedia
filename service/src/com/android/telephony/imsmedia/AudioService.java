@@ -17,6 +17,7 @@
 package com.android.telephony.imsmedia;
 
 import android.os.Parcel;
+import android.os.ParcelFileDescriptor;
 import android.telephony.imsmedia.ImsMediaSession;
 import android.util.Log;
 
@@ -73,24 +74,40 @@ public class AudioService {
      * @param sessionId A unique RTP session identifier
      * @param sessionParams Paratmers including rtp, rtcp socket to send and receive incoming
      * RTP packets and RtpConfig to create session.
+     *
+     * @return RESULT_INVALID_PARAM - input params are not valid and
+     * RESULT_SUCCESS - open session request is accepted.
      */
-    public void openSession(final int sessionId, final OpenSessionParams sessionParams) {
+    public int openSession(final int sessionId, final OpenSessionParams sessionParams) {
         if (mNativeObject == 0 || sessionParams == null) {
-            return;
+            return ImsMediaSession.RESULT_INVALID_PARAM;
         }
-        JNIImsMediaService.setListener(sessionId, mListener);
+
+        ParcelFileDescriptor rtpSockFd = sessionParams.getRtpFd();
+        ParcelFileDescriptor rtcpSockFd = sessionParams.getRtcpFd();
+        if (rtpSockFd == null || rtcpSockFd == null) {
+            Log.e(LOG_TAG, "Rtp/Rtcp socket fds are null");
+            return ImsMediaSession.RESULT_INVALID_PARAM;
+        }
+
         Log.d(LOG_TAG, "openSession: sessionId = " + sessionId
                 + "," + sessionParams.getRtpConfig());
+
+        JNIImsMediaService.setListener(sessionId, mListener);
+
+        final int socketFdRtp = rtpSockFd.detachFd();
+        final int socketFdRtcp = rtcpSockFd.detachFd();
+
         Parcel parcel = Parcel.obtain();
         parcel.writeInt(AudioSession.CMD_OPEN_SESSION);
-        final int socketFdRtp = sessionParams.getRtpFd().detachFd();
-        final int socketFdRtcp = sessionParams.getRtcpFd().detachFd();
         parcel.writeInt(socketFdRtp);
         parcel.writeInt(socketFdRtcp);
+
         if (sessionParams.getRtpConfig() != null) {
             sessionParams.getRtpConfig().writeToParcel(parcel, ImsMediaSession.SESSION_TYPE_AUDIO);
         }
         sendRequest(sessionId, parcel);
+        return ImsMediaSession.RESULT_SUCCESS;
     }
 
     /**

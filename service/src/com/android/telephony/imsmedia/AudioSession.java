@@ -27,6 +27,7 @@ import android.telephony.ims.RtpHeaderExtension;
 import android.telephony.imsmedia.AudioConfig;
 import android.telephony.imsmedia.IImsAudioSession;
 import android.telephony.imsmedia.IImsAudioSessionCallback;
+import android.telephony.imsmedia.ImsMediaSession;
 import android.telephony.imsmedia.MediaQualityStatus;
 import android.telephony.imsmedia.MediaQualityThreshold;
 import android.util.Log;
@@ -318,7 +319,10 @@ public final class AudioSession extends IImsAudioSession.Stub implements IMediaS
             mOffloadService.openSession(mSessionId, sessionParams);
         } else {
             mAudioListener.setMediaCallback(sessionParams.getCallback());
-            mAudioService.openSession(mSessionId, sessionParams);
+            int result = mAudioService.openSession(mSessionId, sessionParams);
+            if (result != ImsMediaSession.RESULT_SUCCESS) {
+                handleOpenFailure(result);
+            }
         }
     }
 
