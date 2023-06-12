@@ -442,6 +442,10 @@ void AudioRtpPayloadEncoderNode::EncodePayloadEvs(
         uint32_t nEVSBW = 0x07;
         uint32_t nEVSBR = 0x0f;
 
+        // remove 1 byte toc field from the codec
+        pData++;
+        nDataSize--;
+
         uint32_t cmr_h, cmr_t, cmr_d = 0;  // CMR byte
         memset(mPayload, 0, MAX_AUDIO_PAYLOAD_SIZE);
         mBWHeader.SetBuffer(mPayload, MAX_AUDIO_PAYLOAD_SIZE);
