@@ -33,16 +33,8 @@
 VideoJitterBuffer::VideoJitterBuffer() :
         BaseJitterBuffer()
 {
-    // base member valuable
-    mCallback = nullptr;
     mCodecType = kVideoCodecAvc;
-    mInitJitterBufferSize = 0;
-    mMinJitterBufferSize = 0;
-    mMaxJitterBufferSize = 0;
     mNewInputData = false;
-    mLastPlayedSeqNum = 0;
-    mLastPlayedTimestamp = 0;
-
     mFramerate = 15;
     mFrameInterval = 1000 / mFramerate;
     mMaxSaveFrameNum = DEFAULT_MAX_SAVE_FRAME_NUM;
@@ -171,14 +163,15 @@ void VideoJitterBuffer::Add(ImsMediaSubType subtype, uint8_t* pbBuffer, uint32_t
         uint32_t nTimestamp, bool bMark, uint32_t nSeqNum, ImsMediaSubType eDataType,
         uint32_t arrivalTime)
 {
-    DataEntry currEntry = DataEntry();
-
     if (subtype == MEDIASUBTYPE_REFRESHED)
     {
-        Reset();
+        // nBufferSize is ssrc value
+        mSsrc = nBufferSize;
+        IMLOGI1("[Add] ssrc[%u]", mSsrc);
         return;
     }
 
+    DataEntry currEntry = DataEntry();
     currEntry.pbBuffer = pbBuffer;
     currEntry.nBufferSize = nBufferSize;
     currEntry.nTimestamp = nTimestamp;

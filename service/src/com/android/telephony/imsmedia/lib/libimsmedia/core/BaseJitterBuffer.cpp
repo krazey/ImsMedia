@@ -26,7 +26,6 @@ BaseJitterBuffer::BaseJitterBuffer()
     mInitJitterBufferSize = 4;
     mMinJitterBufferSize = 4;
     mMaxJitterBufferSize = 9;
-    mNewInputData = false;
     mLastPlayedSeqNum = 0;
     mLastPlayedTimestamp = 0;
     mMaxSaveFrameNum = 0;
@@ -42,18 +41,6 @@ void BaseJitterBuffer::SetSessionCallback(BaseSessionCallback* callback)
     mCallback = callback;
 }
 
-void BaseJitterBuffer::SetSsrc(uint32_t ssrc)
-{
-    IMLOGI1("[SetSsrc] ssrc[%x]", ssrc);
-
-    if (mSsrc != 0 && ssrc != mSsrc)
-    {
-        Reset();
-    }
-
-    mSsrc = ssrc;
-}
-
 void BaseJitterBuffer::SetCodecType(uint32_t type)
 {
     mCodecType = type;
@@ -67,12 +54,8 @@ void BaseJitterBuffer::SetJitterBufferSize(uint32_t nInit, uint32_t nMin, uint32
 }
 
 void BaseJitterBuffer::SetJitterOptions(
-        uint32_t nReduceTH, uint32_t nStepSize, double zValue, bool bIgnoreSID)
+        uint32_t /*nReduceTH*/, uint32_t /*nStepSize*/, double /*zValue*/, bool /*bIgnoreSID*/)
 {
-    (void)nReduceTH;
-    (void)nStepSize;
-    (void)zValue;
-    (void)bIgnoreSID;
 }
 
 uint32_t BaseJitterBuffer::GetCount()
@@ -82,19 +65,27 @@ uint32_t BaseJitterBuffer::GetCount()
 
 void BaseJitterBuffer::Reset()
 {
+    IMLOGD0("[Reset]");
+    std::lock_guard<std::mutex> guard(mMutex);
     mFirstFrameReceived = false;
-    mNewInputData = false;
     mLastPlayedSeqNum = 0;
     mLastPlayedTimestamp = 0;
-
-    while (mDataQueue.GetCount() > 0)
-    {
-        mDataQueue.Delete();
-    }
 }
 
 void BaseJitterBuffer::Delete()
 {
     std::lock_guard<std::mutex> guard(mMutex);
     mDataQueue.Delete();
+}
+
+void BaseJitterBuffer::ClearBuffer()
+{
+    IMLOGD0("[ClearBuffer]");
+    std::lock_guard<std::mutex> guard(mMutex);
+    DataEntry* entry = nullptr;
+
+    while (mDataQueue.Get(&entry))
+    {
+        mDataQueue.Delete();
+    }
 }

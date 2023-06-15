@@ -101,6 +101,7 @@ private:
     void CheckBitrateAdaptation(double lossRate);
 
 private:
+    bool mNewInputData;
     uint32_t mFramerate;
     uint32_t mFrameInterval;
     uint32_t mMaxSaveFrameNum;

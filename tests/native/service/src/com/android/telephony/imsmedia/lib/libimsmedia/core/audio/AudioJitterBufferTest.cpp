@@ -407,7 +407,7 @@ TEST_F(AudioJitterBufferTest, TestAddGetDuplicatedSeqDetection)
 
 TEST_F(AudioJitterBufferTest, TestAddGetInBurstIncoming)
 {
-    const int32_t kNumFrames = 20;
+    const int32_t kNumFrames = 30;
     char buffer[TEST_BUFFER_SIZE] = {"\x1\x2\x3\x4\x5\x6\x7\x0"};
     int32_t countGet = 0;
     int32_t countGetFrame = 0;
@@ -426,16 +426,17 @@ TEST_F(AudioJitterBufferTest, TestAddGetInBurstIncoming)
     uint32_t addTimestamp = 0;
     int32_t iter = 0;
     int32_t addTime = 0;
+    uint32_t numBurstFrames = 11;
 
     while (addSeq < kNumFrames)
     {
-        if (iter > 5 && iter < 10)  // not added for 4 frame interval
+        if (iter > 5 && iter < 5 + numBurstFrames)  // not added for 10 frame interval
         {
             addTime += TEST_FRAME_INTERVAL;
         }
-        else if (iter == 10)
+        else if (iter == 5 + numBurstFrames)
         {
-            do  // 4 frames burst added
+            do  // 11 frames burst added
             {
                 mJitterBuffer->Add(MEDIASUBTYPE_UNDEFINED, reinterpret_cast<uint8_t*>(buffer),
                         sizeof(buffer), addTimestamp, false, addSeq++, MEDIASUBTYPE_UNDEFINED,
@@ -495,7 +496,7 @@ TEST_F(AudioJitterBufferTest, TestAddGetInBurstIncoming)
     EXPECT_EQ(mCallback.getNumLost(), 0);
     EXPECT_EQ(mCallback.getNumDuplicated(), 0);
     EXPECT_EQ(mCallback.getNumDiscarded(), 0);
-    EXPECT_EQ(countNotGet, mStartJitterBufferSize);
+    EXPECT_EQ(countNotGet, numBurstFrames - 1);
     EXPECT_EQ(mCallback.getNumNormal(), kNumFrames);
 }
 
@@ -561,4 +562,146 @@ TEST_F(AudioJitterBufferTest, TestAddGetInReceivingSid)
     EXPECT_EQ(mCallback.getNumDuplicated(), 0);
     EXPECT_EQ(mCallback.getNumDiscarded(), 0);
     EXPECT_EQ(mCallback.getNumNormal(), kNumFrames);
+}
+
+TEST_F(AudioJitterBufferTest, TestAddGetWithShortLost)
+{
+    const int32_t kNumFrames = 20;
+    char buffer[TEST_BUFFER_SIZE] = {"\x1\x2\x3\x4\x5\x6\x7\x0"};
+    int32_t countGetFrame = 0;
+    int32_t countNotGetFrame = 0;
+    int32_t getTime = 0;
+
+    ImsMediaSubType subtype = MEDIASUBTYPE_UNDEFINED;
+    uint8_t* data = nullptr;
+    uint32_t size = 0;
+    uint32_t timestamp = 0;
+    bool mark = false;
+    uint32_t seq = 0;
+    uint16_t startSeq = 0;
+    uint16_t addSeq = startSeq;
+    uint32_t addTimestamp = 0;
+    int32_t addTime = 0;
+    uint32_t numLostFrames = 4;
+
+    while (addSeq < kNumFrames)
+    {
+        addTime = 20 * addSeq;
+        addTimestamp = addTime;
+
+        if (addSeq >= 10 && addSeq < 10 + numLostFrames)  // 4 packet lost
+        {
+            addSeq++;
+        }
+        else
+        {
+            mJitterBuffer->Add(MEDIASUBTYPE_UNDEFINED, reinterpret_cast<uint8_t*>(buffer),
+                    sizeof(buffer), addTimestamp, false, addSeq++, MEDIASUBTYPE_UNDEFINED, addTime);
+        }
+
+        if (mJitterBuffer->Get(&subtype, &data, &size, &timestamp, &mark, &seq, getTime))
+        {
+            mJitterBuffer->Delete();
+            countGetFrame++;
+        }
+        else
+        {
+            countNotGetFrame++;
+        }
+
+        getTime += TEST_FRAME_INTERVAL;
+    }
+
+    while (mJitterBuffer->GetCount() > 0)
+    {
+        if (mJitterBuffer->Get(&subtype, &data, &size, &timestamp, &mark, &seq, getTime))
+        {
+            mJitterBuffer->Delete();
+            countGetFrame++;
+        }
+        else
+        {
+            countNotGetFrame++;
+        }
+
+        getTime += TEST_FRAME_INTERVAL;
+    }
+
+    EXPECT_EQ(countNotGetFrame, numLostFrames + mStartJitterBufferSize);
+    EXPECT_EQ(countGetFrame, kNumFrames - numLostFrames);
+    EXPECT_EQ(mCallback.getNumLost(), numLostFrames);
+    EXPECT_EQ(mCallback.getNumDuplicated(), 0);
+    EXPECT_EQ(mCallback.getNumDiscarded(), 0);
+    EXPECT_EQ(mCallback.getNumNormal(), kNumFrames - numLostFrames);
+}
+
+TEST_F(AudioJitterBufferTest, TestAddGetWithLongLost)
+{
+    const int32_t kNumFrames = 30;
+    char buffer[TEST_BUFFER_SIZE] = {"\x1\x2\x3\x4\x5\x6\x7\x0"};
+    int32_t countGetFrame = 0;
+    int32_t countNotGetFrame = 0;
+    int32_t getTime = 0;
+
+    ImsMediaSubType subtype = MEDIASUBTYPE_UNDEFINED;
+    uint8_t* data = nullptr;
+    uint32_t size = 0;
+    uint32_t timestamp = 0;
+    bool mark = false;
+    uint32_t seq = 0;
+    uint16_t startSeq = 0;
+    uint16_t addSeq = startSeq;
+    uint32_t addTimestamp = 0;
+    int32_t addTime = 0;
+    uint32_t numLostFrames = mMaxJitterBufferSize + 1;
+
+    while (addSeq < kNumFrames)
+    {
+        addTime = 20 * addSeq;
+        addTimestamp = addTime;
+
+        if (addSeq >= 10 && addSeq < 10 + numLostFrames)  // 10 packet lost
+        {
+            addSeq++;
+        }
+        else
+        {
+            mJitterBuffer->Add(MEDIASUBTYPE_UNDEFINED, reinterpret_cast<uint8_t*>(buffer),
+                    sizeof(buffer), addTimestamp, false, addSeq++, MEDIASUBTYPE_UNDEFINED, addTime);
+        }
+
+        if (mJitterBuffer->Get(&subtype, &data, &size, &timestamp, &mark, &seq, getTime))
+        {
+            mJitterBuffer->Delete();
+            countGetFrame++;
+        }
+        else
+        {
+            countNotGetFrame++;
+        }
+
+        getTime += TEST_FRAME_INTERVAL;
+    }
+
+    while (mJitterBuffer->GetCount() > 0)
+    {
+        if (mJitterBuffer->Get(&subtype, &data, &size, &timestamp, &mark, &seq, getTime))
+        {
+            mJitterBuffer->Delete();
+            countGetFrame++;
+        }
+        else
+        {
+            countNotGetFrame++;
+        }
+
+        getTime += TEST_FRAME_INTERVAL;
+    }
+
+    EXPECT_EQ(countNotGetFrame, numLostFrames + mStartJitterBufferSize);
+    EXPECT_EQ(countGetFrame, kNumFrames - numLostFrames);
+    EXPECT_EQ(mCallback.getNumLost(), numLostFrames);
+    EXPECT_EQ(mCallback.getNumDuplicated(), 0);
+    EXPECT_EQ(mCallback.getNumDiscarded(), 0);
+    EXPECT_EQ(mCallback.getNumNormal(), kNumFrames - numLostFrames);
 }
