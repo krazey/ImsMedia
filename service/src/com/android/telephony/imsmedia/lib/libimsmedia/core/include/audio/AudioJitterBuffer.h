@@ -20,18 +20,13 @@
 #include <BaseJitterBuffer.h>
 #include <JitterNetworkAnalyser.h>
 
-enum kDiscardFlag
-{
-    kFlagDiscardVoiceFrame = 0,
-    kFlagDiscardNonVoiceFrame,
-};
-
 class AudioJitterBuffer : public BaseJitterBuffer
 {
 public:
     AudioJitterBuffer();
     virtual ~AudioJitterBuffer();
     virtual void Reset();
+    virtual void ClearBuffer();
     virtual void SetJitterBufferSize(uint32_t nInit, uint32_t nMin, uint32_t nMax);
     void SetJitterOptions(uint32_t nReduceTH, uint32_t nStepSize, double zValue, bool bIgnoreSID);
     virtual void Add(ImsMediaSubType subtype, uint8_t* pbBuffer, uint32_t nBufferSize,
@@ -47,7 +42,7 @@ public:
 private:
     bool IsSID(uint32_t frameSize);
     bool IsNoData(uint32_t frameSize);
-    void Resync(kDiscardFlag flag);
+    void Resync(uint32_t spareFrames);
     void CollectRxRtpStatus(int32_t seq, kRtpPacketStatus status);
     void CollectJitterBufferStatus(int32_t currSize, int32_t maxSize);
 
