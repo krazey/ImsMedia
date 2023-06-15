@@ -24,7 +24,6 @@ class TextJitterBuffer : public BaseJitterBuffer
 public:
     TextJitterBuffer();
     virtual ~TextJitterBuffer();
-    virtual void Reset();
     virtual void Add(ImsMediaSubType subtype, uint8_t* buffer, uint32_t size, uint32_t timestamp,
             bool mark, uint32_t seqNum,
             ImsMediaSubType dataType = ImsMediaSubType::MEDIASUBTYPE_UNDEFINED,

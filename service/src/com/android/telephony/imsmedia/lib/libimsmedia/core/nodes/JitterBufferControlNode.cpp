@@ -69,6 +69,7 @@ void JitterBufferControlNode::Reset()
 {
     if (mJitterBuffer)
     {
+        mJitterBuffer->ClearBuffer();
         mJitterBuffer->Reset();
     }
 }
@@ -89,15 +90,8 @@ void JitterBufferControlNode::OnDataFromFrontNode(ImsMediaSubType subtype, uint8
 {
     if (mJitterBuffer)
     {
-        if (subtype == MEDIASUBTYPE_REFRESHED)
-        {
-            mJitterBuffer->SetSsrc(nDataSize);
-        }
-        else
-        {
-            mJitterBuffer->Add(
-                    subtype, pData, nDataSize, nTimestamp, bMark, nSeqNum, nDataType, arrivalTime);
-        }
+        mJitterBuffer->Add(
+                subtype, pData, nDataSize, nTimestamp, bMark, nSeqNum, nDataType, arrivalTime);
     }
 }
 

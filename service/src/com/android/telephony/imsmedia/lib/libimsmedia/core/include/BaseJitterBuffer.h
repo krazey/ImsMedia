@@ -32,20 +32,32 @@ public:
     virtual void SetSessionCallback(BaseSessionCallback* callback);
 
     /**
-     * @brief Set the ssrc of the receiving stream
-     */
-    virtual void SetSsrc(uint32_t ssrc);
-
-    /**
      * @brief Set the codec type
      */
     virtual void SetCodecType(uint32_t type);
     virtual void SetJitterBufferSize(uint32_t nInit, uint32_t nMin, uint32_t nMax);
     virtual void SetJitterOptions(
             uint32_t nReduceTH, uint32_t nStepSize, double zValue, bool bIgnoreSID);
+
+    /**
+     * @brief Get the size of the queue
+     */
     virtual uint32_t GetCount();
+
+    /**
+     * @brief Reset the parameters for playing
+     */
     virtual void Reset();
+
+    /**
+     * @brief Delete the first data in the queue
+     */
     virtual void Delete();
+
+    /**
+     * @brief Delete all the data frames in the queue
+     */
+    virtual void ClearBuffer();
 
     /**
      * @brief Add data frame to jitter buffer for dejittering
