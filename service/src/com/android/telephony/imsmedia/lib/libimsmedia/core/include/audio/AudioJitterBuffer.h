@@ -40,8 +40,6 @@ public:
     void SetStartTime(uint32_t time) { mTimeStarted = time; }
 
 private:
-    bool IsSID(uint32_t frameSize);
-    bool IsNoData(uint32_t frameSize);
     void Resync(uint32_t spareFrames);
     void CollectRxRtpStatus(int32_t seq, kRtpPacketStatus status);
     void CollectJitterBufferStatus(int32_t currSize, int32_t maxSize);
