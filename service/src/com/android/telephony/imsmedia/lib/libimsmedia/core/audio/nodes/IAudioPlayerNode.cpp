@@ -95,14 +95,15 @@ ImsMediaResult IAudioPlayerNode::ProcessStart()
 void IAudioPlayerNode::Stop()
 {
     IMLOGD0("[Stop]");
+    StopThread();
+    mCondition.reset();
+    mCondition.wait_timeout(AUDIO_STOP_TIMEOUT);
 
     if (mAudioPlayer)
     {
         mAudioPlayer->Stop();
     }
 
-    StopThread();
-    mCondition.wait_timeout(AUDIO_STOP_TIMEOUT);
     mNodeState = kNodeStateStopped;
 }
 
@@ -310,7 +311,6 @@ void* IAudioPlayerNode::run()
         if (IsThreadStopped())
         {
             IMLOGD0("[run] terminated");
-            mCondition.signal();
             break;
         }
 
@@ -350,5 +350,6 @@ void* IAudioPlayerNode::run()
 
         ImsMediaTimer::USleep(nTime);
     }
+    mCondition.signal();
     return nullptr;
 }
