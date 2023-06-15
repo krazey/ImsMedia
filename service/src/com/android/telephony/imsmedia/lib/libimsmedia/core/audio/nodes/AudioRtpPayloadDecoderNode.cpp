@@ -257,9 +257,22 @@ void AudioRtpPayloadDecoderNode::DecodePayloadAmr(uint8_t* pData, uint32_t nData
         IMLOGD_PACKET6(IM_PACKET_LOG_PH,
                 "[DecodePayloadAmr] result = %02X %02X %02X %02X, len[%d], eRate[%d]", mPayload[0],
                 mPayload[1], mPayload[2], mPayload[3], bufferSize, eRate);
+
+        ImsMediaSubType subType = MEDIASUBTYPE_AUDIO_NORMAL;
+
+        if (bufferSize == 1)
+        {
+            subType = MEDIASUBTYPE_AUDIO_NODATA;
+        }
+        else if ((eRate == 8 && mCodecType == kAudioCodecAmr) ||
+                (eRate == 9 && mCodecType == kAudioCodecAmrWb))
+        {
+            subType = MEDIASUBTYPE_AUDIO_SID;
+        }
+
         // send remaining packet number in bundle as bMark value
         SendDataToRearNode(MEDIASUBTYPE_RTPPAYLOAD, mPayload, bufferSize, timestamp,
-                mListFrameType.size(), nSeqNum, MEDIASUBTYPE_UNDEFINED, arrivalTime);
+                mListFrameType.size(), nSeqNum, subType, arrivalTime);
 
         timestamp += 20;
     }
@@ -306,12 +319,34 @@ void AudioRtpPayloadDecoderNode::DecodePayloadEvs(uint8_t* pData, uint32_t nData
     uint32_t toc_ft_m = 0;  // 1bit, EVS mode
     uint32_t toc_ft_q = 0;  // 1bit, AMR-WB Q bit
     uint32_t toc_ft_b = 0;  // 4bits, EVS bit rate
+    ImsMediaSubType subType = MEDIASUBTYPE_AUDIO_NORMAL;
 
     mBitReader.SetBuffer(pData, nDataSize);
 
     // check RTP payload format
     eEVSReceivedPHFormat =
             ImsMediaAudioUtil::ConvertEVSPayloadMode(nDataSize, &kEvsCodecMode, &nEVSCompactId);
+
+    if (nDataSize == 1)
+    {
+        subType = MEDIASUBTYPE_AUDIO_NODATA;
+        nEVSCompactId = 13;
+    }
+    else if (nDataSize == 5 || nDataSize == 6)
+    {
+        subType = MEDIASUBTYPE_AUDIO_SID;
+    }
+    else if (nDataSize == 7 && (((pData[0] >> 7) == 1 && pData[1] == 12) || pData[0] == 12))
+    {
+        eEVSReceivedPHFormat = kRtpPyaloadHeaderModeEvsHeaderFull;
+        subType = MEDIASUBTYPE_AUDIO_SID;
+        nEVSCompactId = 12;
+    }
+    else if (nDataSize == 8 && (pData[0] >> 7) == 1 && pData[1] == 12)
+    {
+        subType = MEDIASUBTYPE_AUDIO_SID;
+        nEVSCompactId = 12;
+    }
 
     if ((kEvsCodecMode == kEvsCodecModePrimary) && (nEVSCompactId == 0))  // special case
     {
@@ -345,7 +380,7 @@ void AudioRtpPayloadDecoderNode::DecodePayloadEvs(uint8_t* pData, uint32_t nData
                     mPayload[0], mPayload[1], mPayload[2], mPayload[3], nDataSize, nFrameType);
 
             SendDataToRearNode(MEDIASUBTYPE_RTPPAYLOAD, mPayload, nDataSize, timestamp, bMark,
-                    nSeqNum, MEDIASUBTYPE_UNDEFINED, arrivalTime);
+                    nSeqNum, subType, arrivalTime);
         }
         else if (kEvsCodecMode == kEvsCodecModeAmrIo)
         {
@@ -499,7 +534,7 @@ void AudioRtpPayloadDecoderNode::DecodePayloadEvs(uint8_t* pData, uint32_t nData
                     mPayload[0], mPayload[1], mPayload[2], mPayload[3], nDataSize, nFrameType);
 
             SendDataToRearNode(MEDIASUBTYPE_RTPPAYLOAD, mPayload, nDataSize, timestamp, bMark,
-                    nSeqNum, MEDIASUBTYPE_UNDEFINED, arrivalTime);
+                    nSeqNum, subType, arrivalTime);
         }
         else
         {
@@ -679,7 +714,7 @@ void AudioRtpPayloadDecoderNode::DecodePayloadEvs(uint8_t* pData, uint32_t nData
                     mPayload[0], mPayload[1], mPayload[2], mPayload[3], bufferSize, toc_ft_b);
 
             SendDataToRearNode(MEDIASUBTYPE_RTPPAYLOAD, mPayload, bufferSize, timestamp,
-                    mListFrameType.size(), nSeqNum, MEDIASUBTYPE_UNDEFINED, arrivalTime);
+                    mListFrameType.size(), nSeqNum, subType, arrivalTime);
 
             timestamp += 20;
         }

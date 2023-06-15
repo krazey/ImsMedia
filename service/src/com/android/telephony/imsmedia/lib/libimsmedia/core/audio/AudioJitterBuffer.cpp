@@ -124,7 +124,7 @@ void AudioJitterBuffer::SetJitterOptions(
 }
 
 void AudioJitterBuffer::Add(ImsMediaSubType subtype, uint8_t* pbBuffer, uint32_t nBufferSize,
-        uint32_t nTimestamp, bool bMark, uint32_t nSeqNum, ImsMediaSubType /*nDataType*/,
+        uint32_t nTimestamp, bool bMark, uint32_t nSeqNum, ImsMediaSubType nDataType,
         uint32_t arrivalTime)
 {
     DataEntry currEntry = DataEntry();
@@ -137,6 +137,7 @@ void AudioJitterBuffer::Add(ImsMediaSubType subtype, uint8_t* pbBuffer, uint32_t
     currEntry.bHeader = true;
     currEntry.bValid = true;
     currEntry.arrivalTime = arrivalTime;
+    currEntry.eDataType = nDataType;
 
     if (subtype == MEDIASUBTYPE_REFRESHED)
     {
@@ -172,7 +173,7 @@ void AudioJitterBuffer::Add(ImsMediaSubType subtype, uint8_t* pbBuffer, uint32_t
         mJitterAnalyzer.UpdateBaseTimestamp(mBaseTimestamp, mBaseArrivalTime);
     }
     // TODO: remove mBufferIgnoreSIDPacket logic and the statements
-    else if (mBufferIgnoreSIDPacket && !IsSID(currEntry.nBufferSize))
+    else if (mBufferIgnoreSIDPacket && currEntry.eDataType != MEDIASUBTYPE_AUDIO_SID)
     {
         // first packet delay compensation
         if ((mBaseTimestamp == 0 && mBaseArrivalTime == 0) || mNeedToUpdateBasePacket)
@@ -221,8 +222,8 @@ void AudioJitterBuffer::Add(ImsMediaSubType subtype, uint8_t* pbBuffer, uint32_t
     }
     else
     {
-        IsSID(currEntry.nBufferSize) ? packet->rtpDataType = kRtpDataTypeSid
-                                     : packet->rtpDataType = kRtpDataTypeNormal;
+        (currEntry.eDataType == MEDIASUBTYPE_AUDIO_SID) ? packet->rtpDataType = kRtpDataTypeSid
+                                                        : packet->rtpDataType = kRtpDataTypeNormal;
     }
 
     packet->ssrc = mSsrc;
@@ -308,7 +309,7 @@ bool AudioJitterBuffer::Get(ImsMediaSubType* psubtype, uint8_t** ppData, uint32_
 
     // update jitter buffer size
     if (!mWaiting &&
-            ((mDtxOn && mDataQueue.Get(&pEntry) && !IsSID(pEntry->nBufferSize)) ||
+            ((mDtxOn && mDataQueue.Get(&pEntry) && pEntry->eDataType != MEDIASUBTYPE_AUDIO_SID) ||
                     mCheckUpdateJitterPacketCnt * FRAME_INTERVAL > JITTER_BUFFER_UPDATE_INTERVAL))
     {
         mCurrJitterBufferSize =
@@ -432,7 +433,7 @@ bool AudioJitterBuffer::Get(ImsMediaSubType* psubtype, uint8_t** ppData, uint32_
         }
         else  // late arrival
         {
-            if (IsSID(pEntry->nBufferSize))
+            if (pEntry->eDataType == MEDIASUBTYPE_AUDIO_SID)
             {
                 mSIDCount++;
                 mDtxOn = true;
@@ -460,7 +461,7 @@ bool AudioJitterBuffer::Get(ImsMediaSubType* psubtype, uint8_t** ppData, uint32_
     // decrease jitter buffer
     if (mDtxOn && mSIDCount > 4 && mDataQueue.GetCount() > mCurrJitterBufferSize)
     {
-        if (mDataQueue.Get(&pEntry) && IsSID(pEntry->nBufferSize))
+        if (mDataQueue.Get(&pEntry) && pEntry->eDataType == MEDIASUBTYPE_AUDIO_SID)
         {
             IMLOGD_PACKET5(IM_PACKET_LOG_JITTER,
                     "[Get] delete SID - seq[%d], mark[%d], TS[%u], currTS[%u], queue[%d]",
@@ -502,7 +503,7 @@ bool AudioJitterBuffer::Get(ImsMediaSubType* psubtype, uint8_t** ppData, uint32_
                         pEntry->nSeqNum, pEntry->bMark, pEntry->nTimestamp, mCurrPlayingTS,
                         mDataQueue.GetCount());
 
-                if (IsSID(pEntry->nBufferSize))
+                if (pEntry->eDataType == MEDIASUBTYPE_AUDIO_SID)
                 {
                     mSIDCount++;
                     mDtxOn = true;
@@ -553,7 +554,7 @@ bool AudioJitterBuffer::Get(ImsMediaSubType* psubtype, uint8_t** ppData, uint32_
         if (pnSeqNum)
             *pnSeqNum = pEntry->nSeqNum;
 
-        if (IsSID(pEntry->nBufferSize))
+        if (pEntry->eDataType == MEDIASUBTYPE_AUDIO_SID)
         {
             mSIDCount++;
             mDtxOn = true;
@@ -622,35 +623,6 @@ bool AudioJitterBuffer::Get(ImsMediaSubType* psubtype, uint8_t** ppData, uint32_
     }
 
     return false;
-}
-
-bool AudioJitterBuffer::IsSID(uint32_t frameSize)
-{
-    switch (mCodecType)
-    {
-        case kAudioCodecAmr:
-        case kAudioCodecAmrWb:
-        case kAudioCodecEvs:
-            if (frameSize == 6 || frameSize == 5)
-            {
-                return true;
-            }
-            /* TODO: Need to add checking size of EVS header full mode with TOC */
-            break;
-        case kAudioCodecPcmu:
-        case kAudioCodecPcma:
-            return false;
-        default:
-            IMLOGE1("[IsSID] DTX detect method is not defined for[%u] codec", mCodecType);
-            return false;
-    }
-
-    return false;
-}
-
-bool AudioJitterBuffer::IsNoData(uint32_t frameSize)
-{
-    return (frameSize == 0 || frameSize == 1);
 }
 
 void AudioJitterBuffer::Resync(uint32_t spareFrames)
