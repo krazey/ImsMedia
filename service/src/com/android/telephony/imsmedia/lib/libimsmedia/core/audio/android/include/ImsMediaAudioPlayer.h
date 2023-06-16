@@ -128,7 +128,7 @@ public:
      * @return true
      * @return false
      */
-    virtual bool onDataFrame(uint8_t* buffer, uint32_t size);
+    virtual bool onDataFrame(uint8_t* buffer, uint32_t size, bool isSid);
 
 private:
     void openAudioStream();

@@ -91,7 +91,8 @@ public:
      * @param currentTime The current timestamp of this method invoked with milliseconds unit
      */
     virtual bool Get(ImsMediaSubType* psubtype, uint8_t** ppData, uint32_t* pnDataSize,
-            uint32_t* ptimestamp, bool* pmark, uint32_t* pnSeqNum, uint32_t currentTime) = 0;
+            uint32_t* ptimestamp, bool* pmark, uint32_t* pnSeqNum, uint32_t currentTime,
+            ImsMediaSubType* pDataType = nullptr) = 0;
 
 protected:
     BaseSessionCallback* mCallback;

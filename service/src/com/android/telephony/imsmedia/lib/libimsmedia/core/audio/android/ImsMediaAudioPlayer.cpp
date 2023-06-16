@@ -275,7 +275,7 @@ void ImsMediaAudioPlayer::Stop()
     IMLOGD0("[Stop] exit ");
 }
 
-bool ImsMediaAudioPlayer::onDataFrame(uint8_t* buffer, uint32_t size)
+bool ImsMediaAudioPlayer::onDataFrame(uint8_t* buffer, uint32_t size, bool /*isSid*/)
 {
     std::lock_guard<std::mutex> guard(mMutex);
 
