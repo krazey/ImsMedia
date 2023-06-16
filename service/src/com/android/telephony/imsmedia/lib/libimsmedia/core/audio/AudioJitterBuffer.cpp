@@ -282,7 +282,8 @@ void AudioJitterBuffer::Add(ImsMediaSubType subtype, uint8_t* pbBuffer, uint32_t
 }
 
 bool AudioJitterBuffer::Get(ImsMediaSubType* psubtype, uint8_t** ppData, uint32_t* pnDataSize,
-        uint32_t* pnTimestamp, bool* pbMark, uint32_t* pnSeqNum, uint32_t currentTime)
+        uint32_t* pnTimestamp, bool* pbMark, uint32_t* pnSeqNum, uint32_t currentTime,
+        ImsMediaSubType* pDataType)
 {
     std::lock_guard<std::mutex> guard(mMutex);
 
@@ -353,6 +354,8 @@ bool AudioJitterBuffer::Get(ImsMediaSubType* psubtype, uint8_t** ppData, uint32_
                 *pbMark = false;
             if (pnSeqNum)
                 *pnSeqNum = 0;
+            if (pDataType)
+                *pDataType = MEDIASUBTYPE_UNDEFINED;
 
             IMLOGD_PACKET4(IM_PACKET_LOG_JITTER,
                     "[Get] Wait - seq[%u], CurrJBSize[%u], delay[%u], QueueCount[%u]",
@@ -553,6 +556,8 @@ bool AudioJitterBuffer::Get(ImsMediaSubType* psubtype, uint8_t** ppData, uint32_
             *pbMark = pEntry->bMark;
         if (pnSeqNum)
             *pnSeqNum = pEntry->nSeqNum;
+        if (pDataType)
+            *pDataType = pEntry->eDataType;
 
         if (pEntry->eDataType == MEDIASUBTYPE_AUDIO_SID)
         {
@@ -614,6 +619,8 @@ bool AudioJitterBuffer::Get(ImsMediaSubType* psubtype, uint8_t** ppData, uint32_
             *pbMark = false;
         if (pnSeqNum)
             *pnSeqNum = 0;
+        if (pDataType)
+            *pDataType = MEDIASUBTYPE_UNDEFINED;
 
         IMLOGD_PACKET2(IM_PACKET_LOG_JITTER, "[Get] fail - dtx mode[%d], curTS[%d]", mDtxOn,
                 mCurrPlayingTS);

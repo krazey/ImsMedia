@@ -16,6 +16,7 @@
 
 #include <IAudioPlayerNode.h>
 #include <ImsMediaAudioPlayer.h>
+#include <ImsMediaDefine.h>
 #include <ImsMediaTrace.h>
 #include <ImsMediaTimer.h>
 #include <ImsMediaAudioUtil.h>
@@ -303,6 +304,7 @@ void* IAudioPlayerNode::run()
     uint32_t nTimestamp = 0;
     bool bMark = false;
     uint32_t nSeqNum = 0;
+    uint32_t currentTime = 0;
     uint64_t nNextTime = ImsMediaTimer::GetTimeInMicroSeconds();
     bool isFirstFrameReceived = false;
 
@@ -314,16 +316,17 @@ void* IAudioPlayerNode::run()
             break;
         }
 
-        if (GetData(&subtype, &pData, &nDataSize, &nTimestamp, &bMark, &nSeqNum, &datatype) == true)
+        if (GetData(&subtype, &pData, &nDataSize, &nTimestamp, &bMark, &nSeqNum, &datatype,
+                    &currentTime))
         {
             IMLOGD_PACKET2(IM_PACKET_LOG_AUDIO, "[run] write buffer size[%d], TS[%u]", nDataSize,
                     nTimestamp);
             if (nDataSize != 0)
             {
-                if (mAudioPlayer->onDataFrame(pData, nDataSize))
+                if (mAudioPlayer->onDataFrame(pData, nDataSize, datatype == MEDIASUBTYPE_AUDIO_SID))
                 {
                     // send buffering complete message to client
-                    if (isFirstFrameReceived == false)
+                    if (!isFirstFrameReceived)
                     {
                         mCallback->SendEvent(kImsMediaEventFirstPacketReceived,
                                 reinterpret_cast<uint64_t>(new AudioConfig(*mConfig)));
@@ -336,7 +339,7 @@ void* IAudioPlayerNode::run()
         else if (isFirstFrameReceived)
         {
             IMLOGD_PACKET0(IM_PACKET_LOG_AUDIO, "[run] GetData returned 0 bytes");
-            mAudioPlayer->onDataFrame(nullptr, 0);
+            mAudioPlayer->onDataFrame(nullptr, 0, false);
         }
 
         nNextTime += 20000;

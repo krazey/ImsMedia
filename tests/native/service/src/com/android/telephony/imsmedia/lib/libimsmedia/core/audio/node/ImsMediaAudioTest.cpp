@@ -50,7 +50,7 @@ public:
 
                             if (mAudioPlayer != nullptr && size > 0)
                             {
-                                EXPECT_EQ(mAudioPlayer->onDataFrame(buffer, size), true);
+                                EXPECT_EQ(mAudioPlayer->onDataFrame(buffer, size, false), true);
                                 condition.signal();
                             }
                         });

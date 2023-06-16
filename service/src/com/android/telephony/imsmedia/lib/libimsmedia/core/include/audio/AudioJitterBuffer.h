@@ -34,7 +34,8 @@ public:
             ImsMediaSubType nDataType = ImsMediaSubType::MEDIASUBTYPE_UNDEFINED,
             uint32_t arrivalTime = 0);
     virtual bool Get(ImsMediaSubType* psubtype, uint8_t** ppData, uint32_t* pnDataSize,
-            uint32_t* pnTimestamp, bool* pbMark, uint32_t* pnSeqNum, uint32_t currentTime);
+            uint32_t* pnTimestamp, bool* pbMark, uint32_t* pnSeqNum, uint32_t currentTime,
+            ImsMediaSubType* pDataType = nullptr);
 
     /* set the start time in ms unit */
     void SetStartTime(uint32_t time) { mTimeStarted = time; }

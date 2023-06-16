@@ -45,7 +45,8 @@ public:
             uint32_t nTimeStamp, bool mark, uint32_t nSeqNum, ImsMediaSubType nDataType,
             uint32_t arrivalTime);
     virtual bool Get(ImsMediaSubType* psubtype, uint8_t** ppData, uint32_t* pnDataSize,
-            uint32_t* ptimestamp, bool* pmark, uint32_t* pnSeqNum, uint32_t currentTime);
+            uint32_t* ptimestamp, bool* pmark, uint32_t* pnSeqNum, uint32_t currentTime,
+            ImsMediaSubType* pDataType = nullptr);
 
     /**
      * @brief Set the video codec type
