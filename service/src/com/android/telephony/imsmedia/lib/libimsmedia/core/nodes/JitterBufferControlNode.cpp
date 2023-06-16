@@ -112,7 +112,7 @@ bool JitterBufferControlNode::GetData(ImsMediaSubType* pSubtype, uint8_t** ppDat
     if (mJitterBuffer)
     {
         return mJitterBuffer->Get(pSubtype, ppData, pnDataSize, pnTimestamp, pbMark, pnSeqNum,
-                ImsMediaTimer::GetTimeInMilliSeconds());
+                ImsMediaTimer::GetTimeInMilliSeconds(), pnDataType);
     }
 
     return false;

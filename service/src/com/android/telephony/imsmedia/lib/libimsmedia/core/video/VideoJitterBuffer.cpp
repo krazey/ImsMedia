@@ -299,7 +299,8 @@ void VideoJitterBuffer::Add(ImsMediaSubType subtype, uint8_t* pbBuffer, uint32_t
 }
 
 bool VideoJitterBuffer::Get(ImsMediaSubType* subtype, uint8_t** ppData, uint32_t* pnDataSize,
-        uint32_t* pnTimestamp, bool* pbMark, uint32_t* pnSeqNum, uint32_t currentTime)
+        uint32_t* pnTimestamp, bool* pbMark, uint32_t* pnSeqNum, uint32_t currentTime,
+        ImsMediaSubType* /*pDataType*/)
 {
     DataEntry* pEntry = nullptr;
     bool bValidPacket = false;
