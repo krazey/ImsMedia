@@ -705,3 +705,72 @@ TEST_F(AudioJitterBufferTest, TestAddGetWithLongLost)
     EXPECT_EQ(mCallback.getNumDiscarded(), 0);
     EXPECT_EQ(mCallback.getNumNormal(), kNumFrames - numLostFrames);
 }
+
+TEST_F(AudioJitterBufferTest, TestAddGetWithLostOverOutlier)
+{
+    const int32_t kNumFrames = 20;
+    char buffer[TEST_BUFFER_SIZE] = {"\x1\x2\x3\x4\x5\x6\x7\x0"};
+    int32_t countGetFrame = 0;
+    int32_t countNotGetFrame = 0;
+    int32_t getTime = 0;
+
+    ImsMediaSubType subtype = MEDIASUBTYPE_UNDEFINED;
+    uint8_t* data = nullptr;
+    uint32_t size = 0;
+    uint32_t timestamp = 0;
+    bool mark = false;
+    uint32_t seq = 0;
+    uint32_t countAdd = 0;
+    uint16_t startSeq = 30000;
+    uint16_t addSeq = startSeq;
+    uint32_t addTimestamp = 0;
+    int32_t addTime = 0;
+
+    while (countAdd++ < kNumFrames)
+    {
+        addTime = 20 * countAdd;
+        addTimestamp = addTime;
+
+        if (countAdd > 10)
+        {
+            addSeq += 3000;
+        }
+
+        mJitterBuffer->Add(MEDIASUBTYPE_UNDEFINED, reinterpret_cast<uint8_t*>(buffer),
+                sizeof(buffer), addTimestamp, false, addSeq++, MEDIASUBTYPE_UNDEFINED, addTime);
+
+        if (mJitterBuffer->Get(&subtype, &data, &size, &timestamp, &mark, &seq, getTime))
+        {
+            mJitterBuffer->Delete();
+            countGetFrame++;
+        }
+        else
+        {
+            countNotGetFrame++;
+        }
+
+        getTime += TEST_FRAME_INTERVAL;
+    }
+
+    while (mJitterBuffer->GetCount() > 0)
+    {
+        if (mJitterBuffer->Get(&subtype, &data, &size, &timestamp, &mark, &seq, getTime))
+        {
+            mJitterBuffer->Delete();
+            countGetFrame++;
+        }
+        else
+        {
+            countNotGetFrame++;
+        }
+
+        getTime += TEST_FRAME_INTERVAL;
+    }
+
+    EXPECT_EQ(countNotGetFrame, mStartJitterBufferSize);
+    EXPECT_EQ(countGetFrame, kNumFrames);
+    EXPECT_EQ(mCallback.getNumLost(), 0);
+    EXPECT_EQ(mCallback.getNumDuplicated(), 0);
+    EXPECT_EQ(mCallback.getNumDiscarded(), 0);
+    EXPECT_EQ(mCallback.getNumNormal(), kNumFrames);
+}
