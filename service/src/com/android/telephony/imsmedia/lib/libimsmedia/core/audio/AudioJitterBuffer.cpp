@@ -28,6 +28,7 @@
 #define ALLOWABLE_ERROR                (10)     // ms unit
 #define RESET_THRESHOLD                (10000)  // ms unit
 #define TS_ROUND_QUARD                 (3000)   // ms unit
+#define SEQ_OUTLIER_THRESHOLD          (3000)
 #define USHORT_TS_ROUND_COMPARE(a, b)                                             \
     (((a) >= (b) && (b) >= TS_ROUND_QUARD) || ((a) <= 0xffff - TS_ROUND_QUARD) || \
             ((a) <= TS_ROUND_QUARD && (b) >= 0xffff - TS_ROUND_QUARD))
@@ -575,7 +576,7 @@ bool AudioJitterBuffer::Get(ImsMediaSubType* psubtype, uint8_t** ppData, uint32_
             /** Report the loss gap if the loss gap is over 0 */
             uint16_t lostGap = GET_SEQ_GAP(pEntry->nSeqNum, mLastPlayedSeqNum);
 
-            if (lostGap > 1)
+            if (lostGap > 1 && lostGap < SEQ_OUTLIER_THRESHOLD)
             {
                 uint16_t lostSeq = mLastPlayedSeqNum + 1;
                 SessionCallbackParameter* param =
