@@ -285,12 +285,18 @@ TEST_F(AudioRtpPayloadNodeTest, testEvsHeaderFullModeDataProcess)
     EXPECT_EQ(decoder->Start(), RESULT_SUCCESS);
 
     // EVS mode 13.2 kbps frame with toc field
-    uint8_t testFrame[] = {0x04, 0xce, 0x40, 0xf2, 0xb2, 0xa4, 0xce, 0x4f, 0xd9, 0xfa, 0xe9, 0x77,
-            0xdc, 0x9b, 0xc0, 0xa8, 0x10, 0xc8, 0xc3, 0x0f, 0xc9, 0x52, 0xc1, 0xda, 0x45, 0x7e,
-            0x6c, 0x55, 0x47, 0xff, 0xff, 0xff, 0xff, 0xe0};
+    uint8_t testFrame[] = {0xce, 0x40, 0xf2, 0xb2, 0xa4, 0xce, 0x4f, 0xd9, 0xfa, 0xe9, 0x77, 0xdc,
+            0x9b, 0xc0, 0xa8, 0x10, 0xc8, 0xc3, 0x0f, 0xc9, 0x52, 0xc1, 0xda, 0x45, 0x7e, 0x6c,
+            0x55, 0x47, 0xff, 0xff, 0xff, 0xff, 0xe0};
 
     encoder->OnDataFromFrontNode(MEDIASUBTYPE_UNDEFINED, testFrame, sizeof(testFrame), 0, false, 0);
-    EXPECT_EQ(fakeNode->GetFrameSize(), sizeof(testFrame));
-    EXPECT_EQ(memcmp(fakeNode->GetDataFrame(), testFrame, fakeNode->GetFrameSize()), 0);
+
+    // 0x04 is the ToC header for the 13.2kbps bitrate
+    EXPECT_EQ(*(fakeNode->GetDataFrame()), 0x04);
+    // Compairing one byte extra as PayloadEncoder will have added one Toc header as it's HeaderFull
+    // mode test.
+    EXPECT_EQ(fakeNode->GetFrameSize(), sizeof(testFrame) + 1);
+    // Removing Toc header from the comparison as testFrame does not have toc header included
+    EXPECT_EQ(memcmp(fakeNode->GetDataFrame() + 1, testFrame, fakeNode->GetFrameSize() - 1), 0);
 }
 }  // namespace
