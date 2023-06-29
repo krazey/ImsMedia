@@ -23,6 +23,7 @@ import android.os.Parcel;
 import android.telephony.AccessNetworkConstants.AccessNetworkType;
 import android.telephony.imsmedia.RtcpConfig;
 import android.telephony.imsmedia.RtpConfig;
+import android.telephony.imsmedia.RtpContextParams;
 import android.telephony.imsmedia.TextConfig;
 
 import androidx.test.runner.AndroidJUnit4;
@@ -50,12 +51,21 @@ public class TextConfigTest {
     private static final byte REDUNDANT_PAYLOAD = 101;
     private static final byte REDUNDANT_LEVEL = 3;
     private static final boolean KEEP_REDUNDANT_LEVEL = true;
+    private static final long SSRC = 3711990914L;
+    private static final long TIMESTAMP = 3277637148L;
+    private static final int SEQUENCE_NUMBER = 5231;
 
     private static final RtcpConfig sRtcp = new RtcpConfig.Builder()
             .setCanonicalName(CANONICAL_NAME)
             .setTransmitPort(RTCP_PORT)
             .setIntervalSec(RTCP_INTERVAL)
             .setRtcpXrBlockTypes(RtcpConfig.FLAG_RTCPXR_DLRR_REPORT_BLOCK)
+            .build();
+
+    private static final RtpContextParams sRtpContextParams = new RtpContextParams.Builder()
+            .setSsrc(SSRC)
+            .setTimestamp(TIMESTAMP)
+            .setSequenceNumber(SEQUENCE_NUMBER)
             .build();
 
     @Test
@@ -71,6 +81,7 @@ public class TextConfigTest {
         assertThat(config.getRxPayloadTypeNumber()).isEqualTo(RX_PAYLOAD);
         assertThat(config.getTxPayloadTypeNumber()).isEqualTo(TX_PAYLOAD);
         assertThat(config.getSamplingRateKHz()).isEqualTo(SAMPLING_RATE);
+        assertThat(config.getRtpContextParams()).isEqualTo(sRtpContextParams);
         assertThat(config.getCodecType()).isEqualTo(CODEC_TYPE);
         assertThat(config.getBitrate()).isEqualTo(BITRATE);
         assertThat(config.getRedundantPayload()).isEqualTo(REDUNDANT_PAYLOAD);
@@ -111,6 +122,7 @@ public class TextConfigTest {
                 .setRxPayloadTypeNumber(RX_PAYLOAD)
                 .setTxPayloadTypeNumber(TX_PAYLOAD)
                 .setSamplingRateKHz(SAMPLING_RATE)
+                .setRtpContextParams(sRtpContextParams)
                 .setCodecType(TextConfig.TEXT_T140)
                 .setBitrate(BITRATE)
                 .setRedundantPayload(REDUNDANT_PAYLOAD)
@@ -119,6 +131,25 @@ public class TextConfigTest {
                 .build();
 
         assertThat(config1).isNotEqualTo(config2);
+
+        TextConfig config3 = new TextConfig.Builder()
+                .setMediaDirection(RtpConfig.MEDIA_DIRECTION_SEND_RECEIVE)
+                .setAccessNetwork(AccessNetworkType.EUTRAN)
+                .setRemoteRtpAddress(new InetSocketAddress(
+                        InetAddresses.parseNumericAddress(REMOTE_RTP_ADDRESS), REMOTE_RTP_PORT))
+                .setRtcpConfig(sRtcp)
+                .setDscp(DSCP)
+                .setRxPayloadTypeNumber(RX_PAYLOAD)
+                .setTxPayloadTypeNumber(TX_PAYLOAD)
+                .setSamplingRateKHz(SAMPLING_RATE)
+                .setCodecType(CODEC_TYPE)
+                .setBitrate(BITRATE)
+                .setRedundantPayload(REDUNDANT_PAYLOAD)
+                .setRedundantLevel(REDUNDANT_LEVEL)
+                .setKeepRedundantLevel(KEEP_REDUNDANT_LEVEL)
+                .build();
+
+        assertThat(config1).isNotEqualTo(config3);
     }
 
     static TextConfig createTextConfig() {
@@ -132,6 +163,7 @@ public class TextConfigTest {
                 .setRxPayloadTypeNumber(RX_PAYLOAD)
                 .setTxPayloadTypeNumber(TX_PAYLOAD)
                 .setSamplingRateKHz(SAMPLING_RATE)
+                .setRtpContextParams(sRtpContextParams)
                 .setCodecType(CODEC_TYPE)
                 .setBitrate(BITRATE)
                 .setRedundantPayload(REDUNDANT_PAYLOAD)
