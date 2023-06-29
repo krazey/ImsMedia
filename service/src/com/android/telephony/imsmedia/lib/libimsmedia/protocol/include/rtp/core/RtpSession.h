@@ -507,6 +507,10 @@ public:
 
     RtpDt_UInt32 getSsrc();
 
+    RtpDt_Void setSequenceNumber(IN RtpDt_UInt16 uiSeqNumber);
+
+    RtpDt_UInt16 getSequenceNumber();
+
     RtpDt_Void setRtpPort(IN RtpDt_UInt16 usPort);
 
     RtpDt_Void setRtpTransAddr(IN RtpBuffer* pobjDestTransAddr);

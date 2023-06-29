@@ -571,3 +571,13 @@ uint32_t IRtpSession::getRefCounter()
 {
     return mRefCount.load();
 }
+
+void IRtpSession::SetRtpContext(uint32_t ssrc, uint32_t timestamp, uint16_t sequenceNumber)
+{
+    IMS_RtpSvc_SetRtpContext(mRtpSessionId, ssrc, timestamp, sequenceNumber);
+}
+
+void IRtpSession::GetRtpContext(uint32_t& ssrc, uint32_t& timestamp, uint16_t& sequenceNumber)
+{
+    IMS_RtpSvc_GetRtpContext(mRtpSessionId, ssrc, timestamp, sequenceNumber);
+}
