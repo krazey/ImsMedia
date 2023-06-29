@@ -160,6 +160,16 @@ RtpDt_UInt32 RtpSession::getSsrc()
     return m_uiSsrc;
 }
 
+RtpDt_Void RtpSession::setSequenceNumber(IN RtpDt_UInt16 uiSeqNumber)
+{
+    m_usSeqNum = uiSeqNumber;
+}
+
+RtpDt_UInt16 RtpSession::getSequenceNumber()
+{
+    return m_usSeqNum;
+}
+
 RtpDt_Void RtpSession::setRtpPort(IN RtpDt_UInt16 usPort)
 {
     m_usRtpPort = usPort;

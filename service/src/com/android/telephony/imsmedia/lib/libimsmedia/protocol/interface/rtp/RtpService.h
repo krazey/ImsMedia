@@ -241,6 +241,12 @@ GLOBAL eRtp_Bool IMS_RtpSvc_ProcRtcpPacket(IN RtpServiceListener* pobjRtpService
 GLOBAL eRtp_Bool IMS_RtpSvc_SendRtcpXrPacket(
         IN RTPSESSIONID hRtpSession, IN RtpDt_UChar* m_pBlockBuffer, IN RtpDt_UInt16 nblockLength);
 
+GLOBAL eRtp_Bool IMS_RtpSvc_SetRtpContext(IN RTPSESSIONID hRtpSession, IN RtpDt_UInt32 ssrc,
+        IN RtpDt_UInt32 timestamp, IN RtpDt_UInt16 seqNumber);
+
+GLOBAL eRtp_Bool IMS_RtpSvc_GetRtpContext(IN RTPSESSIONID hRtpSession, IN RtpDt_UInt32& ssrc,
+        IN RtpDt_UInt32& timestamp, IN RtpDt_UInt16& seqNumber);
+
 #endif /* __RTP_SERVICE_H_ */
 
 /** @}*/

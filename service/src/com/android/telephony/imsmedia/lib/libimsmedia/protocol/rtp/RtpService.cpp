@@ -762,3 +762,22 @@ GLOBAL eRtp_Bool IMS_RtpSvc_SendRtcpXrPacket(
 
     return eRTP_TRUE;
 }
+
+GLOBAL eRtp_Bool IMS_RtpSvc_SetRtpContext(RTPSESSIONID hRtpSession, RtpDt_UInt32 ssrc,
+        RtpDt_UInt32 /*timestamp*/, RtpDt_UInt16 seqNumber)
+{
+    RTP_TRACE_MESSAGE("IMS_RtpSvc_SetRtpContext. ssrc:%d, sequenceNumber:%d", ssrc, seqNumber);
+    RtpSession* pobjRtpSession = reinterpret_cast<RtpSession*>(hRtpSession);
+    pobjRtpSession->setSequenceNumber(seqNumber);
+    return eRTP_TRUE;
+}
+
+GLOBAL eRtp_Bool IMS_RtpSvc_GetRtpContext(RTPSESSIONID hRtpSession, RtpDt_UInt32& ssrc,
+        RtpDt_UInt32& /*timestamp*/, RtpDt_UInt16& seqNumber)
+{
+    RTP_TRACE_MESSAGE("IMS_RtpSvc_GetRtpContext. ssrc:%d, sequenceNumber:%d", ssrc, seqNumber);
+    RtpSession* pobjRtpSession = reinterpret_cast<RtpSession*>(hRtpSession);
+    ssrc = pobjRtpSession->getSsrc();
+    seqNumber = pobjRtpSession->getSequenceNumber();
+    return eRTP_TRUE;
+}

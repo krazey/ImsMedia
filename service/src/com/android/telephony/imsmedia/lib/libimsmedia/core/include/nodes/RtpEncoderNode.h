@@ -19,6 +19,7 @@
 
 #include <BaseNode.h>
 #include <IRtpSession.h>
+#include <RtpContextParams.h>
 #include <RtpHeaderExtension.h>
 #include <mutex>
 
@@ -63,6 +64,17 @@ public:
      */
     void SetRtpHeaderExtension(std::list<RtpHeaderExtension>* listExtension);
 
+    /**
+     * @brief Sets RTP stack with params such as SSRC, sequence number, timestamp, etc. RTP Packets
+     * sent after this call will follow the new params set.
+     *
+     * @param rtpContextParams holds the rtp parameters such as ssrc, timestamp,
+     * sequence number, etc.
+     */
+    void SetRtpContext(RtpContextParams& rtpContextParams);
+
+    void GetRtpContext(RtpContextParams& rtpContextParams);
+
 private:
     bool ProcessAudioData(ImsMediaSubType subtype, uint8_t* pData, uint32_t nDataSize);
     void ProcessVideoData(ImsMediaSubType subtype, uint8_t* pData, uint32_t nDataSize,
@@ -88,6 +100,7 @@ private:
     int8_t mRedundantPayload;
     int8_t mRedundantLevel;
     std::list<RtpHeaderExtensionInfo> mListRtpExtension;
+    RtpContextParams mRtpContextParams;
 };
 
 #endif
