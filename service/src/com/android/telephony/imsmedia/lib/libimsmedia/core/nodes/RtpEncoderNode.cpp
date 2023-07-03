@@ -62,6 +62,7 @@ kBaseNodeId RtpEncoderNode::GetNodeId()
 ImsMediaResult RtpEncoderNode::Start()
 {
     IMLOGD1("[Start] type[%d]", mMediaType);
+    bool bResetSsrc = false;
 
     if (mRtpPayloadTx == 0 || mRtpPayloadRx == 0)
     {
@@ -93,6 +94,7 @@ ImsMediaResult RtpEncoderNode::Start()
     }
     else if (mMediaType == IMS_MEDIA_TEXT)
     {
+        bResetSsrc = true;
         if (mRedundantPayload > 0)
         {
             mRtpSession->SetRtpPayloadParam(mRtpPayloadTx, mRtpPayloadRx, mSamplingRate * 1000,
@@ -111,7 +113,7 @@ ImsMediaResult RtpEncoderNode::Start()
         }
     }
 
-    mRtpSession->StartRtp();
+    mRtpSession->StartRtp(bResetSsrc);
     mDTMFMode = false;
     mMark = true;
     mPrevTimestamp = 0;

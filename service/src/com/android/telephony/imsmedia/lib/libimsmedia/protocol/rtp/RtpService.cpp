@@ -20,6 +20,7 @@
 #include <RtpStack.h>
 #include <RtpTrace.h>
 #include <RtpError.h>
+#include <RtpStackUtil.h>
 
 RtpStack* g_pobjRtpStack = nullptr;
 
@@ -551,13 +552,22 @@ GLOBAL eRtp_Bool IMS_RtpSvc_ProcRtpPacket(IN RtpServiceListener* pvIRtpSession,
     return eRTP_TRUE;
 }
 
-GLOBAL eRtp_Bool IMS_RtpSvc_SessionEnableRTP(IN RTPSESSIONID rtpSessionId)
+GLOBAL eRtp_Bool IMS_RtpSvc_SessionEnableRTP(IN RTPSESSIONID rtpSessionId, IN eRtp_Bool bResetSsrc)
 {
     RtpSession* pobjRtpSession = reinterpret_cast<RtpSession*>(rtpSessionId);
 
     if (g_pobjRtpStack == nullptr ||
             g_pobjRtpStack->isValidRtpSession(pobjRtpSession) == eRTP_FAILURE)
         return eRTP_FALSE;
+
+    // generate SSRC
+    RtpDt_UInt32 oldSsrc = pobjRtpSession->getSsrc();
+    if (oldSsrc == 0 || bResetSsrc == eRTP_TRUE)
+    {
+        RtpDt_UInt32 uiSsrc = RtpStackUtil::generateNewSsrc(RTP_CONF_SSRC_SEED);
+        RTP_TRACE_WARNING("[SessionEnableRTP] SSRC changed [%x] -> [%x]", oldSsrc, uiSsrc);
+        pobjRtpSession->setSsrc(uiSsrc);
+    }
 
     if (pobjRtpSession->enableRtp() == RTP_SUCCESS)
         return eRTP_TRUE;

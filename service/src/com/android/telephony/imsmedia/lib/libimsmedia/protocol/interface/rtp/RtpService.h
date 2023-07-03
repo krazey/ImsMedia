@@ -159,7 +159,7 @@ GLOBAL eRtp_Bool IMS_RtpSvc_ProcRtpPacket(IN RtpServiceListener* pobjRtpServiceL
  *
  * @param rtpSessionId A session handled associated with the media stream.
  */
-GLOBAL eRtp_Bool IMS_RtpSvc_SessionEnableRTP(IN RTPSESSIONID rtpSessionId);
+GLOBAL eRtp_Bool IMS_RtpSvc_SessionEnableRTP(IN RTPSESSIONID rtpSessionId, IN eRtp_Bool bResetSsrc);
 
 /**
  * This API stops processing TX and RX RTP packets.
