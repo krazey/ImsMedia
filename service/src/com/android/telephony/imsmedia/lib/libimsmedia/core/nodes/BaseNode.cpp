@@ -96,12 +96,18 @@ void BaseNode::DisconnectNodes()
 
 void BaseNode::ClearDataQueue()
 {
+    IMLOGD1("[ClearDataQueue] queue size[%d]", mDataQueue.GetCount());
     mDataQueue.Clear();
 }
 
 kBaseNodeId BaseNode::GetNodeId()
 {
     return kNodeIdUnknown;
+}
+
+bool BaseNode::Prepare()
+{
+    return RESULT_SUCCESS;
 }
 
 ImsMediaResult BaseNode::Start()

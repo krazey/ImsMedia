@@ -19,6 +19,8 @@
 #include <ImsMediaTimer.h>
 #include <thread>
 
+#define MAX_BUFFER_QUEUE 250  // 5 sec in audio case.
+
 SocketReaderNode::SocketReaderNode(BaseSessionCallback* callback) :
         BaseNode(callback),
         mLocalFd(0)
@@ -39,46 +41,32 @@ kBaseNodeId SocketReaderNode::GetNodeId()
     return kNodeIdSocketReader;
 }
 
-ImsMediaResult SocketReaderNode::Start()
+bool SocketReaderNode::Prepare()
 {
-    IMLOGD2("[Start] media[%d], protocolType[%d]", mMediaType, mProtocolType);
-    mSocket = ISocket::GetInstance(mLocalAddress.port, mPeerAddress.ipAddress, mPeerAddress.port);
-
-    if (mSocket == nullptr)
+    if (!mSocketOpened)
     {
-        IMLOGE0("[Start] can't create socket instance");
-        return RESULT_NOT_READY;
+        return OpenSocket();
     }
 
+    return true;
+}
+
+ImsMediaResult SocketReaderNode::Start()
+{
     ClearDataQueue();  // clear the old data stacked
 
     if (mSocketOpened)
     {
         IMLOGD0("[Start] opened already");
-        mNodeState = kNodeStateRunning;
-        return RESULT_SUCCESS;
     }
-
-    // set socket local/peer address here
-    mSocket->SetLocalEndpoint(mLocalAddress.ipAddress, mLocalAddress.port);
-    mSocket->SetPeerEndpoint(mPeerAddress.ipAddress, mPeerAddress.port);
-
-    if (!mSocketOpened && !mSocket->Open(mLocalFd))
+    else
     {
-        IMLOGE0("[Start] can't open socket");
-        mSocketOpened = false;
-        return RESULT_PORT_UNAVAILABLE;
+        if (!OpenSocket())
+        {
+            return RESULT_PORT_UNAVAILABLE;
+        }
     }
 
-    mReceiveTtl = false;
-
-    if (mSocket->SetSocketOpt(kSocketOptionIpTtl, 1))
-    {
-        mReceiveTtl = true;
-    }
-
-    mSocket->Listen(this);
-    mSocketOpened = true;
     mNodeState = kNodeStateRunning;
     return RESULT_SUCCESS;
 }
@@ -86,12 +74,6 @@ ImsMediaResult SocketReaderNode::Start()
 void SocketReaderNode::Stop()
 {
     IMLOGD2("[Stop] media[%d], protocolType[%d]", mMediaType, mProtocolType);
-
-    if (mProtocolType != kProtocolRtp)
-    {
-        CloseSocket();
-    }
-
     mNodeState = kNodeStateStopped;
 }
 
@@ -190,7 +172,7 @@ ImsMediaResult SocketReaderNode::UpdateConfig(void* config)
     {
         Stop();
 
-        if (mProtocolType == kProtocolRtp && mSocketOpened)
+        if (mSocketOpened)
         {
             CloseSocket();
         }
@@ -201,7 +183,14 @@ ImsMediaResult SocketReaderNode::UpdateConfig(void* config)
 
     if (isUpdateNode && prevState == kNodeStateRunning)
     {
-        return Start();
+        if (Prepare())
+        {
+            return Start();
+        }
+        else
+        {
+            return RESULT_INVALID_PARAM;
+        }
     }
 
     return RESULT_SUCCESS;
@@ -209,9 +198,16 @@ ImsMediaResult SocketReaderNode::UpdateConfig(void* config)
 
 void SocketReaderNode::OnReadDataFromSocket()
 {
+    IMLOGD_PACKET1(IM_PACKET_LOG_SOCKET, "[OnReadDataFromSocket] media[%d]", mMediaType);
     std::lock_guard<std::mutex> guard(mMutex);
 
-    if (mSocket != nullptr)
+    // prevent infinite frame stacked in the queue
+    if (mDataQueue.GetCount() > MAX_BUFFER_QUEUE)
+    {
+        mDataQueue.Delete();
+    }
+
+    if (mSocketOpened && mSocket != nullptr)
     {
         int nLen = mSocket->ReceiveFrom(mBuffer, DEFAULT_MTU);
 
@@ -242,10 +238,42 @@ void SocketReaderNode::SetPeerAddress(const RtpAddress& address)
     mPeerAddress = address;
 }
 
+bool SocketReaderNode::OpenSocket()
+{
+    IMLOGD2("[OpenSocket] media[%d], protocolType[%d]", mMediaType, mProtocolType);
+    mSocket = ISocket::GetInstance(mLocalAddress.port, mPeerAddress.ipAddress, mPeerAddress.port);
+
+    if (mSocket == nullptr)
+    {
+        IMLOGE0("[OpenSocket] can't create socket instance");
+        return false;
+    }
+
+    // set socket local/peer address here
+    mSocket->SetLocalEndpoint(mLocalAddress.ipAddress, mLocalAddress.port);
+    mSocket->SetPeerEndpoint(mPeerAddress.ipAddress, mPeerAddress.port);
+
+    if (!mSocketOpened && !mSocket->Open(mLocalFd))
+    {
+        IMLOGE0("[OpenSocket] can't open socket");
+        mSocketOpened = false;
+        return false;
+    }
+
+    mReceiveTtl = false;
+
+    if (mSocket->SetSocketOpt(kSocketOptionIpTtl, 1))
+    {
+        mReceiveTtl = true;
+    }
+
+    mSocket->Listen(this);
+    mSocketOpened = true;
+    return true;
+}
+
 void SocketReaderNode::CloseSocket()
 {
-    std::lock_guard<std::mutex> guard(mMutex);
-
     if (mSocket != nullptr)
     {
         IMLOGD2("[CloseSocket] media[%d], protocolType[%d]", mMediaType, mProtocolType);
@@ -257,7 +285,9 @@ void SocketReaderNode::CloseSocket()
             mSocketOpened = false;
         }
 
+        mMutex.lock();
         ISocket::ReleaseInstance(mSocket);
         mSocket = nullptr;
+        mMutex.unlock();
     }
 }
