@@ -51,6 +51,7 @@ ImsMediaResult AudioStreamGraphRtpRx::create(RtpConfig* config)
     (static_cast<SocketReaderNode*>(pNodeSocketReader))->SetLocalAddress(localAddress);
     (static_cast<SocketReaderNode*>(pNodeSocketReader))->SetProtocolType(kProtocolRtp);
     pNodeSocketReader->SetConfig(config);
+    pNodeSocketReader->Prepare();
     AddNode(pNodeSocketReader);
 
     BaseNode* pNodeRtpDecoder = new RtpDecoderNode(mCallback);

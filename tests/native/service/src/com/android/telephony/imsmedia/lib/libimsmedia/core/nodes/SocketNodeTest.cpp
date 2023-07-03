@@ -21,6 +21,7 @@
 #include <ImsMediaCondition.h>
 #include <SocketReaderNode.h>
 #include <SocketWriterNode.h>
+#include <thread>
 
 using namespace android::telephony::imsmedia;
 using namespace android;
@@ -64,6 +65,13 @@ using ::testing::Eq;
 using ::testing::Pointee;
 using ::testing::Return;
 
+class FakeSocketReader : public SocketReaderNode
+{
+public:
+    virtual ~FakeSocketReader() {}
+    void callCloseSocket() { CloseSocket(); }
+};
+
 class SocketNodeTest : public ::testing::Test
 {
 public:
@@ -75,12 +83,23 @@ public:
     }
     virtual ~SocketNodeTest() {}
 
+    void StopNode(BaseNode* node)
+    {
+        if (node != nullptr)
+        {
+            node->Stop();
+            reinterpret_cast<FakeSocketReader*>(node)->callCloseSocket();
+        }
+
+        mCondition.signal();
+    }
+
 protected:
     AmrParams mAmr;
     EvsParams mEvs;
     AudioConfig mAudioConfig;
     RtcpConfig mRtcp;
-    SocketReaderNode* mReader;
+    FakeSocketReader* mReader;
     SocketWriterNode* mWriter;
     MockBaseNode mMockNode;
     int mSocketRtpFd;
@@ -125,12 +144,13 @@ protected:
         EXPECT_NE(mSocketRtpFd, -1);
         RtpAddress testAddress(kRemoteAddress, kRemotePort);
 
-        mReader = new SocketReaderNode();
+        mReader = new FakeSocketReader();
         mReader->SetMediaType(IMS_MEDIA_AUDIO);
         mReader->SetProtocolType(kProtocolRtp);
-        mReader->SetConfig(&mAudioConfig);
         mReader->SetLocalFd(mSocketRtpFd);
         mReader->SetLocalAddress(testAddress);
+        mReader->SetConfig(&mAudioConfig);
+        mReader->Prepare();
 
         mWriter = new SocketWriterNode();
         mWriter->SetMediaType(IMS_MEDIA_AUDIO);
@@ -243,4 +263,23 @@ TEST_F(SocketNodeTest, testIncomingPacketAfterStop)
     EXPECT_EQ(mReader->GetDataCount(), 0);
     mWriter->Stop();
     mReader->Stop();
+}
+
+TEST_F(SocketNodeTest, testIncomingPacketWhenClosing)
+{
+    EXPECT_EQ(mWriter->Start(), RESULT_SUCCESS);
+
+    uint8_t testPacket[] = {0x80, 0x68, 0x00, 0x0b, 0xbc, 0xbc, 0xe8, 0xa4, 0x00, 0x04, 0x11, 0x68,
+            0xf4, 0xfa, 0xfe, 0x67, 0x58, 0x84, 0x80};
+
+    EXPECT_EQ(mReader->Start(), RESULT_SUCCESS);
+    std::thread t1(&SocketWriterNode::OnDataFromFrontNode, mWriter, MEDIASUBTYPE_UNDEFINED,
+            testPacket, sizeof(testPacket), 0, false, 0, MEDIASUBTYPE_UNDEFINED, 0);
+
+    std::thread t2(&SocketNodeTest::StopNode, this, mReader);
+    mCondition.wait_timeout(500);
+    EXPECT_EQ(mReader->GetState(), kNodeStateStopped);
+
+    t1.join();
+    t2.join();
 }

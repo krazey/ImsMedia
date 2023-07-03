@@ -112,6 +112,13 @@ public:
     virtual kBaseNodeId GetNodeId();
 
     /**
+     * @brief Prepare the node before start it
+     *
+     * @return bool Returns true when it starts well without error
+     */
+    virtual bool Prepare();
+
+    /**
      * @brief Starts to run the node with the configuration already set by the SetConfig method
      *
      * @return ImsMediaResult return RESULT_SUCCESS when it starts well without error
