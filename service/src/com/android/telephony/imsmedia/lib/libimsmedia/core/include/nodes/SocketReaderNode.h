@@ -27,6 +27,7 @@ public:
     SocketReaderNode(BaseSessionCallback* callback = nullptr);
     virtual ~SocketReaderNode();
     virtual kBaseNodeId GetNodeId();
+    virtual bool Prepare();
     virtual ImsMediaResult Start();
     virtual void Stop();
     virtual void ProcessData();
@@ -60,7 +61,8 @@ public:
     /* Get socket is opened */
     bool IsSocketOpened() { return mSocketOpened; }
 
-private:
+protected:
+    bool OpenSocket();
     void CloseSocket();
 
     int mLocalFd;
