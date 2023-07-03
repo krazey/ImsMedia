@@ -99,7 +99,7 @@ public:
             int32_t subTxPayloadTypeNum = 0, int32_t subRxPayloadTypeNum = 0,
             int32_t subSamplingRate = 0);
     void SetRtcpInterval(int32_t nInterval);
-    void StartRtp();
+    void StartRtp(bool bResetSsrc = false);
     void StopRtp();
     void StartRtcp(bool bSendRtcpBye = false);
     void StopRtcp();
