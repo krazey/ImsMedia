@@ -71,6 +71,7 @@ protected:
     virtual void setMediaQualityThreshold(int sessionId, MediaQualityThreshold* threshold);
     virtual void SendInternalEvent(
             uint32_t event, uint64_t sessionId, uint64_t paramA, uint64_t paramB);
+    virtual bool isOtherSessionActive(const int sessionId);
 
     static AudioManager* sManager;
     std::unordered_map<int, std::unique_ptr<AudioSession>> mSessions;
