@@ -26,7 +26,6 @@ TextSourceNode::TextSourceNode(BaseSessionCallback* callback) :
     mRedundantLevel = 0;
     mRedundantCount = 0;
     mTimeLastSent = 0;
-    mBomEnabled = false;
     mSentBOM = false;
 }
 
@@ -81,7 +80,6 @@ void TextSourceNode::SetConfig(void* config)
     mCodecType = pConfig->getCodecType();
     mRedundantLevel = pConfig->getRedundantLevel();
     mBitrate = pConfig->getBitrate();
-    mBomEnabled = pConfig->getKeepRedundantLevel();
 }
 
 bool TextSourceNode::IsSameConfig(void* config)
@@ -94,8 +92,7 @@ bool TextSourceNode::IsSameConfig(void* config)
     TextConfig* pConfig = reinterpret_cast<TextConfig*>(config);
 
     return (mCodecType == pConfig->getCodecType() &&
-            mRedundantLevel == pConfig->getRedundantLevel() && mBitrate == pConfig->getBitrate() &&
-            mBomEnabled == pConfig->getKeepRedundantLevel());
+            mRedundantLevel == pConfig->getRedundantLevel() && mBitrate == pConfig->getBitrate());
 }
 
 void TextSourceNode::ProcessData()
@@ -107,7 +104,7 @@ void TextSourceNode::ProcessData()
         return;
     }
 
-    if (mBomEnabled && !mSentBOM)
+    if (!mSentBOM)
     {
         SendBom();
         mSentBOM = true;
@@ -139,9 +136,9 @@ void TextSourceNode::ProcessData()
          * situation is regarded as the beginning of an idle period.
          */
         IMLOGD1("[ProcessData] send empty, redundant count[%d]", mRedundantCount);
+        mTimeLastSent = ImsMediaTimer::GetTimeInMilliSeconds();
         // send default if there is no data to send
-        SendDataToRearNode(MEDIASUBTYPE_BITSTREAM_T140, nullptr, 0,
-                ImsMediaTimer::GetTimeInMilliSeconds(), false, 0);
+        SendDataToRearNode(MEDIASUBTYPE_BITSTREAM_T140, nullptr, 0, mTimeLastSent, false, 0);
         mRedundantCount--;
     }
 }
