@@ -158,26 +158,6 @@ TEST_F(TextSourceNodeTest, startFail)
     EXPECT_EQ(mNode->Start(), RESULT_INVALID_PARAM);
 }
 
-TEST_F(TextSourceNodeTest, sendRttDisableBom)
-{
-    mConfig.setKeepRedundantLevel(false);
-    mNode->SetConfig(&mConfig);
-
-    EXPECT_EQ(mNode->Start(), RESULT_SUCCESS);
-    EXPECT_FALSE(mFakeNode->getEmptyFlag());
-
-    String8 testText1 = String8("a");
-    mNode->SendRtt(&testText1);
-
-    mNode->ProcessData();
-    EXPECT_EQ(memcmp(mFakeNode->getData(), testText1.string(), testText1.length()), 0);
-
-    mCondition.wait_timeout(kTextInterval);
-    mNode->ProcessData();
-    // expect empty flag set
-    EXPECT_TRUE(mFakeNode->getEmptyFlag());
-}
-
 TEST_F(TextSourceNodeTest, sendRttTestChunkSizeOne)
 {
     String8 testText1 = String8("a");
