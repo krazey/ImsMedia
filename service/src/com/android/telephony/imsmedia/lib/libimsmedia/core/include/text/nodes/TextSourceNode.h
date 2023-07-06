@@ -52,7 +52,6 @@ private:
     int32_t mRedundantCount;
     int32_t mTimeLastSent;
     int32_t mBitrate;
-    bool mBomEnabled;
     bool mSentBOM;
     std::mutex mMutex;
 };
