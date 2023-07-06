@@ -149,10 +149,7 @@ void AudioJitterBuffer::Add(ImsMediaSubType subtype, uint8_t* pbBuffer, uint32_t
         mJitterAnalyzer.Reset();
         mJitterAnalyzer.SetMinMaxJitterBufferSize(mMinJitterBufferSize, mMaxJitterBufferSize);
 
-        if (!mWaiting)  // add indication to check the ssrc changed in Get()
-        {
-            mDataQueue.Add(&currEntry);
-        }
+        mDataQueue.Add(&currEntry);
 
         IMLOGI1("[Add] ssrc[%u]", mSsrc);
         return;
@@ -292,13 +289,12 @@ bool AudioJitterBuffer::Get(ImsMediaSubType* psubtype, uint8_t** ppData, uint32_
     bool bForceToPlay = false;
     mCheckUpdateJitterPacketCnt++;
 
-    if (!mWaiting && mDataQueue.Get(&pEntry) &&
-            pEntry->subtype == MEDIASUBTYPE_REFRESHED)  // ssrc changed
+    if (mDataQueue.Get(&pEntry) && pEntry->subtype == MEDIASUBTYPE_REFRESHED)  // ssrc changed
     {
         Reset();
         mDataQueue.Delete();  // delete indication frame of ssrc
 
-        if (mDataQueue.Get(&pEntry))  // get next frame
+        if (!mWaiting && mDataQueue.Get(&pEntry))  // get next frame
         {
             mCurrPlayingTS = pEntry->nTimestamp;  // play directly
             mWaiting = false;
