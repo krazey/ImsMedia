@@ -21,6 +21,9 @@
 
 #define MAX_EVENTHANDLER_NAME 256
 
+// Thread priority value used with SCH_FIFO scheduling policy to set Real-Time priority.
+#define THREAD_PRIORITY_REALTIME 2
+
 /**
  * @class IImsMediaThread
  * @brief Base class of thread
@@ -33,7 +36,7 @@ public:
     IImsMediaThread();
     virtual ~IImsMediaThread();
     bool StartThread();
-    void SetAudioThreadPriority(pid_t tid);
+    void SetThreadPriority(pid_t pid, pid_t tid, int priority);
     void StopThread();
     bool IsThreadStopped();
     void* runBase();
