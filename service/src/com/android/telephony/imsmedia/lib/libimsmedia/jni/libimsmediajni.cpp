@@ -76,28 +76,6 @@ static int SendData2Java(int sessionId, const android::Parcel& objParcel)
     return 1;
 }
 
-void setAudioThreadPriority(int threadId)
-{
-    JNIEnv* env;
-    JavaVM* jvm = GetJavaVM();
-    if (jvm->AttachCurrentThread(&env, nullptr) != JNI_OK)
-    {
-        ALOGE(0, "setAudioThreadPriority: AttachCurrentThread fail", 0, 0, 0);
-        return;
-    }
-
-    jmethodID gMethod_setAudioThreadPriority =
-            env->GetStaticMethodID(gClass_JNIImsMediaService, "setAudioThreadPriority", "(I)V");
-
-    if (gMethod_setAudioThreadPriority == nullptr)
-    {
-        ALOGE("setAudioThreadPriority: GetStaticMethodID gMethod_setAudioThreadPriority failed");
-        return;
-    }
-
-    env->CallStaticIntMethod(gClass_JNIImsMediaService, gMethod_setAudioThreadPriority, threadId);
-}
-
 static jlong JNIImsMediaService_getInterface(
         JNIEnv* /* env */, jobject /* object */, jint mediatype)
 {

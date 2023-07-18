@@ -33,7 +33,6 @@ public:
     IImsMediaThread();
     virtual ~IImsMediaThread();
     bool StartThread();
-    void SetAudioThreadPriority(pid_t tid);
     void StopThread();
     bool IsThreadStopped();
     void* runBase();
