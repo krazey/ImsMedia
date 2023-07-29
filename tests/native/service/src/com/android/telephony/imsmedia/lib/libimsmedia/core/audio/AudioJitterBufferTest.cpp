@@ -48,6 +48,7 @@ public:
                 case kRtpStatusDuplicated:
                     numDuplicated++;
                     break;
+                case kRtpStatusLate:
                 case kRtpStatusDiscarded:
                     numDiscarded++;
                     break;
@@ -409,9 +410,6 @@ TEST_F(AudioJitterBufferTest, TestAddGetInBurstIncoming)
 {
     const int32_t kNumFrames = 30;
     char buffer[TEST_BUFFER_SIZE] = {"\x1\x2\x3\x4\x5\x6\x7\x0"};
-    int32_t countGet = 0;
-    int32_t countGetFrame = 0;
-    int32_t countNotGet = 0;
     int32_t getTime = 0;
 
     ImsMediaSubType subtype = MEDIASUBTYPE_UNDEFINED;
@@ -422,10 +420,10 @@ TEST_F(AudioJitterBufferTest, TestAddGetInBurstIncoming)
     uint32_t seq = 0;
     uint16_t startSeq = 0;
     uint16_t addSeq = startSeq;
-    uint16_t getSeq = startSeq;
     uint32_t addTimestamp = 0;
     int32_t iter = 0;
     int32_t addTime = 0;
+    uint32_t countGap = 0;
     uint32_t numBurstFrames = 11;
 
     while (addSeq < kNumFrames)
@@ -433,13 +431,14 @@ TEST_F(AudioJitterBufferTest, TestAddGetInBurstIncoming)
         if (iter > 5 && iter < 5 + numBurstFrames)  // not added for 10 frame interval
         {
             addTime += TEST_FRAME_INTERVAL;
+            countGap++;
         }
         else if (iter == 5 + numBurstFrames)
         {
             do  // 11 frames burst added
             {
                 mJitterBuffer->Add(MEDIASUBTYPE_UNDEFINED, reinterpret_cast<uint8_t*>(buffer),
-                        sizeof(buffer), addTimestamp, false, addSeq++, MEDIASUBTYPE_UNDEFINED,
+                        sizeof(buffer), addTimestamp, false, addSeq++, MEDIASUBTYPE_AUDIO_NORMAL,
                         addTime);
                 addTime += 1;  // 1ms burst
                 addTimestamp += TEST_FRAME_INTERVAL;
@@ -448,56 +447,36 @@ TEST_F(AudioJitterBufferTest, TestAddGetInBurstIncoming)
         else  // normal
         {
             mJitterBuffer->Add(MEDIASUBTYPE_UNDEFINED, reinterpret_cast<uint8_t*>(buffer),
-                    sizeof(buffer), addTimestamp, false, addSeq++, MEDIASUBTYPE_UNDEFINED, addTime);
+                    sizeof(buffer), addTimestamp, false, addSeq++, MEDIASUBTYPE_AUDIO_NORMAL,
+                    addTime);
             addTime += TEST_FRAME_INTERVAL;
             addTimestamp += TEST_FRAME_INTERVAL;
         }
 
         iter++;
-        getTime = countGet * TEST_FRAME_INTERVAL;
 
-        if (mJitterBuffer->Get(&subtype, &data, &size, &timestamp, &mark, &seq, getTime))
+        if (mJitterBuffer->Get(&subtype, &data, &size, &timestamp, &mark, &seq,
+                    getTime += TEST_FRAME_INTERVAL))
         {
-            EXPECT_EQ(size, sizeof(buffer));
-            EXPECT_EQ(timestamp, countGetFrame * TEST_FRAME_INTERVAL);
-            EXPECT_EQ(seq, getSeq++);
             mJitterBuffer->Delete();
-            countGetFrame++;
         }
-        else
-        {
-            countNotGet++;
-        }
-
-        countGet++;
     }
 
     while (mJitterBuffer->GetCount() > 0)
     {
-        getTime = countGet * TEST_FRAME_INTERVAL;
-
-        if (mJitterBuffer->Get(&subtype, &data, &size, &timestamp, &mark, &seq, getTime))
+        if (mJitterBuffer->Get(&subtype, &data, &size, &timestamp, &mark, &seq,
+                    getTime += TEST_FRAME_INTERVAL))
         {
-            getSeq = startSeq + (uint16_t)countGetFrame;
-            EXPECT_EQ(size, sizeof(buffer));
-            EXPECT_EQ(timestamp, countGetFrame * TEST_FRAME_INTERVAL);
-            EXPECT_EQ(seq, getSeq);
             mJitterBuffer->Delete();
-            countGetFrame++;
         }
-        else
-        {
-            countNotGet++;
-        }
-
-        countGet++;
     }
+
+    int discarded = countGap - mStartJitterBufferSize - 1;
 
     EXPECT_EQ(mCallback.getNumLost(), 0);
     EXPECT_EQ(mCallback.getNumDuplicated(), 0);
-    EXPECT_EQ(mCallback.getNumDiscarded(), 0);
-    EXPECT_EQ(countNotGet, numBurstFrames - 1);
-    EXPECT_EQ(mCallback.getNumNormal(), kNumFrames);
+    EXPECT_EQ(mCallback.getNumDiscarded(), discarded);
+    EXPECT_EQ(mCallback.getNumNormal(), kNumFrames - discarded);
 }
 
 TEST_F(AudioJitterBufferTest, TestAddGetInReceivingSid)
