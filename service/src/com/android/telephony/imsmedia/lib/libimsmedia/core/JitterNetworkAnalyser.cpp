@@ -150,9 +150,10 @@ uint32_t JitterNetworkAnalyser::GetNextJitterBufferSize(
     int32_t maxJitter = GetMaxJitterValue();
     dev = CalculateDeviation(&mean);
     calcJitterSize = mean + mBufferZValue * dev;
-    IMLOGD_PACKET4(IM_PACKET_LOG_JITTER,
-            "[GetNextJitterBufferSize] size[%4.2f], dev[%lf], curr[%d], max jitter[%d]",
-            calcJitterSize, dev, nCurrJitterBufferSize, maxJitter);
+    IMLOGD_PACKET6(IM_PACKET_LOG_JITTER,
+            "[GetNextJitterBufferSize] size[%4.2f], mean[%lf], dev[%lf], curr[%d], max[%d], "
+            "status[%d]",
+            calcJitterSize, mean, dev, nCurrJitterBufferSize, maxJitter, mNetworkStatus);
 
     if (calcJitterSize >= nCurrJitterBufferSize * PACKET_INTERVAL)
     {

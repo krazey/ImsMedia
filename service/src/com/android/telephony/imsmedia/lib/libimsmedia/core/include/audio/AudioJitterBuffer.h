@@ -46,7 +46,7 @@ private:
     void CollectJitterBufferStatus(int32_t currSize, int32_t maxSize);
 
     JitterNetworkAnalyser mJitterAnalyzer;
-    bool mDtxOn;
+    bool mDtxPlayed;
     bool mBufferIgnoreSIDPacket;
     bool mNeedToUpdateBasePacket;
     bool mWaiting;
