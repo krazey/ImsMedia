@@ -49,9 +49,10 @@ kBaseNodeId IAudioPlayerNode::GetNodeId()
     return kNodeIdAudioPlayer;
 }
 
-ImsMediaResult IAudioPlayerNode::ProcessStart()
+ImsMediaResult IAudioPlayerNode::Start()
 {
-    IMLOGD2("[ProcessStart] codec[%d], mode[%d]", mCodecType, mMode);
+    IMLOGD2("[Start] codec[%d], mode[%d]", mCodecType, mMode);
+
     if (mJitterBuffer)
     {
         mJitterBuffer->SetCodecType(mCodecType);
@@ -111,11 +112,6 @@ void IAudioPlayerNode::Stop()
 bool IAudioPlayerNode::IsRunTime()
 {
     return true;
-}
-
-bool IAudioPlayerNode::IsRunTimeStart()
-{
-    return false;
 }
 
 bool IAudioPlayerNode::IsSourceNode()
@@ -299,11 +295,11 @@ void* IAudioPlayerNode::run()
     IMLOGD0("[run] enter");
     ImsMediaSubType subtype = MEDIASUBTYPE_UNDEFINED;
     ImsMediaSubType datatype = MEDIASUBTYPE_UNDEFINED;
-    uint8_t* pData = nullptr;
-    uint32_t nDataSize = 0;
-    uint32_t nTimestamp = 0;
-    bool bMark = false;
-    uint32_t nSeqNum = 0;
+    uint8_t* data = nullptr;
+    uint32_t size = 0;
+    uint32_t timestamp = 0;
+    bool mark = false;
+    uint32_t seq = 0;
     uint32_t currentTime = 0;
     uint64_t nNextTime = ImsMediaTimer::GetTimeInMicroSeconds();
     bool isFirstFrameReceived = false;
@@ -316,29 +312,27 @@ void* IAudioPlayerNode::run()
             break;
         }
 
-        if (GetData(&subtype, &pData, &nDataSize, &nTimestamp, &bMark, &nSeqNum, &datatype,
-                    &currentTime))
+        if (GetData(&subtype, &data, &size, &timestamp, &mark, &seq, &datatype, &currentTime))
         {
-            IMLOGD_PACKET2(IM_PACKET_LOG_AUDIO, "[run] write buffer size[%d], TS[%u]", nDataSize,
-                    nTimestamp);
-            if (nDataSize != 0)
+            IMLOGD_PACKET2(
+                    IM_PACKET_LOG_AUDIO, "[run] write buffer size[%d], TS[%u]", size, timestamp);
+
+            if (mAudioPlayer->onDataFrame(data, size, datatype == MEDIASUBTYPE_AUDIO_SID))
             {
-                if (mAudioPlayer->onDataFrame(pData, nDataSize, datatype == MEDIASUBTYPE_AUDIO_SID))
+                // send buffering complete message to client
+                if (!isFirstFrameReceived)
                 {
-                    // send buffering complete message to client
-                    if (!isFirstFrameReceived)
-                    {
-                        mCallback->SendEvent(kImsMediaEventFirstPacketReceived,
-                                reinterpret_cast<uint64_t>(new AudioConfig(*mConfig)));
-                        isFirstFrameReceived = true;
-                    }
+                    mCallback->SendEvent(kImsMediaEventFirstPacketReceived,
+                            reinterpret_cast<uint64_t>(new AudioConfig(*mConfig)));
+                    isFirstFrameReceived = true;
                 }
             }
+
             DeleteData();
         }
         else if (isFirstFrameReceived)
         {
-            IMLOGD_PACKET0(IM_PACKET_LOG_AUDIO, "[run] GetData returned 0 bytes");
+            IMLOGD_PACKET0(IM_PACKET_LOG_AUDIO, "[run] no data");
             mAudioPlayer->onDataFrame(nullptr, 0, false);
         }
 
