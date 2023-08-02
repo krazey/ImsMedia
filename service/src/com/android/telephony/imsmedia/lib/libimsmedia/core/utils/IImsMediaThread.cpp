@@ -18,6 +18,8 @@
 #include <ImsMediaTrace.h>
 #include <thread>
 
+extern void setAudioThreadPriority(int threadId);
+
 IImsMediaThread::IImsMediaThread()
 {
     mThreadStopped = true;
@@ -45,6 +47,11 @@ bool IImsMediaThread::StartThread()
     std::thread t1(&runThread, this);
     t1.detach();
     return true;
+}
+
+void IImsMediaThread::SetAudioThreadPriority(pid_t tid)
+{
+    setAudioThreadPriority(tid);
 }
 
 void IImsMediaThread::StopThread()
