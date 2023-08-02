@@ -267,6 +267,13 @@ void MediaQualityAnalyzer::collectOptionalInfo(
     }
     else if (optionType == kReportPacketLossGap)
     {
+        if (mListLostPacket.size() > MAX_NUM_PACKET_STORED)
+        {
+            LostPacket* entry = mListLostPacket.front();
+            mListLostPacket.pop_front();
+            delete entry;
+        }
+
         LostPacket* entry = new LostPacket(seq, value, ImsMediaTimer::GetTimeInMilliSeconds());
         mListLostPacket.push_back(entry);
 
@@ -346,6 +353,8 @@ void MediaQualityAnalyzer::collectRxRtpStatus(
         case kRtpStatusDiscarded:
             mCallQuality.setNumDroppedRtpPackets(mCallQuality.getNumDroppedRtpPackets() + 1);
             mCallQualityNumRxPacket++;
+            IMLOGD_PACKET1(IM_PACKET_LOG_RTP, "[collectRxRtpStatus] num late arrival[%d]",
+                    mCallQuality.getNumDroppedRtpPackets());
             break;
         case kRtpStatusDuplicated:
             mCallQuality.setNumRtpDuplicatePackets(mCallQuality.getNumRtpDuplicatePackets() + 1);

@@ -19,6 +19,7 @@
 
 #include <stdint.h>
 #include <list>
+#include <map>
 #include <mutex>
 
 enum NETWORK_STATUS
@@ -36,15 +37,8 @@ public:
     void Reset();
     // initialze network analyser
     void SetMinMaxJitterBufferSize(uint32_t nMinBufferSize, uint32_t nMaxBufferSize);
-    void SetJitterOptions(uint32_t nReduceTH, uint32_t nStepSize, double zValue);
-
-    /**
-     * @brief Update the base timestamp
-     *
-     * @param packetTime The packet timestamp in milliseconds
-     * @param arrivalTime The arrival timestamp in milliseconds
-     */
-    void UpdateBaseTimestamp(uint32_t packetTime, uint32_t arrivalTime);
+    void SetJitterOptions(
+            uint32_t incThreshold, uint32_t decThreshold, uint32_t stepSize, double zValue);
 
     /**
      * @brief Get the next jitter buffer size
@@ -64,6 +58,21 @@ public:
      */
     int32_t CalculateTransitTimeDifference(uint32_t timestamp, uint32_t arrivalTime);
 
+    /**
+     * @brief Add the late arrival packet time to the list to monitor the latest time of the late
+     * arrival packet
+     *
+     * @param time The time of current late arrival appears
+     */
+    void SetLateArrivals(uint32_t time);
+
+    /**
+     * @brief Get the number of late arrivals in the range of given duration from the current time
+     *
+     * @param duration The time in millisecond unit
+     */
+    uint32_t GetNumLateArrivalsInDuration(uint32_t duration);
+
 private:
     double CalculateDeviation(double* pMean);
     int32_t GetMaxJitterValue();
@@ -71,15 +80,16 @@ private:
     std::mutex mMutex;
     uint32_t mMinJitterBufferSize;
     uint32_t mMaxJitterBufferSize;
-    uint32_t mBasePacketTime;
-    uint32_t mBaseArrivalTime;
+    std::map<int32_t, int32_t> mMapDelta;
     std::list<int32_t> mListJitters;
+    std::list<int32_t> mListLateArrivals;
     NETWORK_STATUS mNetworkStatus;
     uint32_t mGoodStatusEnteringTime;
     uint32_t mBadStatusChangedTime;
-    uint32_t mBufferReduceTH;
+    uint32_t mBufferIncThreshold;
+    uint32_t mBufferDecThreshold;
     uint32_t mBufferStepSize;
-    double mBufferZValue;
+    double mBufferWeight;
 };
 
 #endif  // JITTERNETWORKANALYSER_H_INCLUDED

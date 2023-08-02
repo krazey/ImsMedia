@@ -27,7 +27,6 @@ public:
             BaseSessionCallback* callback = nullptr, ImsMediaType type = IMS_MEDIA_AUDIO);
     virtual ~JitterBufferControlNode();
     void SetJitterBufferSize(uint32_t nInit, uint32_t nMin, uint32_t nMax);
-    void SetJitterOptions(uint32_t nReduceTH, uint32_t nStepSize, double zValue, bool bIgnoreSID);
     void Reset();
     virtual uint32_t GetDataCount();
     virtual void OnDataFromFrontNode(ImsMediaSubType subtype, uint8_t* pData, uint32_t nDataSize,

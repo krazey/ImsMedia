@@ -36,8 +36,6 @@ public:
      */
     virtual void SetCodecType(uint32_t type);
     virtual void SetJitterBufferSize(uint32_t nInit, uint32_t nMin, uint32_t nMax);
-    virtual void SetJitterOptions(
-            uint32_t nReduceTH, uint32_t nStepSize, double zValue, bool bIgnoreSID);
 
     /**
      * @brief Get the size of the queue

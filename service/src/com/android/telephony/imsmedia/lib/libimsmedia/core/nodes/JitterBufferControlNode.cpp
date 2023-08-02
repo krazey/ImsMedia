@@ -56,15 +56,6 @@ void JitterBufferControlNode::SetJitterBufferSize(uint32_t nInit, uint32_t nMin,
     }
 }
 
-void JitterBufferControlNode::SetJitterOptions(
-        uint32_t nReduceTH, uint32_t nStepSize, double zValue, bool bIgnoreSID)
-{
-    if (mJitterBuffer)
-    {
-        mJitterBuffer->SetJitterOptions(nReduceTH, nStepSize, zValue, bIgnoreSID);
-    }
-}
-
 void JitterBufferControlNode::Reset()
 {
     if (mJitterBuffer)
