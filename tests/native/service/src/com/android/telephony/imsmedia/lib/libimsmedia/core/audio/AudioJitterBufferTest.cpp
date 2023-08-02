@@ -115,7 +115,7 @@ protected:
         mJitterBuffer->SetSessionCallback(&mCallback);
         mJitterBuffer->SetJitterBufferSize(
                 mStartJitterBufferSize, mMinJitterBufferSize, mMaxJitterBufferSize);
-        mJitterBuffer->SetJitterOptions(80, 1, 2.5f, false);
+        mJitterBuffer->SetJitterOptions(200, 100, 2, 1.8f);
         mJitterBuffer->SetStartTime(0);
     }
 
@@ -423,7 +423,6 @@ TEST_F(AudioJitterBufferTest, TestAddGetInBurstIncoming)
     uint32_t addTimestamp = 0;
     int32_t iter = 0;
     int32_t addTime = 0;
-    uint32_t countGap = 0;
     uint32_t numBurstFrames = 11;
 
     while (addSeq < kNumFrames)
@@ -431,7 +430,6 @@ TEST_F(AudioJitterBufferTest, TestAddGetInBurstIncoming)
         if (iter > 5 && iter < 5 + numBurstFrames)  // not added for 10 frame interval
         {
             addTime += TEST_FRAME_INTERVAL;
-            countGap++;
         }
         else if (iter == 5 + numBurstFrames)
         {
@@ -471,12 +469,12 @@ TEST_F(AudioJitterBufferTest, TestAddGetInBurstIncoming)
         }
     }
 
-    int discarded = countGap - mStartJitterBufferSize - 1;
+    int kdiscarded = 10;
 
     EXPECT_EQ(mCallback.getNumLost(), 0);
     EXPECT_EQ(mCallback.getNumDuplicated(), 0);
-    EXPECT_EQ(mCallback.getNumDiscarded(), discarded);
-    EXPECT_EQ(mCallback.getNumNormal(), kNumFrames - discarded);
+    EXPECT_EQ(mCallback.getNumDiscarded(), kdiscarded);
+    EXPECT_EQ(mCallback.getNumNormal(), kNumFrames - kdiscarded);
 }
 
 TEST_F(AudioJitterBufferTest, TestAddGetInReceivingSid)

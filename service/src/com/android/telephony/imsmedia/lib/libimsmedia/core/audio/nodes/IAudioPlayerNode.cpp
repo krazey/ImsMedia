@@ -25,6 +25,9 @@
 #include <string.h>
 
 #define MAX_CODEC_EVS_AMR_IO_MODE 9
+#define JITTER_BUFFER_SIZE_INIT   4
+#define JITTER_BUFFER_SIZE_MIN    4
+#define JITTER_BUFFER_SIZE_MAX    13
 
 IAudioPlayerNode::IAudioPlayerNode(BaseSessionCallback* callback) :
         JitterBufferControlNode(callback, IMS_MEDIA_AUDIO)
@@ -151,10 +154,9 @@ void IAudioPlayerNode::SetConfig(void* config)
 
     mSamplingRate = mConfig->getSamplingRateKHz();
     mIsDtxEnabled = mConfig->getDtxEnabled();
-    SetJitterBufferSize(3, 3, 9);
-    SetJitterOptions(
-            80, 1, (double)25 / 10, false /** TODO: when enable DTX, set this true on condition*/
-    );
+
+    // set the jitter buffer size
+    SetJitterBufferSize(JITTER_BUFFER_SIZE_INIT, JITTER_BUFFER_SIZE_MIN, JITTER_BUFFER_SIZE_MAX);
 }
 
 bool IAudioPlayerNode::IsSameConfig(void* config)
@@ -305,6 +307,25 @@ void* IAudioPlayerNode::run()
     uint64_t nNextTime = ImsMediaTimer::GetTimeInMicroSeconds();
     bool isFirstFrameReceived = false;
 
+#ifdef FILE_DUMP
+    FILE* file = fopen("/data/user_de/0/com.android.telephony.imsmedia/out.amr", "wb");
+    const uint8_t noDataHeader = 0x7C;
+    const uint8_t amrHeader[] = {0x23, 0x21, 0x41, 0x4d, 0x52, 0x0a};
+    const uint8_t amrWbHeader[] = {0x23, 0x21, 0x41, 0x4d, 0x52, 0x2d, 0x57, 0x42, 0x0a};
+
+    if (file)
+    {
+        // 1st header of AMR-WB file
+        if (mCodecType == kAudioCodecAmr)
+        {
+            fwrite(amrHeader, sizeof(amrHeader), 1, file);
+        }
+        else if (mCodecType == kAudioCodecAmrWb)
+        {
+            fwrite(amrWbHeader, sizeof(amrWbHeader), 1, file);
+        }
+    }
+#endif
     while (true)
     {
         if (IsThreadStopped())
@@ -317,7 +338,9 @@ void* IAudioPlayerNode::run()
         {
             IMLOGD_PACKET2(
                     IM_PACKET_LOG_AUDIO, "[run] write buffer size[%d], TS[%u]", size, timestamp);
-
+#ifdef FILE_DUMP
+            size > 0 ? std::fwrite(data, size, 1, file) : std::fwrite(&noDataHeader, 1, 1, file);
+#endif
             if (mAudioPlayer->onDataFrame(data, size, datatype == MEDIASUBTYPE_AUDIO_SID))
             {
                 // send buffering complete message to client
@@ -335,6 +358,9 @@ void* IAudioPlayerNode::run()
         {
             IMLOGD_PACKET0(IM_PACKET_LOG_AUDIO, "[run] no data");
             mAudioPlayer->onDataFrame(nullptr, 0, false);
+#ifdef FILE_DUMP
+            std::fwrite(&noDataHeader, 1, 1, file);
+#endif
         }
 
         nNextTime += 20000;
@@ -348,6 +374,12 @@ void* IAudioPlayerNode::run()
 
         ImsMediaTimer::USleep(nTime);
     }
+#ifdef FILE_DUMP
+    if (file)
+    {
+        fclose(file);
+    }
+#endif
     mCondition.signal();
     return nullptr;
 }

@@ -806,6 +806,14 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onCallQualityChanged(CallQuality callQuality) {
             Log.d(TAG, "onCallQualityChanged, callQuality=" + callQuality);
+            Log.d(TAG, "onCallQualityChanged, discardRate="
+                    + (double) callQuality.getNumDroppedRtpPackets()
+                    / callQuality.getNumRtpPacketsReceived() * 100);
+            Log.d(TAG, "onCallQualityChanged, lossRate="
+                    + (double) callQuality.getNumRtpPacketsNotReceived()
+                    / callQuality.getNumRtpPacketsReceived() * 100);
+            Log.d(TAG, "onCallQualityChanged, maxPlayoutDelay="
+                    + (double) callQuality.getMaxPlayoutDelayMillis());
         }
     }
 
@@ -1613,7 +1621,7 @@ public class MainActivity extends AppCompatActivity {
             case CodecType.AMR_WB:
                 int amrMode = determineCommonCodecSettings(localDevice.getAmrModes(),
                     remoteDevice.getAmrModes(), AMR_MODE_ORDER);
-                amrParams = createAmrParams(amrMode, true, 0);
+                amrParams = createAmrParams(amrMode, false, 0);
                 break;
 
             case CodecType.EVS:
@@ -1627,7 +1635,7 @@ public class MainActivity extends AppCompatActivity {
 
             case -1:
                 return createAudioConfig(CodecType.AMR_WB,
-                    createAmrParams(AmrMode.AMR_MODE_4, true, 0), null);
+                    createAmrParams(AmrMode.AMR_MODE_4, false, 0), null);
         }
 
         return createAudioConfig(selectedCodec, amrParams, evsParams);
@@ -2018,7 +2026,7 @@ public class MainActivity extends AppCompatActivity {
                 .setCodecModeRequest((byte) 15)
                 .build();
 
-                amrParams = createAmrParams(mBottomSheetAudioCodecSettings.getAmrMode(), true, 0);
+                amrParams = createAmrParams(mBottomSheetAudioCodecSettings.getAmrMode(), false, 0);
                 config = createAudioConfig(getRemoteAudioSocketAddress(),
                         getRemoteAudioRtcpConfig(), audioCodec, amrParams, evsParams);
                 Log.d(TAG, String.format("AudioConfig switched to Codec: %s\t Params: %s",

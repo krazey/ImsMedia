@@ -53,11 +53,6 @@ void BaseJitterBuffer::SetJitterBufferSize(uint32_t nInit, uint32_t nMin, uint32
     mMaxJitterBufferSize = nMax;
 }
 
-void BaseJitterBuffer::SetJitterOptions(
-        uint32_t /*nReduceTH*/, uint32_t /*nStepSize*/, double /*zValue*/, bool /*bIgnoreSID*/)
-{
-}
-
 uint32_t BaseJitterBuffer::GetCount()
 {
     return mDataQueue.GetCount();

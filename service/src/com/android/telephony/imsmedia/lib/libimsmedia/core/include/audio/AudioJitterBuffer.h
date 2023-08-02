@@ -28,7 +28,6 @@ public:
     virtual void Reset();
     virtual void ClearBuffer();
     virtual void SetJitterBufferSize(uint32_t nInit, uint32_t nMin, uint32_t nMax);
-    void SetJitterOptions(uint32_t nReduceTH, uint32_t nStepSize, double zValue, bool bIgnoreSID);
     virtual void Add(ImsMediaSubType subtype, uint8_t* pbBuffer, uint32_t nBufferSize,
             uint32_t nTimestamp, bool bMark, uint32_t nSeqNum,
             ImsMediaSubType nDataType = ImsMediaSubType::MEDIASUBTYPE_UNDEFINED,
@@ -37,8 +36,12 @@ public:
             uint32_t* pnTimestamp, bool* pbMark, uint32_t* pnSeqNum, uint32_t currentTime,
             ImsMediaSubType* pDataType = nullptr);
 
+    void SetJitterOptions(
+            uint32_t incThreshold, uint32_t decThreshold, uint32_t stepSize, double zValue);
     /* set the start time in ms unit */
     void SetStartTime(uint32_t time) { mTimeStarted = time; }
+    uint32_t GetCurrentSize() { return mCurrJitterBufferSize; }
+    double GetMeanBufferSize();
 
 private:
     void Resync(uint32_t spareFrames);
@@ -48,19 +51,18 @@ private:
     JitterNetworkAnalyser mJitterAnalyzer;
     bool mDtxPlayed;
     bool mBufferIgnoreSIDPacket;
-    bool mNeedToUpdateBasePacket;
     bool mWaiting;
     bool mEnforceUpdate;
+    int32_t mUpdatedDelay;
     uint32_t mCannotGetCount;
     uint32_t mCurrPlayingTS;
-    uint32_t mBaseTimestamp;
-    uint32_t mBaseArrivalTime;
     uint32_t mCheckUpdateJitterPacketCnt;
     uint32_t mCurrJitterBufferSize;
-    uint32_t mSIDCount;
     uint32_t mDeleteCount;
     uint32_t mNextJitterBufferSize;
     uint32_t mTimeStarted;
+    std::list<uint32_t> mListJitterBufferSize;
+    DataEntry* mPreservedDtx;
 };
 
 #endif
