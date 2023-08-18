@@ -275,7 +275,8 @@ void ImsMediaAudioPlayer::Stop()
     IMLOGD0("[Stop] exit ");
 }
 
-bool ImsMediaAudioPlayer::onDataFrame(uint8_t* buffer, uint32_t size, bool /*isSid*/)
+bool ImsMediaAudioPlayer::onDataFrame(uint8_t* buffer, uint32_t size, FrameType /*frameType*/,
+        bool /*hasNextFrame*/, uint8_t /*nextFrameByte*/)
 {
     std::lock_guard<std::mutex> guard(mMutex);
 
@@ -298,7 +299,7 @@ bool ImsMediaAudioPlayer::onDataFrame(uint8_t* buffer, uint32_t size, bool /*isS
     }
     else if (mCodecType == kAudioCodecEvs)
     {
-        // TODO: Integration with libEVS is required.
+        // TODO:Integration with libEVS is required.
         return decodeEvs(buffer, size);
     }
     return false;
