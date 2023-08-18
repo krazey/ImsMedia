@@ -109,6 +109,18 @@ bool JitterBufferControlNode::GetData(ImsMediaSubType* pSubtype, uint8_t** ppDat
     return false;
 }
 
+bool JitterBufferControlNode::GetRedundantFrame(uint32_t lostSeq, uint8_t** ppData,
+        uint32_t* pnDataSize, bool* hasNextFrame, uint8_t* nextFrameFirstByte)
+{
+    if (mJitterBuffer)
+    {
+        return mJitterBuffer->GetRedundantFrame(
+                lostSeq, ppData, pnDataSize, hasNextFrame, nextFrameFirstByte);
+    }
+
+    return false;
+}
+
 void JitterBufferControlNode::DeleteData()
 {
     if (mJitterBuffer)

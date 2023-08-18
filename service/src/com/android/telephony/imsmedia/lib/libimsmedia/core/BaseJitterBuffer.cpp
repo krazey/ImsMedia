@@ -84,3 +84,9 @@ void BaseJitterBuffer::ClearBuffer()
         mDataQueue.Delete();
     }
 }
+
+bool BaseJitterBuffer::GetRedundantFrame(uint32_t /*lostSeq*/, uint8_t** /*ppData*/,
+        uint32_t* /*pnDataSize*/, bool* /*hasNextFrame*/, uint8_t* /*nextFrameFirstByte*/)
+{
+    return false;
+}

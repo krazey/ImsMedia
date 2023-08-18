@@ -15,6 +15,7 @@
  */
 
 #include <AudioJitterBuffer.h>
+#include <ImsMediaAudioUtil.h>
 #include <ImsMediaDataQueue.h>
 #include <ImsMediaTimer.h>
 #include <ImsMediaTrace.h>
@@ -46,6 +47,7 @@ AudioJitterBuffer::AudioJitterBuffer()
     mJitterAnalyzer.Reset();
     mJitterAnalyzer.SetMinMaxJitterBufferSize(mMinJitterBufferSize, mMaxJitterBufferSize);
     mListJitterBufferSize.clear();
+    mEvsRedundantFrameOffset = -1;
     AudioJitterBuffer::Reset();
 }
 
@@ -126,6 +128,12 @@ void AudioJitterBuffer::SetJitterOptions(
         uint32_t incThreshold, uint32_t decThreshold, uint32_t stepSize, double zValue)
 {
     mJitterAnalyzer.SetJitterOptions(incThreshold, decThreshold, stepSize, zValue);
+}
+
+void AudioJitterBuffer::SetEvsRedundantFrameOffset(const int32_t offset)
+{
+    IMLOGD1("[SetEvsRedundantFrameOffset] offset[%d]", offset);
+    mEvsRedundantFrameOffset = offset;
 }
 
 void AudioJitterBuffer::Add(ImsMediaSubType subtype, uint8_t* pbBuffer, uint32_t nBufferSize,
@@ -311,7 +319,7 @@ bool AudioJitterBuffer::Get(ImsMediaSubType* psubtype, uint8_t** ppData, uint32_
 
     if (mDataQueue.GetCount() == 0)
     {
-        IMLOGD_PACKET1(IM_PACKET_LOG_JITTER, "[Get] fail - empty, curTS[%d]", mCurrPlayingTS);
+        IMLOGD_PACKET1(IM_PACKET_LOG_JITTER, "[Get] fail - empty, curTS[%u]", mCurrPlayingTS);
 
         if (!mWaiting)
         {
@@ -521,13 +529,12 @@ bool AudioJitterBuffer::Get(ImsMediaSubType* psubtype, uint8_t** ppData, uint32_
     }
     else
     {
-        // TODO: check EVS redundancy in channel aware mode
-
         if (!mDtxPlayed)
         {
             mCannotGetCount++;
         }
 
+        // use the preserved dtx when it is discarded as late arrival
         if (mPreservedDtx != nullptr)
         {
             // push front the preserved dtx to the queue
@@ -552,13 +559,14 @@ bool AudioJitterBuffer::Get(ImsMediaSubType* psubtype, uint8_t** ppData, uint32_
             if (pDataType)
                 *pDataType = pEntry->eDataType;
 
-            IMLOGD_PACKET3(IM_PACKET_LOG_JITTER, "[Get] preserved dtx[%d], curTS[%d], current[%d]",
-                    mDtxPlayed, mCurrPlayingTS, currentTime);
+            IMLOGD_PACKET3(IM_PACKET_LOG_JITTER,
+                    "[Get] preserved frame, dtx[%d], curTS[%u], current[%u]", mDtxPlayed,
+                    mCurrPlayingTS, currentTime);
 
+            mLastPlayedSeqNum = pEntry->nSeqNum;
             mCurrPlayingTS += FRAME_INTERVAL;
             return true;
         }
-
         if (psubtype)
             *psubtype = MEDIASUBTYPE_UNDEFINED;
         if (ppData)
@@ -574,7 +582,7 @@ bool AudioJitterBuffer::Get(ImsMediaSubType* psubtype, uint8_t** ppData, uint32_
         if (pDataType)
             *pDataType = MEDIASUBTYPE_UNDEFINED;
 
-        IMLOGD_PACKET3(IM_PACKET_LOG_JITTER, "[Get] fail - dtx[%d], curTS[%d], current[%d]",
+        IMLOGD_PACKET3(IM_PACKET_LOG_JITTER, "[Get] fail - dtx[%d], curTS[%u], current[%u]",
                 mDtxPlayed, mCurrPlayingTS, currentTime);
 
         mCurrPlayingTS += FRAME_INTERVAL;
@@ -632,6 +640,7 @@ void AudioJitterBuffer::CollectRxRtpStatus(int32_t seq, kRtpPacketStatus status)
         mCallback->SendEvent(kCollectRxRtpStatus, reinterpret_cast<uint64_t>(param));
     }
 }
+
 void AudioJitterBuffer::CollectJitterBufferStatus(int32_t currSize, int32_t maxSize)
 {
     IMLOGD_PACKET2(IM_PACKET_LOG_JITTER, "[CollectJitterBufferStatus] currSize[%d], maxSize[%d]",
@@ -641,4 +650,109 @@ void AudioJitterBuffer::CollectJitterBufferStatus(int32_t currSize, int32_t maxS
     {
         mCallback->SendEvent(kCollectJitterBufferSize, currSize, maxSize);
     }
+}
+
+bool AudioJitterBuffer::GetPartialRedundancyFrame(
+        uint32_t lostSeq, uint32_t currentTimestamp, uint32_t offset, DataEntry** entry)
+{
+    bool foundPartialFrame = false;
+    DataEntry* tempEntry = nullptr;
+    uint32_t partialSeq = lostSeq + offset;
+
+    // find redundancy frame from the queue
+    for (int32_t i = 0; i < mDataQueue.GetCount(); i++)
+    {
+        if (mDataQueue.GetAt(i, &tempEntry) && tempEntry->nSeqNum == partialSeq)
+        {
+            foundPartialFrame = true;
+            break;
+        }
+
+        if (tempEntry->nSeqNum > partialSeq)
+        {
+            break;
+        }
+    }
+
+    if (!foundPartialFrame)
+    {
+        *entry = nullptr;
+        IMLOGD_PACKET1(IM_PACKET_LOG_JITTER,
+                "[GetPartialRedundancyFrame] lostSeq[%d] Redundant Frame not found", lostSeq);
+        return false;
+    }
+
+    if (tempEntry->eDataType == MEDIASUBTYPE_AUDIO_SID)
+    {
+        *entry = nullptr;
+        IMLOGD_PACKET1(IM_PACKET_LOG_JITTER,
+                "[GetPartialRedundancyFrame] lostSeq[%d] Redundant Frame is SID", lostSeq);
+        return false;
+    }
+
+    // If the timestamp of RF is greater than the (currentframe_timestamp + offset*20msec) then it
+    // cannot be used for concealment.
+    if (tempEntry->nTimestamp > (currentTimestamp + offset * 20))
+    {
+        *entry = nullptr;
+        IMLOGD_PACKET2(IM_PACKET_LOG_JITTER,
+                "[GetPartialRedundancyFrame] RF not in offset timeframe. \
+                RF_timestamp[%u] LostFrame_timestamp[%u]",
+                tempEntry->nTimestamp, currentTimestamp);
+        return false;
+    }
+
+    if (tempEntry->nBufferSize == 33 || tempEntry->nBufferSize == 34)
+    {
+        *entry = tempEntry;
+        IMLOGD_PACKET4(IM_PACKET_LOG_JITTER,
+                "[GetPartialRedundancyFrame] lostSeq[%d] RFSeq[%d], size[%d] , curTS[%u]", lostSeq,
+                tempEntry->nSeqNum, tempEntry->nBufferSize, mCurrPlayingTS);
+        return true;
+    }
+
+    *entry = nullptr;
+    IMLOGD_PACKET1(IM_PACKET_LOG_JITTER,
+            "[GetPartialRedundancyFrame] lostSeq[%d] Redundant Frame not found", lostSeq);
+    return false;
+}
+
+bool AudioJitterBuffer::GetNextFrameFirstByte(uint32_t nextSeq, uint8_t* nextFrameFirstByte)
+{
+    DataEntry* pEntry = nullptr;
+    if (mDataQueue.Get(&pEntry) &&
+            (pEntry->eDataType != MEDIASUBTYPE_AUDIO_NODATA && pEntry->nSeqNum == nextSeq))
+    {
+        *nextFrameFirstByte =
+                pEntry->pbBuffer[ImsMediaAudioUtil::CheckEVSPrimaryHeaderFullModeFromSize(
+                                         pEntry->nBufferSize)
+                                ? 1
+                                : 0];
+        IMLOGD_PACKET2(IM_PACKET_LOG_JITTER,
+                "[GetNextFrameFirstByte] nextSeq[%d] nextFrameFirstByte[%02X]", pEntry->nSeqNum,
+                nextFrameFirstByte[0]);
+        return true;
+    }
+    IMLOGD_PACKET0(IM_PACKET_LOG_JITTER, "[GetNextFrameFirstByte] Next Frame not found");
+    return false;
+}
+
+bool AudioJitterBuffer::GetRedundantFrame(uint32_t lostSeq, uint8_t** ppData, uint32_t* pnDataSize,
+        bool* hasNextFrame, uint8_t* nextFrameFirstByte)
+{
+    std::lock_guard<std::mutex> guard(mMutex);
+    DataEntry* pEntry = nullptr;
+
+    if (mCodecType == kAudioCodecEvs && mEvsRedundantFrameOffset > 0 && !mDtxPlayed &&
+            GetPartialRedundancyFrame(lostSeq, mCurrPlayingTS, mEvsRedundantFrameOffset, &pEntry))
+    {
+        if (ppData)
+            *ppData = pEntry->pbBuffer;
+        if (pnDataSize)
+            *pnDataSize = pEntry->nBufferSize;
+        *hasNextFrame = GetNextFrameFirstByte((lostSeq + 1), nextFrameFirstByte);
+
+        return true;
+    }
+    return false;
 }
