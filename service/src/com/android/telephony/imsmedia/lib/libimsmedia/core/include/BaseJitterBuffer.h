@@ -91,6 +91,9 @@ public:
     virtual bool Get(ImsMediaSubType* psubtype, uint8_t** ppData, uint32_t* pnDataSize,
             uint32_t* ptimestamp, bool* pmark, uint32_t* pnSeqNum, uint32_t currentTime,
             ImsMediaSubType* pDataType = nullptr) = 0;
+    virtual bool GetRedundantFrame(uint32_t lostSeq, uint8_t** ppData = nullptr,
+            uint32_t* pnDataSize = nullptr, bool* hasNextFrame = nullptr,
+            uint8_t* nextFrameFirstByte = nullptr);
 
 protected:
     BaseSessionCallback* mCallback;

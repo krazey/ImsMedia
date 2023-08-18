@@ -21,7 +21,7 @@
 #include <ImsMediaTimer.h>
 #include <ImsMediaAudioUtil.h>
 #include <AudioConfig.h>
-#include <RtpConfig.h>
+#include <AudioJitterBuffer.h>
 #include <string.h>
 
 #define MAX_CODEC_EVS_AMR_IO_MODE 9
@@ -59,6 +59,8 @@ ImsMediaResult IAudioPlayerNode::Start()
     if (mJitterBuffer)
     {
         mJitterBuffer->SetCodecType(mCodecType);
+        reinterpret_cast<AudioJitterBuffer*>(mJitterBuffer)
+                ->SetEvsRedundantFrameOffset(mEvsChannelAwOffset);
     }
 
     // reset the jitter
@@ -303,6 +305,7 @@ void* IAudioPlayerNode::run()
     uint32_t timestamp = 0;
     bool mark = false;
     uint32_t seq = 0;
+    uint32_t lastPlayedSeq = 0;
     uint32_t currentTime = 0;
     uint64_t nNextTime = ImsMediaTimer::GetTimeInMicroSeconds();
     bool isFirstFrameReceived = false;
@@ -341,7 +344,12 @@ void* IAudioPlayerNode::run()
 #ifdef FILE_DUMP
             size > 0 ? std::fwrite(data, size, 1, file) : std::fwrite(&noDataHeader, 1, 1, file);
 #endif
-            if (mAudioPlayer->onDataFrame(data, size, datatype == MEDIASUBTYPE_AUDIO_SID))
+            lastPlayedSeq = seq;
+            FrameType frameType = SPEECH;
+
+            (datatype == MEDIASUBTYPE_AUDIO_SID) ? frameType = SID : frameType = SPEECH;
+
+            if (mAudioPlayer->onDataFrame(data, size, frameType, false, 0))
             {
                 // send buffering complete message to client
                 if (!isFirstFrameReceived)
@@ -356,8 +364,19 @@ void* IAudioPlayerNode::run()
         }
         else if (isFirstFrameReceived)
         {
-            IMLOGD_PACKET0(IM_PACKET_LOG_AUDIO, "[run] no data");
-            mAudioPlayer->onDataFrame(nullptr, 0, false);
+            uint8_t nextFrameByte = 0;
+            bool hasNextFrame = false;
+            uint32_t lostSeq = lastPlayedSeq + 1;
+            if (GetRedundantFrame(lostSeq, &data, &size, &hasNextFrame, &nextFrameByte))
+            {
+                lastPlayedSeq++;
+                mAudioPlayer->onDataFrame(data, size, LOST, hasNextFrame, nextFrameByte);
+            }
+            else
+            {
+                IMLOGD_PACKET0(IM_PACKET_LOG_AUDIO, "[run] no data");
+                mAudioPlayer->onDataFrame(nullptr, 0, NO_DATA, false, 0);
+            }
 #ifdef FILE_DUMP
             std::fwrite(&noDataHeader, 1, 1, file);
 #endif
