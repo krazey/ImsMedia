@@ -75,6 +75,8 @@ public:
 
 private:
     void Resync(uint32_t spareFrames);
+    void CountLostFrames(int32_t currentSeq, int32_t lastSeq);
+    uint32_t GetNumCannotGetInDuration(uint32_t duration, uint32_t currentTime);
     void CollectRxRtpStatus(int32_t seq, kRtpPacketStatus status);
     void CollectJitterBufferStatus(int32_t currSize, int32_t maxSize);
     bool GetPartialRedundancyFrame(const uint32_t currentSeq, uint32_t currentTimestamp,
@@ -85,18 +87,18 @@ private:
     bool mDtxPlayed;
     bool mBufferIgnoreSIDPacket;
     bool mWaiting;
-    bool mEnforceUpdate;
     int32_t mUpdatedDelay;
-    uint32_t mCannotGetCount;
+    uint32_t mCountLateDelete;
     uint32_t mCurrPlayingTS;
     uint32_t mCheckUpdateJitterPacketCnt;
     uint32_t mCurrJitterBufferSize;
-    uint32_t mDeleteCount;
     uint32_t mNextJitterBufferSize;
     uint32_t mTimeStarted;
     std::list<uint32_t> mListJitterBufferSize;
+    std::list<uint32_t> mListCannotGetFrames;
     DataEntry* mPreservedDtx;
     int32_t mEvsRedundantFrameOffset;
+    uint32_t mPrevGetTime;
 };
 
 #endif

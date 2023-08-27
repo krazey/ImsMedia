@@ -26,10 +26,10 @@ public:
     {
         mAnalyzer = nullptr;
         mMinJitterBufferSize = 4;
-        mMaxJitterBufferSize = 9;
+        mMaxJitterBufferSize = 11;
         mIncThreshold = 200;
         mDecThreshold = 200;
-        mStepSize = 2;
+        mStepSize = 1;
         mWeight = 2.0f;
     }
     virtual ~JitterNetworkAnalyserTest() {}
@@ -90,7 +90,6 @@ TEST_F(JitterNetworkAnalyserTest, TestHighJitter)
     int32_t arrivalTime = 0;
     int32_t timestamp = 0;
     uint32_t currentJitterBufferSize = mMinJitterBufferSize;
-
     uint32_t statusInterval = 0;
 
     for (int32_t i = 0; i < kNumFrames; i++)
