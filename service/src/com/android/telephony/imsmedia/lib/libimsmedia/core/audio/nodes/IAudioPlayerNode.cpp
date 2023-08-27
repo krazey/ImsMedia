@@ -25,8 +25,8 @@
 #include <string.h>
 
 #define MAX_CODEC_EVS_AMR_IO_MODE 9
-#define JITTER_BUFFER_SIZE_INIT   4
-#define JITTER_BUFFER_SIZE_MIN    4
+#define JITTER_BUFFER_SIZE_INIT   3
+#define JITTER_BUFFER_SIZE_MIN    3
 #define JITTER_BUFFER_SIZE_MAX    13
 
 IAudioPlayerNode::IAudioPlayerNode(BaseSessionCallback* callback) :

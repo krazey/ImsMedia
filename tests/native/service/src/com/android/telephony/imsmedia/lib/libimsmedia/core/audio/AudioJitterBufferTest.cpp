@@ -469,7 +469,7 @@ TEST_F(AudioJitterBufferTest, TestAddGetInBurstIncoming)
         }
     }
 
-    int kdiscarded = 10;
+    int kdiscarded = 24;
 
     EXPECT_EQ(mCallback.getNumLost(), 0);
     EXPECT_EQ(mCallback.getNumDuplicated(), 0);

@@ -66,13 +66,6 @@ public:
      */
     void SetLateArrivals(uint32_t time);
 
-    /**
-     * @brief Get the number of late arrivals in the range of given duration from the current time
-     *
-     * @param duration The time in millisecond unit
-     */
-    uint32_t GetNumLateArrivalsInDuration(uint32_t duration);
-
 private:
     double CalculateDeviation(double* pMean);
     int32_t GetMaxJitterValue();
@@ -82,7 +75,7 @@ private:
     uint32_t mMaxJitterBufferSize;
     std::map<int32_t, int32_t> mMapDelta;
     std::list<int32_t> mListJitters;
-    std::list<int32_t> mListLateArrivals;
+    uint32_t mTimeLateArrivals;
     NETWORK_STATUS mNetworkStatus;
     uint32_t mGoodStatusEnteringTime;
     uint32_t mBadStatusChangedTime;
