@@ -170,7 +170,7 @@ TEST_F(TextSourceNodeTest, sendRttDisableBom)
     mNode->SendRtt(&testText1);
 
     mNode->ProcessData();
-    EXPECT_EQ(memcmp(mFakeNode->getData(), testText1.string(), testText1.length()), 0);
+    EXPECT_EQ(memcmp(mFakeNode->getData(), testText1.c_str(), testText1.length()), 0);
 
     mCondition.wait_timeout(kTextInterval);
     mNode->ProcessData();
@@ -192,7 +192,7 @@ TEST_F(TextSourceNodeTest, sendRttTestChunkSizeOne)
 
     mCondition.wait_timeout(kTextInterval);
     mNode->ProcessData();
-    EXPECT_EQ(memcmp(mFakeNode->getData(), testText1.string(), testText1.length()), 0);
+    EXPECT_EQ(memcmp(mFakeNode->getData(), testText1.c_str(), testText1.length()), 0);
 
     mCondition.wait_timeout(kTextInterval);
     mNode->ProcessData();
@@ -214,7 +214,7 @@ TEST_F(TextSourceNodeTest, sendRttTestChunkSizeTwo)
 
     mCondition.wait_timeout(kTextInterval);
     mNode->ProcessData();
-    EXPECT_EQ(memcmp(mFakeNode->getData(), testText2.string(), testText2.length()), 0);
+    EXPECT_EQ(memcmp(mFakeNode->getData(), testText2.c_str(), testText2.length()), 0);
 
     mCondition.wait_timeout(kTextInterval);
     mNode->ProcessData();
@@ -236,7 +236,7 @@ TEST_F(TextSourceNodeTest, sendRttTestChunkSizeThree)
 
     mCondition.wait_timeout(kTextInterval);
     mNode->ProcessData();
-    EXPECT_EQ(memcmp(mFakeNode->getData(), testText3.string(), testText3.length()), 0);
+    EXPECT_EQ(memcmp(mFakeNode->getData(), testText3.c_str(), testText3.length()), 0);
 
     mCondition.wait_timeout(kTextInterval);
     mNode->ProcessData();
@@ -258,7 +258,7 @@ TEST_F(TextSourceNodeTest, sendRttTestChunkSizeFour)
 
     mCondition.wait_timeout(kTextInterval);
     mNode->ProcessData();
-    EXPECT_EQ(memcmp(mFakeNode->getData(), testText4.string(), testText4.length()), 0);
+    EXPECT_EQ(memcmp(mFakeNode->getData(), testText4.c_str(), testText4.length()), 0);
 
     mCondition.wait_timeout(kTextInterval);
     mNode->ProcessData();
@@ -289,7 +289,7 @@ TEST_F(TextSourceNodeTest, sendRttTestLongString)
 
     mCondition.wait_timeout(kTextInterval);
     mNode->ProcessData();
-    EXPECT_EQ(memcmp(mFakeNode->getData(), testText5.string(), testText5.length()), 0);
+    EXPECT_EQ(memcmp(mFakeNode->getData(), testText5.c_str(), testText5.length()), 0);
 
     mCondition.wait_timeout(kTextInterval);
     mNode->ProcessData();

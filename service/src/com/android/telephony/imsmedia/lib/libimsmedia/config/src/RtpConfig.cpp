@@ -52,7 +52,7 @@ RtpConfig::RtpConfig(RtpConfig* config)
     type = config->type;
     direction = config->direction;
     accessNetwork = config->accessNetwork;
-    remoteAddress = String8(config->remoteAddress.string());
+    remoteAddress = String8(config->remoteAddress.c_str());
     remotePort = config->remotePort;
     rtcpConfig = config->rtcpConfig;
     dscp = config->dscp;
@@ -66,7 +66,7 @@ RtpConfig::RtpConfig(const RtpConfig& config)
     type = config.type;
     direction = config.direction;
     accessNetwork = config.accessNetwork;
-    remoteAddress = String8(config.remoteAddress.string());
+    remoteAddress = String8(config.remoteAddress.c_str());
     remotePort = config.remotePort;
     rtcpConfig = config.rtcpConfig;
     dscp = config.dscp;
@@ -82,7 +82,7 @@ RtpConfig& RtpConfig::operator=(const RtpConfig& config)
         type = config.type;
         direction = config.direction;
         accessNetwork = config.accessNetwork;
-        remoteAddress = String8(config.remoteAddress.string());
+        remoteAddress = String8(config.remoteAddress.c_str());
         remotePort = config.remotePort;
         rtcpConfig = config.rtcpConfig;
         dscp = config.dscp;
@@ -228,7 +228,7 @@ status_t RtpConfig::readFromParcel(const Parcel* in)
     }
     else if (err == NO_ERROR)
     {
-        remoteAddress = String8(address.string());
+        remoteAddress = String8(address.c_str());
     }
     else
     {

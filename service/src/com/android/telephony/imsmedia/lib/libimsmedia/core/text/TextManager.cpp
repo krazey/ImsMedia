@@ -199,7 +199,7 @@ void TextManager::sendMessage(const int sessionId, const android::Parcel& parcel
         {
             android::String16 text;
             parcel.readString16(&text);
-            android::String8* rttText = new String8(text.string());
+            android::String8* rttText = new String8(text.c_str());
             ImsMediaEventHandler::SendEvent(
                     "TEXT_REQUEST_EVENT", nMsg, sessionId, reinterpret_cast<uint64_t>(rttText));
         }

@@ -162,7 +162,7 @@ void TextSourceNode::SendRtt(const android::String8* text)
     IMLOGD2("[SendRtt] size[%u], listSize[%d]", text->length(), mDataQueue.GetCount());
 
     uint8_t tempBuffer[MAX_RTT_LEN] = {'\0'};
-    memcpy(tempBuffer, text->string(), text->length());
+    memcpy(tempBuffer, text->c_str(), text->length());
 
     std::lock_guard<std::mutex> guard(mMutex);
     AddData(tempBuffer, text->length(), 0, false, 0);

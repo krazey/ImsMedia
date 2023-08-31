@@ -373,7 +373,7 @@ status_t VideoConfig::readFromParcel(const Parcel* in)
         return err;
     }
 
-    pauseImagePath = String8(path.string());
+    pauseImagePath = String8(path.c_str());
 
     err = in->readInt32(&deviceOrientationDegree);
     if (err != NO_ERROR)
