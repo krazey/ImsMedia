@@ -20,7 +20,7 @@ RtcpConfig::RtcpConfig() :
 
 RtcpConfig::RtcpConfig(const RtcpConfig& config)
 {
-    this->canonicalName = String8(config.canonicalName.string());
+    this->canonicalName = String8(config.canonicalName.c_str());
     this->transmitPort = config.transmitPort;
     this->intervalSec = config.intervalSec;
     this->rtcpXrBlockTypes = config.rtcpXrBlockTypes;
@@ -32,7 +32,7 @@ RtcpConfig& RtcpConfig::operator=(const RtcpConfig& config)
 {
     if (this != &config)
     {
-        this->canonicalName = String8(config.canonicalName.string());
+        this->canonicalName = String8(config.canonicalName.c_str());
         this->transmitPort = config.transmitPort;
         this->intervalSec = config.intervalSec;
         this->rtcpXrBlockTypes = config.rtcpXrBlockTypes;
@@ -105,7 +105,7 @@ status_t RtcpConfig::readFromParcel(const Parcel* in)
         return err;
     }
 
-    canonicalName = String8(name.string());
+    canonicalName = String8(name.c_str());
 
     err = in->readInt32(&transmitPort);
     if (err != NO_ERROR)

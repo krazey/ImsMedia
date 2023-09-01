@@ -73,7 +73,7 @@ void ImsMediaVideoSource::SetCameraConfig(const uint32_t cameraId, const uint32_
 
 void ImsMediaVideoSource::SetImagePath(const android::String8& path)
 {
-    IMLOGD1("[SetImagePath] path[%s]", path.string());
+    IMLOGD1("[SetImagePath] path[%s]", path.c_str());
     mImagePath = path;
 }
 
