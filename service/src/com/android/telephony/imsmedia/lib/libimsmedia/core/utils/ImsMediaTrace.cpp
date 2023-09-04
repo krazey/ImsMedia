@@ -66,7 +66,7 @@ static uint IM_remove_log = 1;
     } while (0)
 #endif
 
-static uint gLogMode = kLogEnableInfo;
+static uint gLogMode = kLogEnableDebug;
 static uint gDebugLogMode = 0;
 
 void ImsMediaTrace::IMLOGD_PACKET_ARG(IM_PACKET_LOG_TYPE type, const char* format, ...)

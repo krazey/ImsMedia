@@ -412,8 +412,9 @@ void MediaQualityAnalyzer::processData(const int32_t timeCount)
 
         int32_t quality = getCallQuality(lossRate);
 
-        IMLOGD3("[processData] lost[%d], received[%d], quality[%d]", mCallQualityNumLostPacket,
-                mCallQualityNumRxPacket, quality);
+        IMLOGD4("[processData] lost[%d], received[%d], dropped[%d], quality[%d]",
+                mCallQualityNumLostPacket, mCallQualityNumRxPacket,
+                mCallQuality.getNumDroppedRtpPackets(), quality);
 
         if (mCallQuality.getDownlinkCallQualityLevel() != quality)
         {
