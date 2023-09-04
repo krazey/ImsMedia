@@ -21,30 +21,30 @@
 #include <ImsMediaTrace.h>
 #include <numeric>
 
-#define AUDIO_JITTER_BUFFER_MIN_SIZE   (3)
-#define AUDIO_JITTER_BUFFER_MAX_SIZE   (9)
-#define AUDIO_JITTER_BUFFER_START_SIZE (4)
-#define GET_SEQ_GAP(a, b)              ((uint16_t)(a) - (uint16_t)(b))
-#define JITTER_BUFFER_UPDATE_INTERVAL  (100)   // ms unit
-#define FRAME_INTERVAL                 (20)    // ms unit
-#define ALLOWABLE_ERROR                (10)    // ms unit
-#define RESET_THRESHOLD                (15)    // percentage
-#define TS_ROUND_QUARD                 (3000)  // ms unit
-#define SEQ_OUTLIER_THRESHOLD          (3000)
+#define AUDIO_JITTER_BUFFER_MIN_SIZE    (3)
+#define AUDIO_JITTER_BUFFER_MAX_SIZE    (9)
+#define AUDIO_JITTER_BUFFER_START_SIZE  (4)
+#define GET_SEQ_GAP(a, b)               ((uint16_t)(a) - (uint16_t)(b))
+#define JITTER_BUFFER_UPDATE_INTERVAL   (100)   // ms unit
+#define FRAME_INTERVAL                  (20)    // ms unit
+#define ALLOWABLE_ERROR                 (10)    // ms unit
+#define RESET_THRESHOLD_IN_DTX_ENABLED  (80)    // percentage
+#define RESET_THRESHOLD_IN_DTX_DISABLED (35)    // percentage
+#define TS_ROUND_QUARD                  (3000)  // ms unit
+#define SEQ_OUTLIER_THRESHOLD           (3000)
 #define USHORT_TS_ROUND_COMPARE(a, b)                                                   \
     ((((a) >= (b)) && (((b) >= TS_ROUND_QUARD) || ((a) <= 0xffff - TS_ROUND_QUARD))) || \
             (((a) <= TS_ROUND_QUARD) && ((b) >= 0xffff - TS_ROUND_QUARD)))
 
 #define MAX_STORED_BUFFER_SIZE (50 * 60 * 60)  // 1 hour in frame interval unit
 #define MAX_QUEUE_SIZE         (150)           // 3 sec
-#define CANNOT_GET_WINDOW      (10000)         // 10 sec
+#define DROP_WINDOW            (5000)          // 5 ec
 
 AudioJitterBuffer::AudioJitterBuffer()
 {
     mInitJitterBufferSize = AUDIO_JITTER_BUFFER_START_SIZE;
     mMinJitterBufferSize = AUDIO_JITTER_BUFFER_MIN_SIZE;
     mMaxJitterBufferSize = AUDIO_JITTER_BUFFER_MAX_SIZE;
-    mBufferIgnoreSIDPacket = false;
     mJitterAnalyzer.Reset();
     mJitterAnalyzer.SetMinMaxJitterBufferSize(mMinJitterBufferSize, mMaxJitterBufferSize);
     mListJitterBufferSize.clear();
@@ -65,13 +65,14 @@ void AudioJitterBuffer::Reset()
     mFirstFrameReceived = false;
     mNextJitterBufferSize = mCurrJitterBufferSize;
     mDtxPlayed = false;
+    mDtxReceived = false;
     mWaiting = true;
     mUpdatedDelay = 0;
-    mCountLateDelete = 0;
     mCheckUpdateJitterPacketCnt = 0;
     mPreservedDtx = nullptr;
     mPrevGetTime = 0;
-    mListCannotGetFrames.clear();
+    mListVoiceFrames.clear();
+    mListDropVoiceFrames.clear();
 }
 
 void AudioJitterBuffer::ClearBuffer()
@@ -165,13 +166,12 @@ void AudioJitterBuffer::Add(ImsMediaSubType subtype, uint8_t* pbBuffer, uint32_t
         return;
     }
 
-    int32_t jitter = 0;
-
-    if (!mBufferIgnoreSIDPacket ||
-            (mBufferIgnoreSIDPacket && currEntry.eDataType != MEDIASUBTYPE_AUDIO_SID))
+    if (currEntry.eDataType == MEDIASUBTYPE_AUDIO_SID)
     {
-        jitter = mJitterAnalyzer.CalculateTransitTimeDifference(nTimestamp, arrivalTime);
+        mDtxReceived = true;
     }
+
+    int32_t jitter = mJitterAnalyzer.CalculateTransitTimeDifference(nTimestamp, arrivalTime);
 
     RtpPacket* packet = new RtpPacket();
 
@@ -237,6 +237,17 @@ void AudioJitterBuffer::Add(ImsMediaSubType subtype, uint8_t* pbBuffer, uint32_t
                     break;
                 }
             }
+        }
+    }
+
+    if (currEntry.eDataType != MEDIASUBTYPE_AUDIO_SID)
+    {
+        mListVoiceFrames.push_back(arrivalTime);
+
+        // keep the list 3 times of the drop window
+        if (mListVoiceFrames.size() > DROP_WINDOW * 3 / FRAME_INTERVAL)
+        {
+            mListVoiceFrames.pop_front();
         }
     }
 }
@@ -314,26 +325,26 @@ bool AudioJitterBuffer::Get(ImsMediaSubType* psubtype, uint8_t** ppData, uint32_
         mCurrPlayingTS += FRAME_INTERVAL;
     }
 
-    int32_t cannotGetRate = GetNumCannotGetInDuration(CANNOT_GET_WINDOW, currentTime) * 100 /
-            (CANNOT_GET_WINDOW / FRAME_INTERVAL);
+    int32_t dropRate = GetDropVoiceRateInDuration(DROP_WINDOW, currentTime);
 
     // resync the jitter buffer
-    if (cannotGetRate > RESET_THRESHOLD)
+    if ((dropRate > RESET_THRESHOLD_IN_DTX_ENABLED && mDtxReceived) ||
+            (dropRate > RESET_THRESHOLD_IN_DTX_DISABLED && !mDtxReceived))
     {
         if (mCurrJitterBufferSize == mMaxJitterBufferSize)
         {
-            IMLOGD1("[Get] resync, cannot get rate[%u]", cannotGetRate);
+            IMLOGD1("[Get] resync, drop rate[%u]", dropRate);
             mWaiting = true;
             mTimeStarted = currentTime;
         }
         else
         {
-            IMLOGD1("[Get] increase delay by cannot get rate[%u]", cannotGetRate);
+            IMLOGD1("[Get] increase delay by drop rate[%u]", dropRate);
             mCurrPlayingTS -= FRAME_INTERVAL;
             mCurrJitterBufferSize++;
         }
 
-        mListCannotGetFrames.clear();
+        mListDropVoiceFrames.clear();
     }
 
     if (mDataQueue.GetCount() == 0)
@@ -378,17 +389,6 @@ bool AudioJitterBuffer::Get(ImsMediaSubType* psubtype, uint8_t** ppData, uint32_
             Resync(mInitJitterBufferSize + 1);
             mWaiting = false;
         }
-    }
-
-    if (mUpdatedDelay == 0 && mCountLateDelete > mCurrJitterBufferSize &&
-            mCurrJitterBufferSize < mMaxJitterBufferSize)
-    {
-        mCurrPlayingTS -= FRAME_INTERVAL;
-        mCurrJitterBufferSize++;
-
-        IMLOGD3("[Get] update by late arrival, curTS[%u], queue[%u], next size[%d]", mCurrPlayingTS,
-                mDataQueue.GetCount(), mCurrJitterBufferSize);
-        mCountLateDelete = 0;
     }
 
     mListJitterBufferSize.push_back(mCurrJitterBufferSize);
@@ -458,7 +458,13 @@ bool AudioJitterBuffer::Get(ImsMediaSubType* psubtype, uint8_t** ppData, uint32_
         else
         {
             CollectRxRtpStatus(pEntry->nSeqNum, kRtpStatusLate);
-            mCountLateDelete++;
+            mListDropVoiceFrames.push_back(currentTime);
+
+            // keep the list 3 times of the drop window
+            if (mListDropVoiceFrames.size() > DROP_WINDOW * 3 / FRAME_INTERVAL)
+            {
+                mListDropVoiceFrames.pop_front();
+            }
         }
 
         mJitterAnalyzer.SetLateArrivals(currentTime);
@@ -507,7 +513,6 @@ bool AudioJitterBuffer::Get(ImsMediaSubType* psubtype, uint8_t** ppData, uint32_
         mCurrPlayingTS = pEntry->nTimestamp + FRAME_INTERVAL;
         mFirstFrameReceived = true;
         mLastPlayedSeqNum = pEntry->nSeqNum;
-        mCountLateDelete = 0;
         CollectRxRtpStatus(pEntry->nSeqNum, kRtpStatusNormal);
         CollectJitterBufferStatus(
                 mCurrJitterBufferSize * FRAME_INTERVAL, mMaxJitterBufferSize * FRAME_INTERVAL);
@@ -515,17 +520,6 @@ bool AudioJitterBuffer::Get(ImsMediaSubType* psubtype, uint8_t** ppData, uint32_
     }
     else
     {
-        if (!mDtxPlayed)
-        {
-            mListCannotGetFrames.push_back(currentTime);
-
-            // keep the list 3 times of the drop window
-            if (mListCannotGetFrames.size() > CANNOT_GET_WINDOW * 3 / FRAME_INTERVAL)
-            {
-                mListCannotGetFrames.pop_front();
-            }
-        }
-
         // use the preserved dtx when it is discarded as late arrival
         if (mPreservedDtx != nullptr)
         {
@@ -638,15 +632,27 @@ void AudioJitterBuffer::CountLostFrames(int32_t currentSeq, int32_t lastSeq)
     }
 }
 
-uint32_t AudioJitterBuffer::GetNumCannotGetInDuration(uint32_t duration, uint32_t currentTime)
+uint32_t AudioJitterBuffer::GetDropVoiceRateInDuration(uint32_t duration, uint32_t currentTime)
 {
-    uint32_t num = std::count_if(mListCannotGetFrames.begin(), mListCannotGetFrames.end(),
+    uint32_t numVoice = std::count_if(mListVoiceFrames.begin(), mListVoiceFrames.end(),
+            [=](uint32_t frameTime)
+            {
+                return ((currentTime - frameTime + mCurrJitterBufferSize * FRAME_INTERVAL) <=
+                        duration);
+            });
+
+    uint32_t numDrop = std::count_if(mListDropVoiceFrames.begin(), mListDropVoiceFrames.end(),
             [=](uint32_t frameTime)
             {
                 return (currentTime - frameTime <= duration);
             });
 
-    return num;
+    if (numVoice <= 5)
+    {
+        return 0;
+    }
+
+    return numDrop * 100 / numVoice;
 }
 
 void AudioJitterBuffer::CollectRxRtpStatus(int32_t seq, kRtpPacketStatus status)
