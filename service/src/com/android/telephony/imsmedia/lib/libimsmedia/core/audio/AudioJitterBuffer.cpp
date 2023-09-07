@@ -175,14 +175,18 @@ void AudioJitterBuffer::Add(ImsMediaSubType subtype, uint8_t* pbBuffer, uint32_t
 
     RtpPacket* packet = new RtpPacket();
 
-    if (nBufferSize == 0)
+    switch (currEntry.eDataType)
     {
-        packet->rtpDataType = kRtpDataTypeNoData;
-    }
-    else
-    {
-        (currEntry.eDataType == MEDIASUBTYPE_AUDIO_SID) ? packet->rtpDataType = kRtpDataTypeSid
-                                                        : packet->rtpDataType = kRtpDataTypeNormal;
+        case MEDIASUBTYPE_AUDIO_SID:
+            packet->rtpDataType = kRtpDataTypeSid;
+            break;
+        default:
+        case MEDIASUBTYPE_AUDIO_NODATA:
+            packet->rtpDataType = kRtpDataTypeNoData;
+            break;
+        case MEDIASUBTYPE_AUDIO_NORMAL:
+            packet->rtpDataType = kRtpDataTypeNormal;
+            break;
     }
 
     packet->ssrc = mSsrc;
@@ -190,11 +194,6 @@ void AudioJitterBuffer::Add(ImsMediaSubType subtype, uint8_t* pbBuffer, uint32_t
     packet->jitter = jitter;
     packet->arrival = arrivalTime;
     mCallback->SendEvent(kCollectPacketInfo, kStreamRtpRx, reinterpret_cast<uint64_t>(packet));
-
-    if (nBufferSize == 0)
-    {
-        return;
-    }
 
     std::lock_guard<std::mutex> guard(mMutex);
 

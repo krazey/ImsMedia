@@ -260,7 +260,7 @@ void AudioRtpPayloadDecoderNode::DecodePayloadAmr(uint8_t* pData, uint32_t nData
 
         ImsMediaSubType subType = MEDIASUBTYPE_AUDIO_NORMAL;
 
-        if (bufferSize == 1)
+        if (bufferSize == 1 || eRate == 15)
         {
             subType = MEDIASUBTYPE_AUDIO_NODATA;
         }
