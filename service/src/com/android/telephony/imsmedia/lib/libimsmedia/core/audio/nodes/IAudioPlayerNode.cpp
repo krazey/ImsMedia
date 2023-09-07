@@ -339,15 +339,27 @@ void* IAudioPlayerNode::run()
 
         if (GetData(&subtype, &data, &size, &timestamp, &mark, &seq, &datatype, &currentTime))
         {
-            IMLOGD_PACKET2(
-                    IM_PACKET_LOG_AUDIO, "[run] write buffer size[%d], TS[%u]", size, timestamp);
+            IMLOGD_PACKET3(IM_PACKET_LOG_AUDIO, "[run] write buffer size[%u], TS[%u], datatype[%u]",
+                    size, timestamp, datatype);
 #ifdef FILE_DUMP
             size > 0 ? std::fwrite(data, size, 1, file) : std::fwrite(&noDataHeader, 1, 1, file);
 #endif
             lastPlayedSeq = seq;
             FrameType frameType = SPEECH;
 
-            (datatype == MEDIASUBTYPE_AUDIO_SID) ? frameType = SID : frameType = SPEECH;
+            switch (datatype)
+            {
+                case MEDIASUBTYPE_AUDIO_SID:
+                    frameType = SID;
+                    break;
+                case MEDIASUBTYPE_AUDIO_NODATA:
+                    frameType = NO_DATA;
+                    break;
+                default:
+                case MEDIASUBTYPE_AUDIO_NORMAL:
+                    frameType = SPEECH;
+                    break;
+            }
 
             if (mAudioPlayer->onDataFrame(data, size, frameType, false, 0))
             {
@@ -367,6 +379,7 @@ void* IAudioPlayerNode::run()
             uint8_t nextFrameByte = 0;
             bool hasNextFrame = false;
             uint32_t lostSeq = lastPlayedSeq + 1;
+
             if (GetRedundantFrame(lostSeq, &data, &size, &hasNextFrame, &nextFrameByte))
             {
                 lastPlayedSeq++;
