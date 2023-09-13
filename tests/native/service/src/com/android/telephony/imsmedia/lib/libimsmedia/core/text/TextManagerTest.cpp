@@ -101,7 +101,7 @@ public:
     {
         resSessionId = id;
         response = event;
-        receivedRtt = android::String8(text.string());
+        receivedRtt = android::String8(text);
     }
 };
 
