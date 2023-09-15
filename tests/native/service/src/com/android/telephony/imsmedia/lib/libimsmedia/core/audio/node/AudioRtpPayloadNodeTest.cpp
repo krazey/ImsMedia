@@ -65,6 +65,7 @@ public:
     {
         frameSize = 0;
         memset(dataFrame, 0, sizeof(dataFrame));
+        subType = MEDIASUBTYPE_UNDEFINED;
     }
     virtual ~FakeNode() {}
     virtual ImsMediaResult Start() { return RESULT_SUCCESS; }
@@ -74,13 +75,14 @@ public:
     virtual void SetConfig(void* config) { (void)config; }
     virtual void OnDataFromFrontNode(ImsMediaSubType /*IMS_MEDIA_AUDIO*/, uint8_t* data,
             uint32_t size, uint32_t /*timestamp*/, bool /*mark*/, uint32_t /*seq*/,
-            ImsMediaSubType /*dataType*/, uint32_t /*arrivalTime*/)
+            ImsMediaSubType dataType, uint32_t /*arrivalTime*/)
     {
         if (data != nullptr && size > 0)
         {
             memset(dataFrame, 0, sizeof(dataFrame));
             memcpy(dataFrame, data, size);
             frameSize = size;
+            subType = dataType;
         }
     }
 
@@ -88,10 +90,12 @@ public:
 
     uint32_t GetFrameSize() { return frameSize; }
     uint8_t* GetDataFrame() { return dataFrame; }
+    ImsMediaSubType GetSubType() { return subType; }
 
 private:
     uint32_t frameSize;
     uint8_t dataFrame[DEFAULT_MTU];
+    ImsMediaSubType subType;
 };
 
 class AudioRtpPayloadNodeTest : public ::testing::Test
@@ -218,9 +222,78 @@ TEST_F(AudioRtpPayloadNodeTest, testAmrBandwidthEfficientDataProcess)
             0x28, 0x65, 0x5f, 0x43, 0xf4, 0xb9, 0x0d, 0x7d, 0x05, 0x4e, 0x30, 0x50, 0xe1, 0x98,
             0x03, 0xed, 0xee, 0x8a, 0xa8, 0x34, 0x40};
 
-    encoder->OnDataFromFrontNode(MEDIASUBTYPE_UNDEFINED, testFrame, sizeof(testFrame), 0, false, 0);
+    encoder->OnDataFromFrontNode(MEDIASUBTYPE_UNDEFINED, testFrame, sizeof(testFrame), 0, false, 0,
+            MEDIASUBTYPE_UNDEFINED);
+
+    EXPECT_EQ(fakeNode->GetSubType(), MEDIASUBTYPE_AUDIO_NORMAL);
     EXPECT_EQ(fakeNode->GetFrameSize(), sizeof(testFrame));
     EXPECT_EQ(memcmp(fakeNode->GetDataFrame(), testFrame, fakeNode->GetFrameSize()), 0);
+}
+
+TEST_F(AudioRtpPayloadNodeTest, testAmrBandwidthEfficientSIDDataProcess)
+{
+    audioConfig.setCodecType(AudioConfig::CODEC_AMR);
+    amr.setOctetAligned(false);
+    audioConfig.setAmrParams(amr);
+    encoder->SetConfig(&audioConfig);
+    decoder->SetConfig(&audioConfig);
+    EXPECT_EQ(encoder->Start(), RESULT_SUCCESS);
+    EXPECT_EQ(decoder->Start(), RESULT_SUCCESS);
+
+    // AMR-WB mode 9 audio frame with toc field
+    uint8_t testFrame[] = {0x40, 0xe6, 0x6e, 0x84, 0x8a, 0xa4};
+
+    encoder->OnDataFromFrontNode(MEDIASUBTYPE_UNDEFINED, testFrame, sizeof(testFrame), 0, false, 0,
+            MEDIASUBTYPE_UNDEFINED);
+
+    EXPECT_EQ(fakeNode->GetSubType(), MEDIASUBTYPE_AUDIO_SID);
+    EXPECT_EQ(fakeNode->GetFrameSize(), sizeof(testFrame));
+    // Removing ToC byte from payload
+    EXPECT_EQ(memcmp(fakeNode->GetDataFrame() + 1, testFrame + 1, fakeNode->GetFrameSize() - 1), 0);
+}
+
+TEST_F(AudioRtpPayloadNodeTest, testAmrWbBandwidthEfficientSIDDataProcess)
+{
+    audioConfig.setCodecType(AudioConfig::CODEC_AMR_WB);
+    amr.setOctetAligned(false);
+    audioConfig.setAmrParams(amr);
+    encoder->SetConfig(&audioConfig);
+    decoder->SetConfig(&audioConfig);
+    EXPECT_EQ(encoder->Start(), RESULT_SUCCESS);
+    EXPECT_EQ(decoder->Start(), RESULT_SUCCESS);
+
+    // AMR-WB mode 9 audio frame with toc field
+    uint8_t testFrame[] = {0x48, 0xe6, 0x6e, 0x84, 0x8a, 0xa4};
+
+    encoder->OnDataFromFrontNode(MEDIASUBTYPE_UNDEFINED, testFrame, sizeof(testFrame), 0, false, 0,
+            MEDIASUBTYPE_UNDEFINED);
+
+    EXPECT_EQ(fakeNode->GetSubType(), MEDIASUBTYPE_AUDIO_SID);
+    EXPECT_EQ(fakeNode->GetFrameSize(), sizeof(testFrame));
+    // Removing ToC byte from payload
+    EXPECT_EQ(memcmp(fakeNode->GetDataFrame() + 1, testFrame + 1, fakeNode->GetFrameSize() - 1), 0);
+}
+
+TEST_F(AudioRtpPayloadNodeTest, testAmrOctetAlignedSIDDataProcess)
+{
+    audioConfig.setCodecType(AudioConfig::CODEC_AMR);
+    amr.setOctetAligned(true);
+    audioConfig.setAmrParams(amr);
+    encoder->SetConfig(&audioConfig);
+    decoder->SetConfig(&audioConfig);
+    EXPECT_EQ(encoder->Start(), RESULT_SUCCESS);
+    EXPECT_EQ(decoder->Start(), RESULT_SUCCESS);
+
+    // AMR-WB mode 9 audio frame with toc field
+    uint8_t testFrame[] = {0x40, 0xe6, 0x6e, 0x84, 0x8a, 0xa4};
+
+    encoder->OnDataFromFrontNode(MEDIASUBTYPE_UNDEFINED, testFrame, sizeof(testFrame), 0, false, 0,
+            MEDIASUBTYPE_UNDEFINED);
+
+    EXPECT_EQ(fakeNode->GetSubType(), MEDIASUBTYPE_AUDIO_SID);
+    EXPECT_EQ(fakeNode->GetFrameSize(), sizeof(testFrame));
+    // Removing ToC byte from payload
+    EXPECT_EQ(memcmp(fakeNode->GetDataFrame() + 1, testFrame + 1, fakeNode->GetFrameSize() - 1), 0);
 }
 
 TEST_F(AudioRtpPayloadNodeTest, testAmrOctetAlignedDataProcess)
@@ -239,9 +312,34 @@ TEST_F(AudioRtpPayloadNodeTest, testAmrOctetAlignedDataProcess)
             0x28, 0x65, 0x5f, 0x43, 0xf4, 0xb9, 0x0d, 0x7d, 0x05, 0x4e, 0x30, 0x50, 0xe1, 0x98,
             0x03, 0xed, 0xee, 0x8a, 0xa8, 0x34, 0x40};
 
-    encoder->OnDataFromFrontNode(MEDIASUBTYPE_UNDEFINED, testFrame, sizeof(testFrame), 0, false, 0);
+    encoder->OnDataFromFrontNode(MEDIASUBTYPE_UNDEFINED, testFrame, sizeof(testFrame), 0, false, 0,
+            MEDIASUBTYPE_UNDEFINED);
+
+    EXPECT_EQ(fakeNode->GetSubType(), MEDIASUBTYPE_AUDIO_NORMAL);
     EXPECT_EQ(fakeNode->GetFrameSize(), sizeof(testFrame));
     EXPECT_EQ(memcmp(fakeNode->GetDataFrame(), testFrame, fakeNode->GetFrameSize()), 0);
+}
+
+TEST_F(AudioRtpPayloadNodeTest, testAmrWbOctetAlignedSIDDataProcess)
+{
+    audioConfig.setCodecType(AudioConfig::CODEC_AMR_WB);
+    amr.setOctetAligned(true);
+    audioConfig.setAmrParams(amr);
+    encoder->SetConfig(&audioConfig);
+    decoder->SetConfig(&audioConfig);
+    EXPECT_EQ(encoder->Start(), RESULT_SUCCESS);
+    EXPECT_EQ(decoder->Start(), RESULT_SUCCESS);
+
+    // AMR-WB mode 9 audio frame with toc field
+    uint8_t testFrame[] = {0x48, 0xe6, 0x6e, 0x84, 0x8a, 0xa4};
+
+    encoder->OnDataFromFrontNode(MEDIASUBTYPE_UNDEFINED, testFrame, sizeof(testFrame), 0, false, 0,
+            MEDIASUBTYPE_UNDEFINED);
+
+    EXPECT_EQ(fakeNode->GetSubType(), MEDIASUBTYPE_AUDIO_SID);
+    EXPECT_EQ(fakeNode->GetFrameSize(), sizeof(testFrame));
+    // Removing ToC byte from payload
+    EXPECT_EQ(memcmp(fakeNode->GetDataFrame() + 1, testFrame + 1, fakeNode->GetFrameSize() - 1), 0);
 }
 
 TEST_F(AudioRtpPayloadNodeTest, testEvsCompactModeDataProcess)
@@ -264,7 +362,10 @@ TEST_F(AudioRtpPayloadNodeTest, testEvsCompactModeDataProcess)
             0x9b, 0xc0, 0xa8, 0x10, 0xc8, 0xc3, 0x0f, 0xc9, 0x52, 0xc1, 0xda, 0x45, 0x7e, 0x6c,
             0x55, 0x47, 0xff, 0xff, 0xff, 0xff, 0xe0};
 
-    encoder->OnDataFromFrontNode(MEDIASUBTYPE_UNDEFINED, testFrame, sizeof(testFrame), 0, false, 0);
+    encoder->OnDataFromFrontNode(MEDIASUBTYPE_UNDEFINED, testFrame, sizeof(testFrame), 0, false, 0,
+            MEDIASUBTYPE_UNDEFINED);
+
+    EXPECT_EQ(fakeNode->GetSubType(), MEDIASUBTYPE_AUDIO_NORMAL);
     EXPECT_EQ(fakeNode->GetFrameSize(), sizeof(testFrame));
     EXPECT_EQ(memcmp(fakeNode->GetDataFrame(), testFrame, fakeNode->GetFrameSize()), 0);
 }
@@ -289,8 +390,10 @@ TEST_F(AudioRtpPayloadNodeTest, testEvsHeaderFullModeDataProcess)
             0x9b, 0xc0, 0xa8, 0x10, 0xc8, 0xc3, 0x0f, 0xc9, 0x52, 0xc1, 0xda, 0x45, 0x7e, 0x6c,
             0x55, 0x47, 0xff, 0xff, 0xff, 0xff, 0xe0};
 
-    encoder->OnDataFromFrontNode(MEDIASUBTYPE_UNDEFINED, testFrame, sizeof(testFrame), 0, false, 0);
+    encoder->OnDataFromFrontNode(MEDIASUBTYPE_UNDEFINED, testFrame, sizeof(testFrame), 0, false, 0,
+            MEDIASUBTYPE_UNDEFINED);
 
+    EXPECT_EQ(fakeNode->GetSubType(), MEDIASUBTYPE_AUDIO_NORMAL);
     // 0x04 is the ToC header for the 13.2kbps bitrate
     EXPECT_EQ(*(fakeNode->GetDataFrame()), 0x04);
     // Compairing one byte extra as PayloadEncoder will have added one Toc header as it's HeaderFull
@@ -299,4 +402,70 @@ TEST_F(AudioRtpPayloadNodeTest, testEvsHeaderFullModeDataProcess)
     // Removing Toc header from the comparison as testFrame does not have toc header included
     EXPECT_EQ(memcmp(fakeNode->GetDataFrame() + 1, testFrame, fakeNode->GetFrameSize() - 1), 0);
 }
+
+TEST_F(AudioRtpPayloadNodeTest, testEvsHeaderFullModeSIDDataProcess)
+{
+    evs.setEvsBandwidth(kEvsBandwidth);
+    evs.setEvsMode(kEvsMode);
+    evs.setChannelAwareMode(kChannelAwareMode);
+    evs.setUseHeaderFullOnly(true);
+    evs.setCodecModeRequest(-1);
+
+    audioConfig.setEvsParams(evs);
+    audioConfig.setCodecType(AudioConfig::CODEC_EVS);
+    encoder->SetConfig(&audioConfig);
+    decoder->SetConfig(&audioConfig);
+    EXPECT_EQ(encoder->Start(), RESULT_SUCCESS);
+    EXPECT_EQ(decoder->Start(), RESULT_SUCCESS);
+
+    // EVS mode 13.2 kbps frame with toc field
+    uint8_t testFrame[] = {0xce, 0x40, 0xf2, 0xb2, 0xa4, 0xce};
+
+    // ImsMediaSubType subtype;
+
+    encoder->OnDataFromFrontNode(MEDIASUBTYPE_UNDEFINED, testFrame, sizeof(testFrame), 0, false, 0,
+            MEDIASUBTYPE_UNDEFINED);
+
+    // 0x04 is the ToC header for the SID packet
+    EXPECT_EQ(*(fakeNode->GetDataFrame()), 0x0C);
+
+    EXPECT_EQ(fakeNode->GetSubType(), MEDIASUBTYPE_AUDIO_SID);
+    // Compairing one byte extra as PayloadEncoder will have added one Toc header as it's HeaderFull
+    // mode test.
+    EXPECT_EQ(fakeNode->GetFrameSize(), sizeof(testFrame) + 1);
+    // Removing Toc header from the comparison as testFrame does not have toc header included
+    EXPECT_EQ(memcmp(fakeNode->GetDataFrame() + 1, testFrame, fakeNode->GetFrameSize() - 1), 0);
+}
+
+TEST_F(AudioRtpPayloadNodeTest, testEvsCompactModeSIDDataProcess)
+{
+    evs.setEvsBandwidth(kEvsBandwidth);
+    evs.setEvsMode(kEvsMode);
+    evs.setChannelAwareMode(kChannelAwareMode);
+    evs.setUseHeaderFullOnly(false);
+    evs.setCodecModeRequest(-1);
+
+    audioConfig.setEvsParams(evs);
+    audioConfig.setCodecType(AudioConfig::CODEC_EVS);
+    encoder->SetConfig(&audioConfig);
+    decoder->SetConfig(&audioConfig);
+    EXPECT_EQ(encoder->Start(), RESULT_SUCCESS);
+    EXPECT_EQ(decoder->Start(), RESULT_SUCCESS);
+
+    // EVS mode 13.2 kbps frame with toc field
+    uint8_t testFrame[] = {0xce, 0x40, 0xf2, 0xb2, 0xa4, 0xce};
+
+    // ImsMediaSubType subtype;
+
+    encoder->OnDataFromFrontNode(MEDIASUBTYPE_UNDEFINED, testFrame, sizeof(testFrame), 0, false, 0,
+            MEDIASUBTYPE_UNDEFINED);
+
+    EXPECT_EQ(fakeNode->GetSubType(), MEDIASUBTYPE_AUDIO_SID);
+    // Compairing one byte extra as PayloadEncoder will have added one Toc header as it's HeaderFull
+    // mode test.
+    EXPECT_EQ(fakeNode->GetFrameSize(), sizeof(testFrame));
+    // Removing Toc header from the comparison as testFrame does not have toc header included
+    EXPECT_EQ(memcmp(fakeNode->GetDataFrame(), testFrame, fakeNode->GetFrameSize()), 0);
+}
+
 }  // namespace
