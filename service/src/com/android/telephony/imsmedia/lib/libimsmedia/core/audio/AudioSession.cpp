@@ -500,6 +500,7 @@ void AudioSession::onEvent(int32_t type, uint64_t param1, uint64_t param2)
                     "AUDIO_REQUEST_EVENT", type, mSessionId, param1, param2);
             break;
         case kRequestRoundTripTimeDelayUpdate:
+        case kRequestAudioPlayingStatus:
         case kCollectPacketInfo:
         case kCollectOptionalInfo:
         case kCollectRxRtpStatus:
