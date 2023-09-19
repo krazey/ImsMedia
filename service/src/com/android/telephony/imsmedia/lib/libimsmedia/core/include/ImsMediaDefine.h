@@ -69,6 +69,7 @@ enum kImsMediaInternalRequestType
     kRequestVideoSendTmmbr,
     kRequestVideoSendTmmbn,
     kRequestRoundTripTimeDelayUpdate = 310,
+    kRequestAudioPlayingStatus,
     kCollectPacketInfo,
     kCollectOptionalInfo,
     kCollectRxRtpStatus,
@@ -483,11 +484,18 @@ enum kRtpDataType
     kRtpDataTypeNormal,
 };
 
+enum kAudioPlayingStatus
+{
+    kAudioTypeNoData = 0,
+    kAudioTypeVoice,
+};
+
 enum kRtpOptionalType
 {
     kTimeToLive,
     kRoundTripDelay,
     kReportPacketLossGap,
+    kAudioPlayingStatus,
 };
 
 /** TODO: change the name to avoid confusion by similarity */

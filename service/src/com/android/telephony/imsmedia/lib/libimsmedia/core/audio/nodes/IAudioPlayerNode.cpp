@@ -361,10 +361,16 @@ void* IAudioPlayerNode::run()
                     break;
             }
 
+            if (mCallback != nullptr)
+            {
+                mCallback->SendEvent(kRequestAudioPlayingStatus,
+                        frameType == SPEECH ? kAudioTypeVoice : kAudioTypeNoData, 0);
+            }
+
             if (mAudioPlayer->onDataFrame(data, size, frameType, false, 0))
             {
                 // send buffering complete message to client
-                if (!isFirstFrameReceived)
+                if (!isFirstFrameReceived && mCallback != nullptr)
                 {
                     mCallback->SendEvent(kImsMediaEventFirstPacketReceived,
                             reinterpret_cast<uint64_t>(new AudioConfig(*mConfig)));
@@ -386,12 +392,23 @@ void* IAudioPlayerNode::run()
             {
                 lastPlayedSeq++;
                 mAudioPlayer->onDataFrame(data, size, LOST, hasNextFrame, nextFrameByte);
+
+                if (mCallback != nullptr)
+                {
+                    mCallback->SendEvent(kRequestAudioPlayingStatus, kAudioTypeVoice, 0);
+                }
             }
             else
             {
                 IMLOGD_PACKET0(IM_PACKET_LOG_AUDIO, "[run] no data");
                 mAudioPlayer->onDataFrame(nullptr, 0, NO_DATA, false, 0);
+
+                if (mCallback != nullptr)
+                {
+                    mCallback->SendEvent(kRequestAudioPlayingStatus, kAudioTypeNoData, 0);
+                }
             }
+
 #ifdef FILE_DUMP
             std::fwrite(&noDataHeader, 1, 1, file);
 #endif

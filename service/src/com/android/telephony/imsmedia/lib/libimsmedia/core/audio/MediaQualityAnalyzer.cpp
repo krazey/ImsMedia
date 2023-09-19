@@ -182,7 +182,6 @@ void MediaQualityAnalyzer::collectInfo(const int32_t streamType, RtpPacket* pack
         }
 
         mCallQuality.setNumRtpPacketsTransmitted(mCallQuality.getNumRtpPacketsTransmitted() + 1);
-        IMLOGD_PACKET1(IM_PACKET_LOG_RTP, "[collectInfo] tx list size[%d]", mListTxPacket.size());
     }
     else if (streamType == kStreamRtpRx && packet != nullptr)
     {
@@ -200,15 +199,11 @@ void MediaQualityAnalyzer::collectInfo(const int32_t streamType, RtpPacket* pack
 
         switch (packet->rtpDataType)
         {
-            case kRtpDataTypeNoData:
-                mCallQuality.setNumNoDataFrames(mCallQuality.getNumNoDataFrames() + 1);
-                break;
             case kRtpDataTypeSid:
                 mCallQuality.setNumRtpSidPacketsReceived(
                         mCallQuality.getNumRtpSidPacketsReceived() + 1);
                 break;
             default:
-            case kRtpDataTypeNormal:
                 break;
         }
 
@@ -250,15 +245,14 @@ void MediaQualityAnalyzer::collectInfo(const int32_t streamType, RtpPacket* pack
 void MediaQualityAnalyzer::collectOptionalInfo(
         const int32_t optionType, const int32_t seq, const int32_t value)
 {
-    IMLOGD_PACKET3(IM_PACKET_LOG_RTP, "[collectOptionalInfo] optionType[%d], seq[%d], value[%d]",
-            optionType, seq, value);
-
     if (optionType == kTimeToLive)
     {
         // TODO : pass data to rtcp-xr
     }
     else if (optionType == kRoundTripDelay)
     {
+        IMLOGD_PACKET1(IM_PACKET_LOG_RTP, "[collectOptionalInfo] round trip time[%d]", value);
+
         mSumRoundTripTime += value;
         mCountRoundTripTime++;
         mCallQuality.setAverageRoundTripTime(mSumRoundTripTime / mCountRoundTripTime);
@@ -293,6 +287,18 @@ void MediaQualityAnalyzer::collectOptionalInfo(
         IMLOGD_PACKET3(IM_PACKET_LOG_RTP,
                 "[collectOptionalInfo] lost packet seq[%d], value[%d], list size[%d]", seq, value,
                 mListLostPacket.size());
+    }
+    else if (optionType == kAudioPlayingStatus)
+    {
+        switch (value)
+        {
+            case kAudioTypeNoData:
+                mCallQuality.setNumNoDataFrames(mCallQuality.getNumNoDataFrames() + 1);
+                break;
+            case kAudioTypeVoice:
+                mCallQuality.setNumVoiceFrames(mCallQuality.getNumVoiceFrames() + 1);
+                break;
+        }
     }
 }
 
@@ -346,7 +352,6 @@ void MediaQualityAnalyzer::collectRxRtpStatus(
     switch (status)
     {
         case kRtpStatusNormal:
-            mCallQuality.setNumVoiceFrames(mCallQuality.getNumVoiceFrames() + 1);
             mCallQualityNumRxPacket++;
             break;
         case kRtpStatusLate:
@@ -668,6 +673,9 @@ void MediaQualityAnalyzer::processEvent(uint32_t event, uint64_t paramA, uint64_
     {
         case kRequestRoundTripTimeDelayUpdate:
             collectOptionalInfo(kRoundTripDelay, 0, paramA);
+            break;
+        case kRequestAudioPlayingStatus:
+            collectOptionalInfo(kAudioPlayingStatus, 0, paramA);
             break;
         case kCollectPacketInfo:
             collectInfo(
