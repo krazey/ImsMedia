@@ -379,8 +379,10 @@ void* IAudioPlayerNode::run()
             uint8_t nextFrameByte = 0;
             bool hasNextFrame = false;
             uint32_t lostSeq = lastPlayedSeq + 1;
-
-            if (GetRedundantFrame(lostSeq, &data, &size, &hasNextFrame, &nextFrameByte))
+            if (mRunningCodecMode == kImsAudioEvsPrimaryMode13200 &&
+                    (mEvsChannelAwOffset == 2 || mEvsChannelAwOffset == 3 ||
+                            mEvsChannelAwOffset == 5 || mEvsChannelAwOffset == 7) &&
+                    GetRedundantFrame(lostSeq, &data, &size, &hasNextFrame, &nextFrameByte))
             {
                 lastPlayedSeq++;
                 mAudioPlayer->onDataFrame(data, size, LOST, hasNextFrame, nextFrameByte);
