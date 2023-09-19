@@ -768,7 +768,7 @@ bool AudioJitterBuffer::GetRedundantFrame(uint32_t lostSeq, uint8_t** ppData, ui
     std::lock_guard<std::mutex> guard(mMutex);
     DataEntry* pEntry = nullptr;
 
-    if (mCodecType == kAudioCodecEvs && mEvsRedundantFrameOffset > 0 && !mDtxPlayed &&
+    if (!mDtxPlayed &&
             GetPartialRedundancyFrame(lostSeq, mCurrPlayingTS, mEvsRedundantFrameOffset, &pEntry))
     {
         if (ppData)
