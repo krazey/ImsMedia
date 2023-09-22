@@ -85,6 +85,12 @@ public abstract class RtpConfig implements Parcelable {
     /** Holds RTP parameters required to maintain RTP stream continuity */
     @Nullable
     private RtpContextParams mRtpContextParams;
+    /**
+     * The rtp reception statistics for the delay adjustment to synchronize the latency with the
+     * video stream session
+     */
+    @Nullable
+    private RtpReceptionStats mRtpReceptionStats;
 
     /** @hide */
     RtpConfig(int type, Parcel in) {
@@ -99,6 +105,8 @@ public abstract class RtpConfig implements Parcelable {
         mSamplingRateKHz = in.readByte();
         mRtpContextParams = in.readParcelable(RtpContextParams.class.getClassLoader(),
                 RtpContextParams.class);
+        mRtpReceptionStats = in.readParcelable(RtpReceptionStats.class.getClassLoader(),
+                RtpReceptionStats.class);
     }
 
     /** @hide **/
@@ -113,6 +121,7 @@ public abstract class RtpConfig implements Parcelable {
         mTxPayloadTypeNumber = builder.mTxPayloadTypeNumber;
         mSamplingRateKHz = builder.mSamplingRateKHz;
         mRtpContextParams = builder.mRtpContextParams;
+        mRtpReceptionStats = builder.mRtpReceptionStats;
     }
 
     private @NonNull InetSocketAddress readSocketAddress(final Parcel in) {
@@ -201,6 +210,10 @@ public abstract class RtpConfig implements Parcelable {
         this.mRtpContextParams = mRtpContextParams;
     }
 
+    public void setRtpReceptionStats(final RtpReceptionStats stats) {
+        this.mRtpReceptionStats = stats;
+    }
+
     @NonNull
     @Override
     public String toString() {
@@ -213,13 +226,15 @@ public abstract class RtpConfig implements Parcelable {
             + ", mTxPayloadTypeNumber=" + mTxPayloadTypeNumber
             + ", mSamplingRateKHz=" + mSamplingRateKHz
             + ", mRtpContextParams=" + mRtpContextParams
+            + ", mRtpReceptionStats=" + mRtpReceptionStats
             + " }";
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(mDirection, mAccessNetwork, mRemoteRtpAddress, mRtcpConfig,
-            mDscp, mRxPayloadTypeNumber, mTxPayloadTypeNumber, mSamplingRateKHz, mRtpContextParams);
+            mDscp, mRxPayloadTypeNumber, mTxPayloadTypeNumber, mSamplingRateKHz,
+            mRtpContextParams, mRtpReceptionStats);
     }
 
     @Override
@@ -242,7 +257,8 @@ public abstract class RtpConfig implements Parcelable {
                 && mRxPayloadTypeNumber == s.mRxPayloadTypeNumber
                 && mTxPayloadTypeNumber == s.mTxPayloadTypeNumber
                 && mSamplingRateKHz == s.mSamplingRateKHz
-                && Objects.equals(mRtpContextParams, s.mRtpContextParams));
+                && Objects.equals(mRtpContextParams, s.mRtpContextParams)
+                && Objects.equals(mRtpReceptionStats, s.mRtpReceptionStats));
     }
 
     /**
@@ -275,6 +291,7 @@ public abstract class RtpConfig implements Parcelable {
         dest.writeByte(mTxPayloadTypeNumber);
         dest.writeByte(mSamplingRateKHz);
         dest.writeParcelable(mRtpContextParams, 0);
+        dest.writeParcelable(mRtpReceptionStats, 0);
     }
 
     public static final @NonNull Parcelable.Creator<RtpConfig>
@@ -315,6 +332,8 @@ public abstract class RtpConfig implements Parcelable {
         private byte mSamplingRateKHz;
         @Nullable
         private RtpContextParams mRtpContextParams;
+        @Nullable
+        private RtpReceptionStats mRtpReceptionStats;
 
         AbstractBuilder() {}
 
@@ -403,6 +422,15 @@ public abstract class RtpConfig implements Parcelable {
          */
         public T setRtpContextParams(final RtpContextParams rtpContextParams) {
             this.mRtpContextParams = rtpContextParams;
+            return self();
+        }
+
+        /**
+         * Sets RTP receptions statistic parameter required for stream delay adjustment
+         * @param stats parameter fields of a {@link RtpReceptionStats}
+         */
+        public T setRtpReceptionStats(final RtpReceptionStats stats) {
+            this.mRtpReceptionStats = stats;
             return self();
         }
     }

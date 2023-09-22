@@ -205,6 +205,7 @@ public class MainActivity extends AppCompatActivity {
     private TextureView mTextureDisplay;
     private Surface mPreviewSurface;
     private Surface mDisplaySurface;
+    private int mDelay;
 
     /**
      * Enum of the CodecType from android.hardware.radio.ims.media.CodecType with
@@ -652,6 +653,7 @@ public class MainActivity extends AppCompatActivity {
         mAudioSession = null;
         mVideoSession = null;
         mTextSession = null;
+        mDelay = 100;
     }
 
     @Override
@@ -2734,6 +2736,19 @@ public class MainActivity extends AppCompatActivity {
             extensions.add(extension2);
             Log.d(TAG, "[sendHeaderExtension] extension size=" + extensions.size());
             mAudioSession.sendHeaderExtension(extensions);
+        }
+    }
+
+    /**
+     * Send the parameter to adjust the audio delay
+     */
+    public void adjustDelay(View btn) {
+        if (mAudioSession != null) {
+            mDelay = (mDelay + 20) % 240;
+            if (mDelay < 60) {
+                mDelay = 60;
+            }
+            mAudioSession.adjustDelay(mDelay);
         }
     }
 }

@@ -30,6 +30,7 @@ import android.telephony.imsmedia.IImsAudioSessionCallback;
 import android.telephony.imsmedia.ImsMediaSession;
 import android.telephony.imsmedia.MediaQualityStatus;
 import android.telephony.imsmedia.MediaQualityThreshold;
+import android.telephony.imsmedia.RtpReceptionStats;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
@@ -58,6 +59,8 @@ public final class AudioSession extends IImsAudioSession.Stub implements IMediaS
     public static final int CMD_SET_MEDIA_QUALITY_THRESHOLD = 109;
     public static final int CMD_START_DTMF = 110;
     public static final int CMD_STOP_DTMF = 111;
+    public static final int CMD_REQUEST_RECEPTION_STATS = 112;
+    public static final int CMD_ADJUST_DELAY = 113;
 
     public static final int EVENT_OPEN_SESSION_SUCCESS = 201;
     public static final int EVENT_OPEN_SESSION_FAILURE = 202;
@@ -71,6 +74,7 @@ public final class AudioSession extends IImsAudioSession.Stub implements IMediaS
     public static final int EVENT_DTMF_RECEIVED_IND = 210;
     public static final int EVENT_CALL_QUALITY_CHANGE_IND = 211;
     public static final int EVENT_SESSION_CLOSED = 212;
+    public static final int EVENT_NOTIFY_RECEPTION_STATS = 213;
 
     private static final int DTMF_DEFAULT_DURATION = 140;
 
@@ -207,6 +211,18 @@ public final class AudioSession extends IImsAudioSession.Stub implements IMediaS
     }
 
     @Override
+    public void requestRtpReceptionStats(int intervalMs) {
+        Log.d(TAG, "requestRtpReceptionStats: interval=" + intervalMs);
+        Utils.sendMessage(mHandler, CMD_REQUEST_RECEPTION_STATS, intervalMs);
+    }
+
+    @Override
+    public void adjustDelay(int delayMs) {
+        Log.d(TAG, "adjustDelay: delay=" + delayMs);
+        Utils.sendMessage(mHandler, CMD_ADJUST_DELAY, delayMs);
+    }
+
+    @Override
     public void onOpenSessionSuccess(Object session) {
         Log.d(TAG, "onOpenSessionSuccess");
         Utils.sendMessage(mHandler, EVENT_OPEN_SESSION_SUCCESS, session);
@@ -273,6 +289,12 @@ public final class AudioSession extends IImsAudioSession.Stub implements IMediaS
                 case CMD_SET_MEDIA_QUALITY_THRESHOLD:
                     handleSetMediaQualityThreshold((MediaQualityThreshold)msg.obj);
                     break;
+                case CMD_REQUEST_RECEPTION_STATS:
+                    handleRequestRtpReceptionStats((int) msg.obj);
+                    break;
+                case CMD_ADJUST_DELAY:
+                    handleAdjustDelay((int) msg.obj);
+                    break;
                 case EVENT_OPEN_SESSION_SUCCESS:
                     handleOpenSuccess(msg.obj);
                     break;
@@ -308,6 +330,9 @@ public final class AudioSession extends IImsAudioSession.Stub implements IMediaS
                     break;
                 case EVENT_CALL_QUALITY_CHANGE_IND:
                     handleCallQualityChangeInd((CallQuality) msg.obj);
+                    break;
+                case EVENT_NOTIFY_RECEPTION_STATS:
+                    handleNotifyReceptionStats((RtpReceptionStats) msg.obj);
                     break;
                 default:
             }
@@ -432,6 +457,18 @@ public final class AudioSession extends IImsAudioSession.Stub implements IMediaS
         }
     }
 
+    private void handleRequestRtpReceptionStats(int intervalMs) {
+        if (!isAudioOffload()) {
+            mLocalSession.requestRtpReceptionStats(intervalMs);
+        }
+    }
+
+    private void handleAdjustDelay(int delayMs) {
+        if (!isAudioOffload()) {
+            mLocalSession.adjustDelay(delayMs);
+        }
+    }
+
     private void handleOpenSuccess(Object session) {
        if (session instanceof IImsMediaSession) {
             try {
@@ -540,6 +577,14 @@ public final class AudioSession extends IImsAudioSession.Stub implements IMediaS
             mCallback.onCallQualityChanged(callQuality);
         }  catch (RemoteException e) {
             Log.e(TAG, "Failed to notify call quality changed indication: " + e);
+        }
+    }
+
+    private void handleNotifyReceptionStats(RtpReceptionStats stats) {
+        try {
+            mCallback.notifyRtpReceptionStats(stats);
+        }  catch (RemoteException e) {
+            Log.e(TAG, "Failed to notify rtp reception statistics: " + e);
         }
     }
 }

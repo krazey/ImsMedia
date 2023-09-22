@@ -22,6 +22,7 @@ import android.telephony.CallQuality;
 import android.telephony.ims.RtpHeaderExtension;
 import android.telephony.imsmedia.AudioConfig;
 import android.telephony.imsmedia.MediaQualityStatus;
+import android.telephony.imsmedia.RtpReceptionStats;
 import android.util.Log;
 
 import java.util.ArrayList;
@@ -105,11 +106,8 @@ public class AudioListener implements JNIImsMediaListener {
             }
                 break;
             case AudioSession.EVENT_MEDIA_QUALITY_STATUS_IND:
-            {
-                final MediaQualityStatus status =
-                        MediaQualityStatus.CREATOR.createFromParcel(parcel);
-                Utils.sendMessage(mHandler, event, status);
-            }
+                Utils.sendMessage(mHandler, event,
+                        MediaQualityStatus.CREATOR.createFromParcel(parcel));
                 break;
             case AudioSession.EVENT_TRIGGER_ANBR_QUERY_IND:
                 final AudioConfig configAnbr = AudioConfig.CREATOR.createFromParcel(parcel);
@@ -125,6 +123,10 @@ public class AudioListener implements JNIImsMediaListener {
                 break;
             case AudioSession.EVENT_SESSION_CLOSED:
                 mCallback.onSessionClosed(parcel.readInt());
+                break;
+            case AudioSession.EVENT_NOTIFY_RECEPTION_STATS:
+                Utils.sendMessage(mHandler, event,
+                        RtpReceptionStats.CREATOR.createFromParcel(parcel));
                 break;
             default:
                 break;

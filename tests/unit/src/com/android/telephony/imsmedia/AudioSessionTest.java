@@ -32,6 +32,7 @@ import android.telephony.imsmedia.IImsAudioSessionCallback;
 import android.telephony.imsmedia.ImsMediaSession;
 import android.telephony.imsmedia.MediaQualityStatus;
 import android.telephony.imsmedia.MediaQualityThreshold;
+import android.telephony.imsmedia.RtpReceptionStats;
 import android.testing.AndroidTestingRunner;
 import android.testing.TestableLooper;
 
@@ -39,6 +40,7 @@ import com.android.telephony.imsmedia.AudioService;
 import com.android.telephony.imsmedia.AudioSession;
 import com.android.telephony.imsmedia.Utils;
 import com.android.telephony.imsmedia.Utils.OpenSessionParams;
+import com.android.telephony.imsmedia.tests.RtpReceptionStatsTest;
 
 import org.junit.After;
 import org.junit.Before;
@@ -62,6 +64,8 @@ public class AudioSessionTest extends ImsMediaTest {
     private static final int PACKET_LOSS = 15;
     private static final int JITTER = 200;
     private static final char DTMF_DIGIT = '7';
+    private static final int RECEPTION_DURATION = 10000;
+    private static final int DELAY_ADJUSTMENT = 100;
     private AudioSession audioSession;
     private AudioSession.AudioSessionHandler handler;
     @Mock
@@ -248,6 +252,22 @@ public class AudioSessionTest extends ImsMediaTest {
     }
 
     @Test
+    public void testRequestRtpReceptionStats() {
+        // Query rtp reception stats
+        audioSession.requestRtpReceptionStats(RECEPTION_DURATION);
+        processAllMessages();
+        verify(audioLocalSession, times(1)).requestRtpReceptionStats(eq(RECEPTION_DURATION));
+    }
+
+    @Test
+    public void testAdjustDelay() {
+        // Apply delay
+        audioSession.adjustDelay(DELAY_ADJUSTMENT);
+        processAllMessages();
+        verify(audioLocalSession, times(1)).adjustDelay(eq(DELAY_ADJUSTMENT));
+    }
+
+    @Test
     public void testFirstMediaPacketReceivedInd() {
         // Receive First MediaPacket Received Indication
         AudioConfig config = AudioConfigTest.createAudioConfig();
@@ -326,6 +346,19 @@ public class AudioSessionTest extends ImsMediaTest {
             verify(callback, times(1)).onCallQualityChanged(eq(callQuality));
         } catch (RemoteException e) {
             fail("Failed to notify onCallQualityChanged: " + e);
+        }
+    }
+
+    @Test
+    public void testNotifyRtpReceptionStats() {
+        // Receive Rtp reception statistics notification
+        RtpReceptionStats stats = RtpReceptionStatsTest.createRtpReceptionStats();
+        Utils.sendMessage(handler, AudioSession.EVENT_NOTIFY_RECEPTION_STATS, stats);
+        processAllMessages();
+        try {
+            verify(callback, times(1)).notifyRtpReceptionStats(eq(stats));
+        } catch (RemoteException e) {
+            fail("Failed to notify RtpReceptionStats: " + e);
         }
     }
 

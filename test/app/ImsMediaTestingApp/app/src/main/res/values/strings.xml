@@ -43,6 +43,10 @@
   <!-- Send Header extension button text -->
   <string name="send_header_extension_button_text">Send RtpHdrExt</string>
 
+  <!-- Invoke apply delay button text -->
+  <string name="apply_delay_button_text">Apply Delay</string>
+
+
   <!-- Settings page Strings -->
   <string name="settings_remote_device_title">Remote Device</string>
   <string name="port_number_placeholder">port number</string>

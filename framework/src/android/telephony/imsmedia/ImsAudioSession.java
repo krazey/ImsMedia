@@ -178,4 +178,32 @@ public class ImsAudioSession implements ImsMediaSession {
             Log.e(TAG, "Failed to send RTP header extension: " + e);
         }
     }
+
+    /**
+     * Request the current rtp reception statistics parameters for checking the current status of
+     * the rtp stream. It will trigger the notifyRtpReceptionStats() with the RtpReceptionStats.
+     *
+     * @param intervalMs The interval of the time in milliseconds of the rtp reception notification
+     */
+    public void requestRtpReceptionStats(int intervalMs) {
+        try {
+            miSession.requestRtpReceptionStats(intervalMs);
+        } catch (RemoteException e) {
+            Log.e(TAG, "Failed to query rtp reception statistics: " + e);
+        }
+    }
+
+    /**
+     * Adjust the delay in the jitter buffer to synchronize the audio with the time of video frames
+     *
+     * @param delayMs The delay to adjust the additional delay to the jitter buffer. The value is
+     * always positive.
+     */
+    public void adjustDelay(int delayMs) {
+        try {
+            miSession.adjustDelay(delayMs);
+        } catch (RemoteException e) {
+            Log.e(TAG, "Failed to apply delay to the session de-jitter buffer: " + e);
+        }
+    }
 }

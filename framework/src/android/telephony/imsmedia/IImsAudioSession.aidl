@@ -36,5 +36,7 @@ interface IImsAudioSession {
     oneway void stopDtmf();
     oneway void sendHeaderExtension(in List<RtpHeaderExtension> extensions);
     oneway void setMediaQualityThreshold(in MediaQualityThreshold threshold);
+    oneway void requestRtpReceptionStats(in int intervalMs);
+    oneway void adjustDelay(in int delayMs);
 }
 
