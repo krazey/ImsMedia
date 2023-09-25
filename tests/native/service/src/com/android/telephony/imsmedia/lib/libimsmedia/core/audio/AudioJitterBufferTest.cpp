@@ -751,3 +751,45 @@ TEST_F(AudioJitterBufferTest, TestAddGetWithLostOverOutlier)
     EXPECT_EQ(mCallback.getNumDiscarded(), 0);
     EXPECT_EQ(mCallback.getNumNormal(), kNumFrames);
 }
+
+TEST_F(AudioJitterBufferTest, TestAdditionalDelay)
+{
+    char buffer[TEST_BUFFER_SIZE] = {"\x1\x2\x3\x4\x5\x6\x7\x0"};
+
+    ImsMediaSubType subtype = MEDIASUBTYPE_UNDEFINED;
+    uint8_t* data = nullptr;
+    uint32_t size = 0;
+    uint32_t timestamp = 0;
+    bool mark = false;
+    uint32_t seq = 0;
+    const uint16_t startSeq = 10000;
+    uint16_t addSeq = startSeq;
+    uint32_t addTimestamp = 0;
+    int32_t addTime = 0;
+    int32_t getTime = addTime + mStartJitterBufferSize * TEST_FRAME_INTERVAL;
+
+    for (int i = 0; i < mStartJitterBufferSize; i++)
+    {
+        mJitterBuffer->Add(MEDIASUBTYPE_UNDEFINED, reinterpret_cast<uint8_t*>(buffer),
+                sizeof(buffer), addTimestamp += TEST_FRAME_INTERVAL, false, addSeq++,
+                MEDIASUBTYPE_UNDEFINED, addTime += TEST_FRAME_INTERVAL);
+
+        if (mJitterBuffer->Get(&subtype, &data, &size, &timestamp, &mark, &seq,
+                    getTime += TEST_FRAME_INTERVAL))
+        {
+            mJitterBuffer->Delete();
+        }
+    }
+
+    int32_t additionalDelay = 100;
+    mJitterBuffer->SetAdditionalDelay(additionalDelay);
+
+    EXPECT_EQ(mJitterBuffer->GetCurrentSize(),
+            additionalDelay / TEST_FRAME_INTERVAL + mStartJitterBufferSize);
+
+    additionalDelay = 200;
+    mJitterBuffer->SetAdditionalDelay(additionalDelay);
+
+    EXPECT_EQ(mJitterBuffer->GetCurrentSize(),
+            additionalDelay / TEST_FRAME_INTERVAL + mStartJitterBufferSize);
+}

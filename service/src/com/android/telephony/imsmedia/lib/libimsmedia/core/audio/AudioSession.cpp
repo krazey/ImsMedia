@@ -500,6 +500,10 @@ void AudioSession::onEvent(int32_t type, uint64_t param1, uint64_t param2)
             ImsMediaEventHandler::SendEvent(
                     "AUDIO_RESPONSE_EVENT", kAudioCallQualityChangedInd, mSessionId, param1);
             break;
+        case kAudioNotifyRtpReceptionStats:
+            ImsMediaEventHandler::SendEvent(
+                    "AUDIO_RESPONSE_EVENT", kAudioNotifyRtpReceptionStats, mSessionId, param1);
+            break;
         case kRequestAudioCmr:
         case kRequestAudioCmrEvs:
         case kRequestSendRtcpXrReport:
@@ -569,6 +573,33 @@ void AudioSession::sendDtmf(char digit, int duration)
         if (graph != nullptr && graph->getState() == kStreamStateRunning)
         {
             graph->sendDtmf(digit, duration);
+        }
+    }
+}
+
+void AudioSession::requestRtpReceptionStats(int32_t intervalMs)
+{
+    if (mMediaQualityAnalyzer != nullptr)
+    {
+        mMediaQualityAnalyzer->setNotifyRtpReceptionStatsInterval(intervalMs);
+    }
+}
+
+void AudioSession::adjustDelay(const int32_t delayMs)
+{
+    if (mListGraphRtpRx.empty())
+    {
+        return;
+    }
+
+    for (std::list<AudioStreamGraphRtpRx*>::iterator iter = mListGraphRtpRx.begin();
+            iter != mListGraphRtpRx.end(); iter++)
+    {
+        AudioStreamGraphRtpRx* graph = *iter;
+
+        if (graph != nullptr && graph->getState() == kStreamStateRunning)
+        {
+            graph->adjustDelay(delayMs);
         }
     }
 }

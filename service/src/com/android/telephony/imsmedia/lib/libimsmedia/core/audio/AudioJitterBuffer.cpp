@@ -72,6 +72,7 @@ void AudioJitterBuffer::Reset()
     mPrevGetTime = 0;
     mListVoiceFrames.clear();
     mListDropVoiceFrames.clear();
+    mAdditionalDelay = 0;
 }
 
 void AudioJitterBuffer::ClearBuffer()
@@ -194,6 +195,7 @@ void AudioJitterBuffer::Add(ImsMediaSubType subtype, uint8_t* pbBuffer, uint32_t
     packet->seqNum = nSeqNum;
     packet->jitter = jitter;
     packet->arrival = arrivalTime;
+    packet->timestamp = nTimestamp;
     mCallback->SendEvent(kCollectPacketInfo, kStreamRtpRx, reinterpret_cast<uint64_t>(packet));
 
     std::lock_guard<std::mutex> guard(mMutex);
@@ -765,5 +767,23 @@ bool AudioJitterBuffer::GetRedundantFrame(uint32_t lostSeq, uint8_t** ppData, ui
 
         return true;
     }
+
     return false;
+}
+
+void AudioJitterBuffer::SetAdditionalDelay(const int32_t delayMs)
+{
+    std::lock_guard<std::mutex> guard(mMutex);
+
+    if (!mWaiting && mFirstFrameReceived)
+    {
+        int32_t delayDiff = delayMs - mAdditionalDelay;
+        mAdditionalDelay = delayMs;
+
+        int32_t newDelay = delayDiff / FRAME_INTERVAL;
+        mCurrPlayingTS -= newDelay * FRAME_INTERVAL;
+        mCurrJitterBufferSize += newDelay;
+        IMLOGD3("[SetAdditionalDelay] delay=%d, delayDiff=%d, curSize=%d", delayMs, delayDiff,
+                mCurrJitterBufferSize);
+    }
 }

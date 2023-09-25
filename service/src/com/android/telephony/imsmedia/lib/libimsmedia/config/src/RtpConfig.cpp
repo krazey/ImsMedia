@@ -27,6 +27,7 @@ namespace imsmedia
 
 const android::String8 kClassNameRtcpConfig("android.telephony.imsmedia.RtcpConfig");
 const android::String8 kClassNameRtpContextParams("android.telephony.imsmedia.RtpContextParams");
+const android::String8 kClassNameRtpReceptionStats("android.telephony.imsmedia.RtpReceptionStats");
 
 /** Native representation of android.telephony.imsmedia.RtpConfig */
 RtpConfig::RtpConfig(int32_t mediaType) :
@@ -61,6 +62,7 @@ RtpConfig::RtpConfig(RtpConfig* config)
     txPayloadTypeNumber = config->txPayloadTypeNumber;
     samplingRateKHz = config->samplingRateKHz;
     rtpContextParams = config->rtpContextParams;
+    mRtpReceptionStats = config->mRtpReceptionStats;
 }
 
 RtpConfig::RtpConfig(const RtpConfig& config)
@@ -76,6 +78,7 @@ RtpConfig::RtpConfig(const RtpConfig& config)
     txPayloadTypeNumber = config.txPayloadTypeNumber;
     samplingRateKHz = config.samplingRateKHz;
     rtpContextParams = config.rtpContextParams;
+    mRtpReceptionStats = config.mRtpReceptionStats;
 }
 
 RtpConfig& RtpConfig::operator=(const RtpConfig& config)
@@ -93,6 +96,7 @@ RtpConfig& RtpConfig::operator=(const RtpConfig& config)
         txPayloadTypeNumber = config.txPayloadTypeNumber;
         samplingRateKHz = config.samplingRateKHz;
         rtpContextParams = config.rtpContextParams;
+        mRtpReceptionStats = config.mRtpReceptionStats;
     }
     return *this;
 }
@@ -106,7 +110,8 @@ bool RtpConfig::operator==(const RtpConfig& config) const
             this->rxPayloadTypeNumber == config.rxPayloadTypeNumber &&
             this->txPayloadTypeNumber == config.txPayloadTypeNumber &&
             this->samplingRateKHz == config.samplingRateKHz &&
-            this->rtpContextParams == config.rtpContextParams);
+            this->rtpContextParams == config.rtpContextParams &&
+            this->mRtpReceptionStats == config.mRtpReceptionStats);
 }
 
 bool RtpConfig::operator!=(const RtpConfig& config) const
@@ -118,7 +123,8 @@ bool RtpConfig::operator!=(const RtpConfig& config) const
             this->rxPayloadTypeNumber != config.rxPayloadTypeNumber ||
             this->txPayloadTypeNumber != config.txPayloadTypeNumber ||
             this->samplingRateKHz != config.samplingRateKHz ||
-            this->rtpContextParams != config.rtpContextParams);
+            this->rtpContextParams != config.rtpContextParams ||
+            this->mRtpReceptionStats != config.mRtpReceptionStats);
 }
 
 status_t RtpConfig::writeToParcel(Parcel* out) const
@@ -205,6 +211,19 @@ status_t RtpConfig::writeToParcel(Parcel* out) const
     }
 
     err = rtpContextParams.writeToParcel(out);
+    if (err != NO_ERROR)
+    {
+        return err;
+    }
+
+    String16 classNameRtpReceptionStats(kClassNameRtpReceptionStats);
+    err = out->writeString16(classNameRtpReceptionStats);
+    if (err != NO_ERROR)
+    {
+        return err;
+    }
+
+    err = mRtpReceptionStats.writeToParcel(out);
     if (err != NO_ERROR)
     {
         return err;
@@ -322,6 +341,24 @@ status_t RtpConfig::readFromParcel(const Parcel* in)
         return err;
     }
 
+    err = in->readString16(&className);
+    if (err == NO_ERROR)
+    {
+        err = mRtpReceptionStats.readFromParcel(in);
+        if (err != NO_ERROR)
+        {
+            return err;
+        }
+    }
+    else if (err == UNEXPECTED_NULL)
+    {
+        mRtpReceptionStats.setDefaultConfig();
+    }
+    else
+    {
+        return err;
+    }
+
     return NO_ERROR;
 }
 
@@ -423,6 +460,16 @@ RtpContextParams RtpConfig::getRtpContextParams()
 void RtpConfig::setRtpContextParams(RtpContextParams& rtpContextParams)
 {
     this->rtpContextParams = rtpContextParams;
+}
+
+RtpReceptionStats RtpConfig::getRtpReceptionStats()
+{
+    return mRtpReceptionStats;
+}
+
+void RtpConfig::setRtpReceptionStats(const RtpReceptionStats& stats)
+{
+    this->mRtpReceptionStats = stats;
 }
 
 }  // namespace imsmedia

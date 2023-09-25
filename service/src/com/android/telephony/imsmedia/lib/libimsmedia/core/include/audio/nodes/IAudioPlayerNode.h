@@ -42,6 +42,7 @@ public:
     virtual bool IsSameConfig(void* config);
     virtual void* run();
     void ProcessCmr(const uint32_t cmrType, const uint32_t cmrDefine);
+    void AdjustDelay(const int32_t delayMs);
 
 private:
     AudioConfig* mConfig;

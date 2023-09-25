@@ -36,6 +36,15 @@ public:
      * @param cmrDefine The 4 bit of cmr define code for EVS and not used for AMR/AMR-WB codec
      */
     void processCmr(const uint32_t cmrType, const uint32_t cmrDefine);
+
+    /**
+     * @brief Adjust the delay in the jitter buffer to synchronize the audio with the time of video
+     *        frames
+     *
+     * @param delayMs The additional delay to the jitter buffer in milliseconds unit. The value is
+     *        always positive.
+     */
+    void adjustDelay(const int32_t delayMs);
 };
 
 #endif

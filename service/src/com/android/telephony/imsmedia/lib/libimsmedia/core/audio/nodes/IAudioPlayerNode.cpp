@@ -294,6 +294,14 @@ void IAudioPlayerNode::ProcessCmr(const uint32_t cmrType, const uint32_t cmrDefi
     }
 }
 
+void IAudioPlayerNode::AdjustDelay(const int32_t delayMs)
+{
+    if (mJitterBuffer != nullptr)
+    {
+        reinterpret_cast<AudioJitterBuffer*>(mJitterBuffer)->SetAdditionalDelay(delayMs);
+    }
+}
+
 void* IAudioPlayerNode::run()
 {
     IMLOGD0("[run] enter");

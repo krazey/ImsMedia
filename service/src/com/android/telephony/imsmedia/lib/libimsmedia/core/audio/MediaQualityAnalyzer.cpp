@@ -59,6 +59,8 @@ MediaQualityAnalyzer::MediaQualityAnalyzer()
     mCountRtpInactivity = 0;
     mCountRtcpInactivity = 0;
     mNumRtcpPacketReceived = 0;
+    mReceptionInterval = 0;
+    mLatestRoundTripDelayMs = 0;
     reset();
 }
 
@@ -133,6 +135,12 @@ void MediaQualityAnalyzer::setMediaQualityThreshold(const MediaQualityThreshold&
 
     mPacketLossChecker.initialize(mRtpHysteresisTime);
     mJitterChecker.initialize(mRtpHysteresisTime);
+}
+
+void MediaQualityAnalyzer::setNotifyRtpReceptionStatsInterval(const int32_t intervalMs)
+{
+    IMLOGD1("[setNotifyRtpReceptionStatsInterval] interval[%d]", intervalMs);
+    mReceptionInterval = intervalMs;
 }
 
 bool MediaQualityAnalyzer::isSameConfig(AudioConfig* config)
@@ -253,7 +261,7 @@ void MediaQualityAnalyzer::collectOptionalInfo(
     else if (optionType == kRoundTripDelay)
     {
         IMLOGD_PACKET1(IM_PACKET_LOG_RTP, "[collectOptionalInfo] round trip time[%d]", value);
-
+        mLatestRoundTripDelayMs = value;
         mSumRoundTripTime += value;
         mCountRoundTripTime++;
         mCallQuality.setAverageRoundTripTime(mSumRoundTripTime / mCountRoundTripTime);
@@ -339,6 +347,7 @@ void MediaQualityAnalyzer::collectRxRtpStatus(
                 mCallQuality.setMinPlayoutDelayMillis(delay);
             }
 
+            mListPlayoutDelay.push_back(delay);
             found = true;
             break;
         }
@@ -476,6 +485,7 @@ void MediaQualityAnalyzer::processData(const int32_t timeCount)
     }
 
     processMediaQuality();
+    processRtpReceptionStats(timeCount);
 }
 
 void MediaQualityAnalyzer::processMediaQuality()
@@ -625,6 +635,31 @@ void MediaQualityAnalyzer::processMediaQuality()
     if (shouldNotify)
     {
         notifyMediaQualityStatus();
+    }
+}
+
+void MediaQualityAnalyzer::processRtpReceptionStats(const int32_t timeCount)
+{
+    if (mReceptionInterval != 0 && timeCount % (mReceptionInterval / 1000) == 0)
+    {
+        RtpReceptionStats* stats = new RtpReceptionStats();
+
+        if (!mListRxPacket.empty())
+        {
+            stats->setRtpTimestamp(mListRxPacket.back()->timestamp);
+            stats->setRtpSequenceNumber(mListRxPacket.back()->seqNum);
+            stats->setTimeDurationMs(mListRxPacket.back()->arrival);
+            stats->setRoundTripTimeMs(mLatestRoundTripDelayMs);
+            uint32_t meanDelay = mListPlayoutDelay.empty()
+                    ? 0
+                    : std::accumulate(mListPlayoutDelay.begin(), mListPlayoutDelay.end(), 0.0f) /
+                            mListPlayoutDelay.size();
+            stats->setJitterBufferMs(meanDelay);
+            mListPlayoutDelay.clear();
+        }
+
+        IMLOGD1("[processRtpReceptionStats] stats=%s", stats->printDebugString());
+        mCallback->SendEvent(kAudioNotifyRtpReceptionStats, reinterpret_cast<uint64_t>(stats));
     }
 }
 

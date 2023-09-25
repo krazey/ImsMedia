@@ -73,6 +73,14 @@ public:
     bool GetRedundantFrame(uint32_t lostSeq, uint8_t** ppData, uint32_t* pnDataSize,
             bool* hasNextFrame, uint8_t* nextFrameFirstByte);
 
+    /**
+     * @brief Adjust buffering delay by adding the additional delay to synchronize the audio with
+     *        the video frames
+     *
+     * @param delayMs The delay to add
+     */
+    void SetAdditionalDelay(const int32_t delayMs);
+
 private:
     void Resync(uint32_t spareFrames);
     void CountLostFrames(int32_t currentSeq, int32_t lastSeq);
@@ -99,6 +107,7 @@ private:
     DataEntry* mPreservedDtx;
     int32_t mEvsRedundantFrameOffset;
     uint32_t mPrevGetTime;
+    uint32_t mAdditionalDelay;
 };
 
 #endif

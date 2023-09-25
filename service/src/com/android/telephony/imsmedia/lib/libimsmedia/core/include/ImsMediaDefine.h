@@ -297,6 +297,8 @@ enum ImsMediaAudioMsgRequest
     kAudioSendDtmf,
     kAudioSendRtpHeaderExtension,
     kAudioSetMediaQualityThreshold,
+    kAudioRequestRtpReceptionStats = 112,
+    kAudioAdjustDelay,
 };
 
 enum ImsMediaAudioMsgResponse
@@ -313,6 +315,7 @@ enum ImsMediaAudioMsgResponse
     kAudioDtmfReceivedInd,
     kAudioCallQualityChangedInd,
     kAudioSessionClosed,
+    kAudioNotifyRtpReceptionStats,
 };
 
 enum ImsMediaVideoMsgRequest
@@ -507,6 +510,7 @@ public:
             seqNum(0),
             TTL(0),
             jitter(0),
+            timestamp(0),
             arrival(0),
             rtpDataType(kRtpDataTypeNoData),
             status(kRtpStatusNotDefined)
@@ -518,6 +522,7 @@ public:
         seqNum = p.seqNum;
         TTL = p.TTL;
         jitter = p.jitter;
+        timestamp = p.timestamp;
         arrival = p.arrival;
         rtpDataType = p.rtpDataType;
         status = p.status;
@@ -528,6 +533,7 @@ public:
     uint32_t TTL;
     /** transit time difference */
     int32_t jitter;
+    int32_t timestamp;
     /** arrival time */
     int32_t arrival;
     kRtpDataType rtpDataType;

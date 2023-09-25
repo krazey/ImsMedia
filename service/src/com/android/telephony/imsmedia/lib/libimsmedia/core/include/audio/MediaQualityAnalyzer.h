@@ -131,6 +131,15 @@ public:
     void setMediaQualityThreshold(const MediaQualityThreshold& threshold);
 
     /**
+     * @brief Sets the interval of the RTP reception statistics notification params for checking the
+     *        current status of the rtp stream. It will trigger the notifyRtpReceptionStats() with
+     *        the RtpReceptionStats.
+     *
+     * @param intervalMs The interval of the time in milliseconds of the rtp reception notification
+     */
+    void setNotifyRtpReceptionStatsInterval(const int32_t intervalMs);
+
+    /**
      * @brief Check the audio config has different codec values
      *
      * @param config The AudioConfig to compare
@@ -229,6 +238,7 @@ protected:
      */
     void processData(const int32_t timeCount);
     void processMediaQuality();
+    void processRtpReceptionStats(const int32_t timeCount);
     void notifyCallQuality();
     void notifyMediaQualityStatus();
     void AddEvent(uint32_t event, uint64_t paramA, uint64_t paramB);
@@ -286,6 +296,8 @@ protected:
     uint32_t mCallQualityInactNumRxPacket;
     /** The number of 1s periods without activity for call quality inactivity */
     uint32_t mCallQualityNumInactPeriods;
+    /** The list of the playout delay of the audio frames */
+    std::list<uint32_t> mListPlayoutDelay;
 
     // MediaQualityThreshold parameters
     std::vector<int32_t> mBaseRtpInactivityTimes;
@@ -296,6 +308,10 @@ protected:
     std::vector<int32_t> mPacketLossThreshold;
     std::vector<int32_t> mJitterThreshold;
     bool mNotifyStatus;
+
+    // Rtp Reception Statistics
+    int32_t mReceptionInterval;
+    int32_t mLatestRoundTripDelayMs;
 
     // Counter for inactivity check
     int32_t mCountRtpInactivity;
