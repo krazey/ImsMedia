@@ -60,7 +60,7 @@ public:
         ASSERT_TRUE(type != kImsMediaEventNotifyError);
         String8* text = reinterpret_cast<String8*>(param1);
         ASSERT_TRUE(text != nullptr);
-        mReceivedText.setTo(*text);
+        mReceivedText = *text;
 
         if (mReceivedText == strCharReplacement)
         {
