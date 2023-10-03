@@ -419,11 +419,12 @@ bool AudioJitterBuffer::Get(ImsMediaSubType* psubtype, uint8_t** ppData, uint32_
 
     // adjust the playing timestamp
     if (mDataQueue.Get(&pEntry) && pEntry->nTimestamp != mCurrPlayingTS &&
-            ((mCurrPlayingTS - ALLOWABLE_ERROR) < pEntry->nTimestamp) &&
-            (pEntry->nTimestamp < (mCurrPlayingTS + ALLOWABLE_ERROR)))
+            ((mCurrPlayingTS - ALLOWABLE_ERROR) <= pEntry->nTimestamp) &&
+            (pEntry->nTimestamp <= (mCurrPlayingTS + ALLOWABLE_ERROR)))
     {
+        IMLOGD3("[Get] sync playing curTS[%u], TS[%u], seq[%d]", mCurrPlayingTS,
+                pEntry->nTimestamp, pEntry->nSeqNum);
         mCurrPlayingTS = pEntry->nTimestamp;
-        IMLOGD2("[Get] sync playing curTS[%u], seq[%d]", mCurrPlayingTS, pEntry->nSeqNum);
     }
 
     // delete late arrival
@@ -439,9 +440,9 @@ bool AudioJitterBuffer::Get(ImsMediaSubType* psubtype, uint8_t** ppData, uint32_
             mLastPlayedSeqNum = pEntry->nSeqNum;
         }
 
-        IMLOGD_PACKET3(IM_PACKET_LOG_JITTER,
-                "[Get] delete late arrival seq[%d], curTS[%u], dtx[%d]", pEntry->nSeqNum,
-                mCurrPlayingTS, mDtxPlayed);
+        IMLOGD_PACKET4(IM_PACKET_LOG_JITTER,
+                "[Get] delete late arrival seq[%d], curTS[%u], TS[%u] , dtx[%d]",
+                pEntry->nSeqNum, mCurrPlayingTS, pEntry->nTimestamp, mDtxPlayed);
 
         if (mPreservedDtx != nullptr)
         {
