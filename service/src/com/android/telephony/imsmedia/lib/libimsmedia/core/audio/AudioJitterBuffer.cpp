@@ -515,6 +515,13 @@ bool AudioJitterBuffer::Get(ImsMediaSubType* psubtype, uint8_t** ppData, uint32_
         CollectRxRtpStatus(pEntry->nSeqNum, kRtpStatusNormal);
         CollectJitterBufferStatus(
                 mCurrJitterBufferSize * FRAME_INTERVAL, mMaxJitterBufferSize * FRAME_INTERVAL);
+
+        if (mPreservedDtx != nullptr)
+        {
+            delete mPreservedDtx;
+            mPreservedDtx = nullptr;
+        }
+
         return true;
     }
     else
