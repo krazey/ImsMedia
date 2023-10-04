@@ -187,15 +187,6 @@ void MediaQualityAnalyzer::collectInfo(const int32_t streamType, RtpPacket* pack
     {
         // for call quality report
         mCallQuality.setNumRtpPacketsReceived(mCallQuality.getNumRtpPacketsReceived() + 1);
-        mCallQualitySumRelativeJitter += packet->jitter;
-
-        if (mCallQuality.getMaxRelativeJitter() < packet->jitter)
-        {
-            mCallQuality.setMaxRelativeJitter(packet->jitter);
-        }
-
-        mCallQuality.setAverageRelativeJitter(
-                mCallQualitySumRelativeJitter / mCallQuality.getNumRtpPacketsReceived());
 
         switch (packet->rtpDataType)
         {
@@ -219,6 +210,16 @@ void MediaQualityAnalyzer::collectInfo(const int32_t streamType, RtpPacket* pack
             mJitterRxPacket =
                     mJitterRxPacket + (double)(std::abs(packet->jitter) - mJitterRxPacket) * 0.0625;
         }
+
+        mCallQualitySumRelativeJitter += mJitterRxPacket;
+
+        if (mCallQuality.getMaxRelativeJitter() < mJitterRxPacket)
+        {
+            mCallQuality.setMaxRelativeJitter(mJitterRxPacket);
+        }
+
+        mCallQuality.setAverageRelativeJitter(
+                mCallQualitySumRelativeJitter / mCallQuality.getNumRtpPacketsReceived());
 
         mSSRC = packet->ssrc;
         mNumRxPacket++;
