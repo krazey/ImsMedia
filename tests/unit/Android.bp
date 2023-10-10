@@ -32,7 +32,7 @@ android_test {
         "platform-test-annotations",
         "testables",
         "testng",
-        "truth-prebuilt",
+        "truth",
     ],
     certificate: "platform",
     test_suites: ["device-tests"],
