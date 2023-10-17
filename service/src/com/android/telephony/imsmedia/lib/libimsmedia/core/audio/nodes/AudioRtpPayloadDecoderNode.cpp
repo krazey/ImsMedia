@@ -125,7 +125,8 @@ void AudioRtpPayloadDecoderNode::OnDataFromFrontNode(ImsMediaSubType subtype, ui
 {
     if (subtype == MEDIASUBTYPE_REFRESHED)
     {
-        SendDataToRearNode(subtype, nullptr, nDataSize, 0, 0, 0, MEDIASUBTYPE_UNDEFINED);
+        SendDataToRearNode(
+                subtype, nullptr, nDataSize, 0, 0, 0, MEDIASUBTYPE_UNDEFINED, arrivalTime);
         return;
     }
 

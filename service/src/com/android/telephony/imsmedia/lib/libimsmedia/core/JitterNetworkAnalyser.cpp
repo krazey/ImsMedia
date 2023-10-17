@@ -25,9 +25,9 @@
 #define MAX_JITTER_LIST_SIZE    (150)
 #define PACKET_INTERVAL         (20)    // milliseconds
 #define BUFFER_INCREASE_TH      (200)   // milliseconds
-#define BUFFER_DECREASE_TH      (3000)  // milliseconds
-#define MARGIN_WEIGHT           (1.8f)
-#define BUFFER_IN_DECREASE_SIZE (1)
+#define BUFFER_DECREASE_TH      (2000)  // milliseconds
+#define MARGIN_WEIGHT           (1.0f)
+#define BUFFER_IN_DECREASE_SIZE (2)
 
 JitterNetworkAnalyser::JitterNetworkAnalyser()
 {
@@ -54,9 +54,11 @@ void JitterNetworkAnalyser::Reset()
 
     {
         std::lock_guard<std::mutex> guard(mMutex);
-        mListJitters.clear();
-        mMapDelta.clear();
+        mListAccumDeltas.clear();
+        mPrevTimestamp = 0;
+        mPrevArrivalTime = 0;
         mTimeLateArrivals = 0;
+        mPrevDelta = 0;
     }
 }
 
@@ -95,40 +97,29 @@ int32_t JitterNetworkAnalyser::CalculateTransitTimeDifference(
 {
     std::lock_guard<std::mutex> guard(mMutex);
 
-    if (mMapDelta.size() == 0)
+    if (mPrevTimestamp == 0)
     {
-        mMapDelta.insert({timestamp, arrivalTime});
+        mPrevTimestamp = timestamp;
+        mPrevArrivalTime = arrivalTime;
         return 0;
     }
 
-    if (mMapDelta.size() > MAX_JITTER_LIST_SIZE)
+    int32_t inputTimestampGap = timestamp - mPrevTimestamp;
+    int32_t inputTimeGap = arrivalTime - mPrevArrivalTime;
+    int32_t delta = inputTimeGap - inputTimestampGap;
+
+    mPrevTimestamp = timestamp;
+    mPrevArrivalTime = arrivalTime;
+
+    mPrevDelta += delta;
+    mListAccumDeltas.push_back(mPrevDelta);
+
+    if (mListAccumDeltas.size() > MAX_JITTER_LIST_SIZE)
     {
-        mMapDelta.erase(mMapDelta.begin());
+        mListAccumDeltas.pop_front();
     }
 
-    mMapDelta.insert({timestamp, arrivalTime});
-
-    if (getGreatestLess(mMapDelta, timestamp) == mMapDelta.end())
-    {
-        mListJitters.push_back(0);
-        return 0;
-    }
-
-    int32_t inputTimestampGap = timestamp - getGreatestLess(mMapDelta, timestamp)->first;
-    int32_t inputTimeGap = arrivalTime - getGreatestLess(mMapDelta, timestamp)->second;
-    int32_t jitter = std::abs(inputTimeGap - inputTimestampGap);
-
-    if (jitter < mMaxJitterBufferSize * PACKET_INTERVAL)
-    {
-        mListJitters.push_back(jitter);
-    }
-
-    if (mListJitters.size() > MAX_JITTER_LIST_SIZE)
-    {
-        mListJitters.pop_front();
-    }
-
-    return jitter;
+    return delta;
 }
 
 void JitterNetworkAnalyser::SetLateArrivals(uint32_t time)
@@ -140,23 +131,23 @@ double JitterNetworkAnalyser::CalculateDeviation(double* pMean)
 {
     std::lock_guard<std::mutex> guard(mMutex);
 
-    if (mListJitters.empty())
+    if (mListAccumDeltas.empty())
     {
         *pMean = 0;
         return 0.0f;
     }
 
-    double mean =
-            std::accumulate(mListJitters.begin(), mListJitters.end(), 0.0f) / mListJitters.size();
+    double mean = std::accumulate(mListAccumDeltas.begin(), mListAccumDeltas.end(), 0.0f) /
+            mListAccumDeltas.size();
 
     *pMean = mean;
 
-    double dev = sqrt(std::accumulate(mListJitters.begin(), mListJitters.end(), 0.0f,
+    double dev = sqrt(std::accumulate(mListAccumDeltas.begin(), mListAccumDeltas.end(), 0.0f,
                               [mean](int x, int y)
                               {
                                   return x + std::pow(y - mean, 2);
                               }) /
-            mListJitters.size());
+            mListAccumDeltas.size());
 
     return dev;
 }
@@ -165,12 +156,12 @@ int32_t JitterNetworkAnalyser::GetMaxJitterValue()
 {
     std::lock_guard<std::mutex> guard(mMutex);
 
-    if (mListJitters.empty())
+    if (mListAccumDeltas.empty())
     {
         return 0;
     }
 
-    return *std::max_element(mListJitters.begin(), mListJitters.end());
+    return *std::max_element(mListAccumDeltas.begin(), mListAccumDeltas.end());
 }
 
 uint32_t JitterNetworkAnalyser::GetNextJitterBufferSize(
@@ -185,13 +176,11 @@ uint32_t JitterNetworkAnalyser::GetNextJitterBufferSize(
     dev = CalculateDeviation(&mean);
     calcJitterSize = (double)maxJitter * mBufferWeight;
 
-    if (calcJitterSize >= nCurrJitterBufferSize * PACKET_INTERVAL ||
-            maxJitter >= nCurrJitterBufferSize * PACKET_INTERVAL)
+    if (calcJitterSize >= nCurrJitterBufferSize * PACKET_INTERVAL)
     {
         networkStatus = NETWORK_STATUS_BAD;
     }
-    else if (calcJitterSize < (nCurrJitterBufferSize - 1) * PACKET_INTERVAL &&
-            maxJitter < (nCurrJitterBufferSize - 1) * PACKET_INTERVAL - 10)
+    else if (calcJitterSize < (nCurrJitterBufferSize - 1) * PACKET_INTERVAL)
     {
         networkStatus = NETWORK_STATUS_GOOD;
     }
@@ -246,9 +235,20 @@ uint32_t JitterNetworkAnalyser::GetNextJitterBufferSize(
                         (mTimeLateArrivals == 0 ||
                                 currentTime - mTimeLateArrivals > mBufferDecThreshold))
                 {
-                    if (nCurrJitterBufferSize > mMinJitterBufferSize)
+                    nextJitterBuffer = (calcJitterSize + PACKET_INTERVAL) / PACKET_INTERVAL;
+
+                    if (nCurrJitterBufferSize - nextJitterBuffer >= mBufferStepSize)
                     {
                         nextJitterBuffer = nCurrJitterBufferSize - mBufferStepSize;
+                    }
+                    else
+                    {
+                        nextJitterBuffer = nCurrJitterBufferSize - 1;
+                    }
+
+                    if (nextJitterBuffer < mMinJitterBufferSize)
+                    {
+                        nextJitterBuffer = mMinJitterBufferSize;
                     }
 
                     IMLOGD_PACKET2(IM_PACKET_LOG_JITTER,

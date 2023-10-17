@@ -430,7 +430,8 @@ void RtpDecoderNode::OnMediaDataInd(unsigned char* data, uint32_t datasize, uint
         IMLOGI3("[OnMediaDataInd] media[%d] SSRC changed, [%x] -> [%x]", mMediaType, mReceivingSSRC,
                 ssrc);
         mReceivingSSRC = ssrc;
-        SendDataToRearNode(MEDIASUBTYPE_REFRESHED, nullptr, mReceivingSSRC, 0, 0, 0);
+        SendDataToRearNode(MEDIASUBTYPE_REFRESHED, nullptr, mReceivingSSRC, 0, 0, 0,
+                MEDIASUBTYPE_UNDEFINED, mArrivalTime);
     }
 
     if (mMediaType == IMS_MEDIA_AUDIO &&
