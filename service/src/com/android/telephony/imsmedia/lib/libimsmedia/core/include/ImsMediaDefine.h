@@ -69,6 +69,7 @@ enum kImsMediaInternalRequestType
     kRequestVideoSendTmmbr,
     kRequestVideoSendTmmbn,
     kRequestRoundTripTimeDelayUpdate = 310,
+    kRequestAudioPlayingStatus,
     kCollectPacketInfo,
     kCollectOptionalInfo,
     kCollectRxRtpStatus,
@@ -279,6 +280,9 @@ enum ImsMediaSubType
     // Jitter Buffer GetData not ready
     MEDIASUBTYPE_NOT_READY,
     MEDIASUBTYPE_BITSTREAM_CODECCONFIG,
+    MEDIASUBTYPE_AUDIO_SID,
+    MEDIASUBTYPE_AUDIO_NODATA,
+    MEDIASUBTYPE_AUDIO_NORMAL,
     MEDIASUBTYPE_MAX
 };
 
@@ -480,11 +484,18 @@ enum kRtpDataType
     kRtpDataTypeNormal,
 };
 
+enum kAudioPlayingStatus
+{
+    kAudioTypeNoData = 0,
+    kAudioTypeVoice,
+};
+
 enum kRtpOptionalType
 {
     kTimeToLive,
     kRoundTripDelay,
     kReportPacketLossGap,
+    kAudioPlayingStatus,
 };
 
 /** TODO: change the name to avoid confusion by similarity */

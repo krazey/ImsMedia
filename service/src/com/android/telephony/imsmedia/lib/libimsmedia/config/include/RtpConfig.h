@@ -21,6 +21,7 @@
 #include <binder/Parcelable.h>
 #include <binder/Status.h>
 #include <RtcpConfig.h>
+#include <RtpContextParams.h>
 #include <stdint.h>
 
 namespace android
@@ -84,6 +85,8 @@ public:
     int8_t getTxPayloadTypeNumber();
     void setSamplingRateKHz(const int8_t sample);
     int8_t getSamplingRateKHz();
+    RtpContextParams getRtpContextParams();
+    void setRtpContextParams(RtpContextParams& rtpContextParams);
 
 protected:
     RtpConfig(int32_t type);
@@ -142,6 +145,13 @@ protected:
      * @brief Sampling rate in kHz
      */
     int8_t samplingRateKHz;
+
+    /**
+     * @brief Holds the rtp parameters such as ssrc, timestamp and sequence number. Used to transfer
+     * RTP context information between RTP stacks (ex: during handover). Helps to maintain contunity
+     * in RTP steams even after switching between RTP stacks.
+     */
+    RtpContextParams rtpContextParams;
 };
 
 }  // namespace imsmedia

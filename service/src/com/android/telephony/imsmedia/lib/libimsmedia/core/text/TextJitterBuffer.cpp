@@ -24,17 +24,18 @@ TextJitterBuffer::TextJitterBuffer() :
 
 TextJitterBuffer::~TextJitterBuffer() {}
 
-void TextJitterBuffer::Reset()
-{
-    mFirstFrameReceived = false;
-    mLastPlayedSeqNum = 0;
-    mLastPlayedTimestamp = 0;
-}
-
 void TextJitterBuffer::Add(ImsMediaSubType subtype, uint8_t* buffer, uint32_t size,
         uint32_t timestamp, bool mark, uint32_t seqNum, ImsMediaSubType /*dataType*/,
         uint32_t arrivalTime)
 {
+    if (subtype == MEDIASUBTYPE_REFRESHED)
+    {
+        mSsrc = size;
+        IMLOGI1("[Add] ssrc[%u]", mSsrc);
+        Reset();
+        return;
+    }
+
     IMLOGD_PACKET6(IM_PACKET_LOG_JITTER,
             "[Add] seq[%u], mark[%u], TS[%u], size[%u], lastPlayedSeq[%u], arrivalTime[%u]", seqNum,
             mark, timestamp, size, mLastPlayedSeqNum, arrivalTime);
@@ -104,7 +105,8 @@ void TextJitterBuffer::Add(ImsMediaSubType subtype, uint8_t* buffer, uint32_t si
 }
 
 bool TextJitterBuffer::Get(ImsMediaSubType* subtype, uint8_t** data, uint32_t* dataSize,
-        uint32_t* timestamp, bool* mark, uint32_t* seqNum, uint32_t /*currentTime*/)
+        uint32_t* timestamp, bool* mark, uint32_t* seqNum, uint32_t /*currentTime*/,
+        ImsMediaSubType* /*pDataType*/)
 {
     std::lock_guard<std::mutex> guard(mMutex);
     DataEntry* pEntry;

@@ -62,6 +62,7 @@ kBaseNodeId RtpEncoderNode::GetNodeId()
 ImsMediaResult RtpEncoderNode::Start()
 {
     IMLOGD1("[Start] type[%d]", mMediaType);
+    bool bResetSsrc = false;
 
     if (mRtpPayloadTx == 0 || mRtpPayloadRx == 0)
     {
@@ -93,6 +94,7 @@ ImsMediaResult RtpEncoderNode::Start()
     }
     else if (mMediaType == IMS_MEDIA_TEXT)
     {
+        bResetSsrc = true;
         if (mRedundantPayload > 0)
         {
             mRtpSession->SetRtpPayloadParam(mRtpPayloadTx, mRtpPayloadRx, mSamplingRate * 1000,
@@ -102,9 +104,16 @@ ImsMediaResult RtpEncoderNode::Start()
         {
             mRtpSession->SetRtpPayloadParam(mRtpPayloadTx, mRtpPayloadRx, mSamplingRate * 1000);
         }
+
+        if (mRtpContextParams.getSequenceNumber() > 0)
+        {
+            // Set the next sequence number to use by RTP stack.
+            mRtpSession->SetRtpContext(mRtpContextParams.getSsrc(),
+                    mRtpContextParams.getTimestamp(), mRtpContextParams.getSequenceNumber() + 1);
+        }
     }
 
-    mRtpSession->StartRtp();
+    mRtpSession->StartRtp(bResetSsrc);
     mDTMFMode = false;
     mMark = true;
     mPrevTimestamp = 0;
@@ -128,6 +137,8 @@ void RtpEncoderNode::Stop()
     {
         mRtpSession->StopRtp();
     }
+
+    mRtpContextParams.setDefaultConfig();
 
     ClearDataQueue();
     mNodeState = kNodeStateStopped;
@@ -221,6 +232,14 @@ void RtpEncoderNode::SetConfig(void* config)
         mRtpPayloadRx = pConfig->getRxPayloadTypeNumber();
         mRedundantPayload = pConfig->getRedundantPayload();
         mRedundantLevel = pConfig->getRedundantLevel();
+
+        RtpContextParams rtpContextParams = pConfig->getRtpContextParams();
+
+        // TODO: #include <aidl/android/hardware/radio/AccessNetwork.h>
+        if (pConfig->getAccessNetwork() == 5 && rtpContextParams.getSequenceNumber() > 0)
+        {
+            SetRtpContext(rtpContextParams);
+        }
     }
 
     IMLOGD2("[SetConfig] peer Ip[%s], port[%d]", mPeerAddress.ipAddress, mPeerAddress.port);
@@ -260,6 +279,7 @@ bool RtpEncoderNode::IsSameConfig(void* config)
         TextConfig* pConfig = reinterpret_cast<TextConfig*>(config);
         return (mPeerAddress ==
                         RtpAddress(pConfig->getRemoteAddress().c_str(), pConfig->getRemotePort()) &&
+                mRtpContextParams == pConfig->getRtpContextParams() &&
                 mSamplingRate == pConfig->getSamplingRateKHz() &&
                 mRtpPayloadTx == pConfig->getTxPayloadTypeNumber() &&
                 mRtpPayloadRx == pConfig->getRxPayloadTypeNumber() &&
@@ -582,4 +602,25 @@ void RtpEncoderNode::ProcessTextData(
 
     mMark = false;
     mPrevTimestamp = timestamp;
+}
+
+void RtpEncoderNode::SetRtpContext(RtpContextParams& rtpContextParams)
+{
+    mRtpContextParams = rtpContextParams;
+}
+
+void RtpEncoderNode::GetRtpContext(RtpContextParams& rtpContextParams)
+{
+    uint32_t ssrc = 0;
+    uint32_t timestamp = 0;
+    uint16_t seqNumber = 0;
+
+    if (mRtpSession != nullptr)
+    {
+        mRtpSession->GetRtpContext(ssrc, timestamp, seqNumber);
+    }
+
+    rtpContextParams.setSsrc(ssrc);
+    rtpContextParams.setTimestamp(timestamp);
+    rtpContextParams.setSequenceNumber(seqNumber);
 }

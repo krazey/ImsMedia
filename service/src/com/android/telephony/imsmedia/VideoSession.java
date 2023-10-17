@@ -24,6 +24,7 @@ import android.support.annotation.VisibleForTesting;
 import android.telephony.ims.RtpHeaderExtension;
 import android.telephony.imsmedia.IImsVideoSession;
 import android.telephony.imsmedia.IImsVideoSessionCallback;
+import android.telephony.imsmedia.ImsMediaSession;
 import android.telephony.imsmedia.MediaQualityThreshold;
 import android.telephony.imsmedia.VideoConfig;
 import android.util.Log;
@@ -247,7 +248,10 @@ public final class VideoSession extends IImsVideoSession.Stub implements IMediaS
     private void handleOpenSession(OpenSessionParams sessionParams) {
         mVideoListener.setMediaCallback(sessionParams.getCallback());
         Log.d(TAG, "handleOpenSession");
-        mVideoService.openSession(mSessionId, sessionParams);
+        int result = mVideoService.openSession(mSessionId, sessionParams);
+        if (result != ImsMediaSession.RESULT_SUCCESS) {
+            handleOpenFailure(result);
+        }
     }
 
     private void handleCloseSession() {

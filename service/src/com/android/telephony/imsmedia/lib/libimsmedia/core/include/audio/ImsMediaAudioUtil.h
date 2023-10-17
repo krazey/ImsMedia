@@ -162,6 +162,7 @@ public:
     static kEvsCodecMode CheckEVSCodecMode(const uint32_t nAudioFrameLength);
     static int32_t ConvertEVSModeToBitRate(const int32_t mode);
     static kEvsBandwidth FindMaxEvsBandwidthFromRange(const int32_t EvsBandwidthRange);
+    static bool CheckEVSPrimaryHeaderFullModeFromSize(uint32_t size);
 };
 
 #endif  // AUDIO_AMRFMT_H_INCLUDED

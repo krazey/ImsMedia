@@ -445,6 +445,7 @@ TEST_F(AudioManagerTest, testDeleteConfig)
     parcel.setDataPosition(0);
     manager.sendMessage(kSessionId, parcel);
 
+    gCondition.wait_timeout(20);
     closeSession(kSessionId);
 }
 
@@ -465,6 +466,7 @@ TEST_F(AudioManagerTest, testSendDtmf)
 
     manager.sendMessage(kSessionId, parcel);
 
+    gCondition.wait_timeout(20);
     closeSession(kSessionId);
 }
 
@@ -497,6 +499,7 @@ TEST_F(AudioManagerTest, testSendHeaderExtension)
 
     manager.sendMessage(kSessionId, parcel);
 
+    gCondition.wait_timeout(20);
     closeSession(kSessionId);
 }
 
@@ -532,6 +535,7 @@ TEST_F(AudioManagerTest, testSetMediaQualityThreshold)
 
     manager.sendMessage(kSessionId, parcel);
 
+    gCondition.wait_timeout(20);
     closeSession(kSessionId);
 }
 
@@ -549,6 +553,7 @@ TEST_F(AudioManagerTest, testSendInternalEventCmr)
     ImsMediaEventHandler::SendEvent(
             "AUDIO_REQUEST_EVENT", kRequestAudioCmr, kSessionId, kCmrCode, kCmrDefine);
 
+    gCondition.wait_timeout(20);
     closeSession(kSessionId);
 }
 
@@ -566,6 +571,7 @@ TEST_F(AudioManagerTest, testSendInternalEventRtcpXr)
     ImsMediaEventHandler::SendEvent(
             "AUDIO_REQUEST_EVENT", kRequestSendRtcpXrReport, kSessionId, param1, param2);
 
+    gCondition.wait_timeout(20);
     closeSession(kSessionId);
 }
 

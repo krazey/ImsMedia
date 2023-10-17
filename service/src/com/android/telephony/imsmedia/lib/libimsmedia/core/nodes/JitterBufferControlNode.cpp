@@ -56,19 +56,11 @@ void JitterBufferControlNode::SetJitterBufferSize(uint32_t nInit, uint32_t nMin,
     }
 }
 
-void JitterBufferControlNode::SetJitterOptions(
-        uint32_t nReduceTH, uint32_t nStepSize, double zValue, bool bIgnoreSID)
-{
-    if (mJitterBuffer)
-    {
-        mJitterBuffer->SetJitterOptions(nReduceTH, nStepSize, zValue, bIgnoreSID);
-    }
-}
-
 void JitterBufferControlNode::Reset()
 {
     if (mJitterBuffer)
     {
+        mJitterBuffer->ClearBuffer();
         mJitterBuffer->Reset();
     }
 }
@@ -89,15 +81,8 @@ void JitterBufferControlNode::OnDataFromFrontNode(ImsMediaSubType subtype, uint8
 {
     if (mJitterBuffer)
     {
-        if (subtype == MEDIASUBTYPE_REFRESHED)
-        {
-            mJitterBuffer->SetSsrc(nDataSize);
-        }
-        else
-        {
-            mJitterBuffer->Add(
-                    subtype, pData, nDataSize, nTimestamp, bMark, nSeqNum, nDataType, arrivalTime);
-        }
+        mJitterBuffer->Add(
+                subtype, pData, nDataSize, nTimestamp, bMark, nSeqNum, nDataType, arrivalTime);
     }
 }
 
@@ -118,7 +103,19 @@ bool JitterBufferControlNode::GetData(ImsMediaSubType* pSubtype, uint8_t** ppDat
     if (mJitterBuffer)
     {
         return mJitterBuffer->Get(pSubtype, ppData, pnDataSize, pnTimestamp, pbMark, pnSeqNum,
-                ImsMediaTimer::GetTimeInMilliSeconds());
+                ImsMediaTimer::GetTimeInMilliSeconds(), pnDataType);
+    }
+
+    return false;
+}
+
+bool JitterBufferControlNode::GetRedundantFrame(uint32_t lostSeq, uint8_t** ppData,
+        uint32_t* pnDataSize, bool* hasNextFrame, uint8_t* nextFrameFirstByte)
+{
+    if (mJitterBuffer)
+    {
+        return mJitterBuffer->GetRedundantFrame(
+                lostSeq, ppData, pnDataSize, hasNextFrame, nextFrameFirstByte);
     }
 
     return false;

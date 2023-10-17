@@ -235,14 +235,14 @@ void IRtpSession::SetRtcpInterval(int32_t nInterval)
     IMS_RtpSvc_SetRTCPInterval(mRtpSessionId, nInterval);
 }
 
-void IRtpSession::StartRtp()
+void IRtpSession::StartRtp(bool bResetSsrc)
 {
     IMLOGD1("[StartRtp] RtpStarted[%d]", mRtpStarted);
 
     if (mRtpStarted == 0)
     {
         IMLOGD0("[StartRtp] IMS_RtpSvc_SessionEnableRTP");
-        IMS_RtpSvc_SessionEnableRTP(mRtpSessionId);
+        IMS_RtpSvc_SessionEnableRTP(mRtpSessionId, bResetSsrc ? eRTP_TRUE : eRTP_FALSE);
     }
 
     mRtpStarted++;
@@ -570,4 +570,14 @@ void IRtpSession::decreaseRefCounter()
 uint32_t IRtpSession::getRefCounter()
 {
     return mRefCount.load();
+}
+
+void IRtpSession::SetRtpContext(uint32_t ssrc, uint32_t timestamp, uint16_t sequenceNumber)
+{
+    IMS_RtpSvc_SetRtpContext(mRtpSessionId, ssrc, timestamp, sequenceNumber);
+}
+
+void IRtpSession::GetRtpContext(uint32_t& ssrc, uint32_t& timestamp, uint16_t& sequenceNumber)
+{
+    IMS_RtpSvc_GetRtpContext(mRtpSessionId, ssrc, timestamp, sequenceNumber);
 }

@@ -34,12 +34,15 @@ public:
     virtual bool IsSourceNode();
     virtual void SetConfig(void* config);
     virtual bool IsSameConfig(void* config);
+    virtual void OnDataFromFrontNode(ImsMediaSubType subtype, uint8_t* data, uint32_t size,
+            uint32_t timestamp, bool mark, uint32_t seq,
+            ImsMediaSubType dataType = ImsMediaSubType::MEDIASUBTYPE_UNDEFINED,
+            uint32_t arrivalTime = 0);
     virtual void ProcessData();
 
 private:
     char mBuffer[MAX_RTT_LEN + 1];
     int32_t mCodecType;
-    int8_t mRedundantLevel;
     bool mBOMReceived;
     uint16_t mLastPlayedSeq;
     uint32_t mLossWaitTime;

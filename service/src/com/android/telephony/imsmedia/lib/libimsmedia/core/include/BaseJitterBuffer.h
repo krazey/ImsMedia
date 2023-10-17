@@ -32,20 +32,30 @@ public:
     virtual void SetSessionCallback(BaseSessionCallback* callback);
 
     /**
-     * @brief Set the ssrc of the receiving stream
-     */
-    virtual void SetSsrc(uint32_t ssrc);
-
-    /**
      * @brief Set the codec type
      */
     virtual void SetCodecType(uint32_t type);
     virtual void SetJitterBufferSize(uint32_t nInit, uint32_t nMin, uint32_t nMax);
-    virtual void SetJitterOptions(
-            uint32_t nReduceTH, uint32_t nStepSize, double zValue, bool bIgnoreSID);
+
+    /**
+     * @brief Get the size of the queue
+     */
     virtual uint32_t GetCount();
+
+    /**
+     * @brief Reset the parameters for playing
+     */
     virtual void Reset();
+
+    /**
+     * @brief Delete the first data in the queue
+     */
     virtual void Delete();
+
+    /**
+     * @brief Delete all the data frames in the queue
+     */
+    virtual void ClearBuffer();
 
     /**
      * @brief Add data frame to jitter buffer for dejittering
@@ -79,7 +89,11 @@ public:
      * @param currentTime The current timestamp of this method invoked with milliseconds unit
      */
     virtual bool Get(ImsMediaSubType* psubtype, uint8_t** ppData, uint32_t* pnDataSize,
-            uint32_t* ptimestamp, bool* pmark, uint32_t* pnSeqNum, uint32_t currentTime) = 0;
+            uint32_t* ptimestamp, bool* pmark, uint32_t* pnSeqNum, uint32_t currentTime,
+            ImsMediaSubType* pDataType = nullptr) = 0;
+    virtual bool GetRedundantFrame(uint32_t lostSeq, uint8_t** ppData = nullptr,
+            uint32_t* pnDataSize = nullptr, bool* hasNextFrame = nullptr,
+            uint8_t* nextFrameFirstByte = nullptr);
 
 protected:
     BaseSessionCallback* mCallback;

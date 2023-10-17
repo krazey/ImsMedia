@@ -160,6 +160,16 @@ RtpDt_UInt32 RtpSession::getSsrc()
     return m_uiSsrc;
 }
 
+RtpDt_Void RtpSession::setSequenceNumber(IN RtpDt_UInt16 uiSeqNumber)
+{
+    m_usSeqNum = uiSeqNumber;
+}
+
+RtpDt_UInt16 RtpSession::getSequenceNumber()
+{
+    return m_usSeqNum;
+}
+
 RtpDt_Void RtpSession::setRtpPort(IN RtpDt_UInt16 usPort)
 {
     m_usRtpPort = usPort;
@@ -2260,8 +2270,10 @@ RtpDt_Void RtpSession::calculateAndSetRTTD(
     else
     {
         m_lastRTTDelay = (currentTime - lsr - dlsr);
+        m_lastRTTDelay =
+                (m_lastRTTDelay >> 16) * 1000 + ((m_lastRTTDelay & 0x0000ffff) * 1000 / 65536);
     }
-    RTP_TRACE_MESSAGE("calculateAndSetRTTD = %d", m_lastRTTDelay, nullptr);
+    RTP_TRACE_MESSAGE("calculateAndSetRTTD = %d", m_lastRTTDelay, 0);
 }
 eRTP_STATUS_CODE RtpSession::populateRtcpXrPacket(IN_OUT RtcpPacket* pobjRtcpPkt)
 {

@@ -51,6 +51,7 @@ ImsMediaResult AudioStreamGraphRtpRx::create(RtpConfig* config)
     (static_cast<SocketReaderNode*>(pNodeSocketReader))->SetLocalAddress(localAddress);
     (static_cast<SocketReaderNode*>(pNodeSocketReader))->SetProtocolType(kProtocolRtp);
     pNodeSocketReader->SetConfig(config);
+    pNodeSocketReader->Prepare();
     AddNode(pNodeSocketReader);
 
     BaseNode* pNodeRtpDecoder = new RtpDecoderNode(mCallback);
@@ -148,6 +149,16 @@ ImsMediaResult AudioStreamGraphRtpRx::update(RtpConfig* config)
     }
 
     return ret;
+}
+
+void AudioStreamGraphRtpRx::processCmr(const uint32_t cmrType, const uint32_t cmrDefine)
+{
+    BaseNode* node = findNode(kNodeIdAudioPlayer);
+
+    if (node != nullptr)
+    {
+        (reinterpret_cast<IAudioPlayerNode*>(node))->ProcessCmr(cmrType, cmrDefine);
+    }
 }
 
 ImsMediaResult AudioStreamGraphRtpRx::start()

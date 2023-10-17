@@ -106,14 +106,24 @@ ImsMediaResult AudioManager::modifySession(int sessionId, AudioConfig* config)
     IMLOGI1("[modifySession] sessionId[%d]", sessionId);
     if (session != mSessions.end())
     {
-        if ((session->second)->IsGraphAlreadyExist(config) ||
-                (session->second)->getGraphSize(kStreamRtpTx) == 0)
+        if ((config->getMediaDirection() == RtpConfig::MEDIA_DIRECTION_SEND_RECEIVE ||
+                    config->getMediaDirection() == RtpConfig::MEDIA_DIRECTION_RECEIVE_ONLY ||
+                    config->getMediaDirection() == RtpConfig::MEDIA_DIRECTION_SEND_ONLY) &&
+                isOtherSessionActive(sessionId))
         {
-            return (session->second)->startGraph(config);
+            return RESULT_NO_RESOURCES;
         }
         else
         {
-            return (session->second)->addGraph(config, false);
+            if ((session->second)->IsGraphAlreadyExist(config) ||
+                    (session->second)->getGraphSize(kStreamRtpTx) == 0)
+            {
+                return (session->second)->startGraph(config);
+            }
+            else
+            {
+                return (session->second)->addGraph(config, false);
+            }
         }
     }
     else
@@ -431,6 +441,7 @@ void AudioManager::RequestHandler::processEvent(
         }
         break;
         case kRequestAudioCmr:
+        case kRequestAudioCmrEvs:
         case kRequestSendRtcpXrReport:
             sManager->SendInternalEvent(event, static_cast<int>(sessionId), paramA, paramB);
             break;
@@ -553,4 +564,22 @@ void AudioManager::ResponseHandler::processEvent(
         default:
             break;
     }
+}
+
+bool AudioManager::isOtherSessionActive(const int sessionId)
+{
+    for (auto const& session : mSessions)
+    {
+        if (session.first != sessionId)
+        {
+            SessionState state = (session.second)->getState();
+            if (state == kSessionStateActive || state == kSessionStateReceiving ||
+                    state == kSessionStateSending)
+            {
+                IMLOGE1("[modifySession] Another session id[%d] is active", session.first);
+                return true;
+            }
+        }
+    }
+    return false;
 }
