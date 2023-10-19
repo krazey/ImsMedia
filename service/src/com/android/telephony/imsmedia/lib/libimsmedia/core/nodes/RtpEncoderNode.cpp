@@ -492,7 +492,7 @@ bool RtpEncoderNode::ProcessAudioData(ImsMediaSubType subtype, uint8_t* data, ui
             }
             else
             {
-                timeDiff = ((currentTimestamp - mPrevTimestamp) + 5) / 20 * 20;
+                timeDiff = ((currentTimestamp - mPrevTimestamp) + 10) / 20 * 20;
 
                 if (timeDiff > 20)
                 {
