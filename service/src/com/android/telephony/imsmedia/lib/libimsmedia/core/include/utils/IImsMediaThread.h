@@ -35,7 +35,7 @@ class IImsMediaThread
 public:
     IImsMediaThread();
     virtual ~IImsMediaThread();
-    bool StartThread();
+    bool StartThread(const char* name = nullptr);
     static void SetThreadPriority(pid_t pid, pid_t tid, int priority);
     void StopThread();
     bool IsThreadStopped();

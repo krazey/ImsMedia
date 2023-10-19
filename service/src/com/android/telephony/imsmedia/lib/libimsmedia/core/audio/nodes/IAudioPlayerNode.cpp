@@ -95,7 +95,7 @@ ImsMediaResult IAudioPlayerNode::Start()
     }
 
     mNodeState = kNodeStateRunning;
-    StartThread();
+    StartThread("IAudioPlayerNode");
     return RESULT_SUCCESS;
 }
 

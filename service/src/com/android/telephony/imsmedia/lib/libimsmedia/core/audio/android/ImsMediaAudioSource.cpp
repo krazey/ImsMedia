@@ -167,7 +167,7 @@ bool ImsMediaAudioSource::Start()
     IMLOGI1("[Start] start stream state[%s]", AAudio_convertStreamStateToText(nextState));
 
     // start audio read thread
-    StartThread();
+    StartThread("ImsMediaAudioSource");
     return true;
 }
 
