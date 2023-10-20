@@ -36,7 +36,7 @@ public:
     IImsMediaThread();
     virtual ~IImsMediaThread();
     bool StartThread();
-    void SetThreadPriority(pid_t pid, pid_t tid, int priority);
+    static void SetThreadPriority(pid_t pid, pid_t tid, int priority);
     void StopThread();
     bool IsThreadStopped();
     void* runBase();
