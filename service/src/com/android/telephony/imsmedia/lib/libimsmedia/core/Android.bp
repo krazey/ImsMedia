@@ -119,7 +119,7 @@ cc_defaults {
     shared_libs: [
         "libnativewindow",
         "libcamera2ndk",
-        "libandroid"
+        "libandroid",
     ],
     include_dirs: [
         "frameworks/av/camera/ndk/include",
@@ -159,6 +159,9 @@ cc_library_static {
     local_include_dirs: [
         "include",
     ],
+    include_dirs: [
+        "frameworks/av/media/utils/include",
+    ],
     header_libs: [
         "libimsmedia_jni_headers",
         "libimsmedia_protocol_interface_headers",
@@ -177,5 +180,6 @@ cc_library_static {
         "liblog",
         "libmediandk",
         "libutils",
+        "libmediautils",
     ],
 }

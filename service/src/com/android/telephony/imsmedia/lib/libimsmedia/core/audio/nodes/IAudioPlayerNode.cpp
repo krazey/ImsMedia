@@ -297,7 +297,7 @@ void IAudioPlayerNode::ProcessCmr(const uint32_t cmrType, const uint32_t cmrDefi
 void* IAudioPlayerNode::run()
 {
     IMLOGD0("[run] enter");
-    SetAudioThreadPriority(gettid());
+    SetThreadPriority(getpid(), gettid(), THREAD_PRIORITY_REALTIME);
     ImsMediaSubType subtype = MEDIASUBTYPE_UNDEFINED;
     ImsMediaSubType datatype = MEDIASUBTYPE_UNDEFINED;
     uint8_t* data = nullptr;

@@ -17,6 +17,7 @@
 #include <IImsMediaThread.h>
 #include <ImsMediaTrace.h>
 #include <thread>
+#include <mediautils/SchedulingPolicyService.h>
 
 extern void setAudioThreadPriority(int threadId);
 
@@ -49,9 +50,11 @@ bool IImsMediaThread::StartThread()
     return true;
 }
 
-void IImsMediaThread::SetAudioThreadPriority(pid_t tid)
+void IImsMediaThread::SetThreadPriority(pid_t pid, pid_t tid, int priority)
 {
-    setAudioThreadPriority(tid);
+    const int err =
+            android::requestPriority(pid, tid, priority, false /*isForApp*/, true /*asynchronous*/);
+    IMLOGD3("[SetThreadPriority] tid:%u, returned:%d. Err: %s", tid, err, strerror(errno));
 }
 
 void IImsMediaThread::StopThread()
