@@ -27,7 +27,7 @@
 #define MAX_CODEC_EVS_AMR_IO_MODE 9
 #define JITTER_BUFFER_SIZE_INIT   3
 #define JITTER_BUFFER_SIZE_MIN    3
-#define JITTER_BUFFER_SIZE_MAX    13
+#define JITTER_BUFFER_SIZE_MAX    11
 
 IAudioPlayerNode::IAudioPlayerNode(BaseSessionCallback* callback) :
         JitterBufferControlNode(callback, IMS_MEDIA_AUDIO)
