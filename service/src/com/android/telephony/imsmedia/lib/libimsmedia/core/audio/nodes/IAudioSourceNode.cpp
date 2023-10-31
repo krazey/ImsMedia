@@ -18,6 +18,7 @@
 #include <ImsMediaAudioSource.h>
 #include <ImsMediaTrace.h>
 #include <ImsMediaAudioUtil.h>
+#include <ImsMediaTimer.h>
 #include <string.h>
 #include <AudioConfig.h>
 #include <RtpConfig.h>
@@ -181,8 +182,8 @@ void IAudioSourceNode::onDataFrame(uint8_t* buffer, uint32_t size, int64_t times
 {
     IMLOGD_PACKET3(IM_PACKET_LOG_AUDIO, "[onDataFrame] size[%zu], TS[%ld], flag[%d]", size,
             timestamp, flag);
-    SendDataToRearNode(
-            MEDIASUBTYPE_UNDEFINED, buffer, size, timestamp, !mFirstFrame, MEDIASUBTYPE_UNDEFINED);
+    SendDataToRearNode(MEDIASUBTYPE_UNDEFINED, buffer, size, ImsMediaTimer::GetTimeInMilliSeconds(),
+            !mFirstFrame, 0, MEDIASUBTYPE_UNDEFINED, ImsMediaTimer::GetTimeInMilliSeconds());
 
     if (!mFirstFrame)
     {
