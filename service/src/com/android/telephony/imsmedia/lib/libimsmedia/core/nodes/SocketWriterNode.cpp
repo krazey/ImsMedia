@@ -16,6 +16,7 @@
 
 #include <SocketWriterNode.h>
 #include <ImsMediaTrace.h>
+#include <ImsMediaTimer.h>
 
 SocketWriterNode::SocketWriterNode(BaseSessionCallback* callback) :
         BaseNode(callback)
@@ -140,21 +141,18 @@ bool SocketWriterNode::IsSameConfig(void* config)
 }
 
 void SocketWriterNode::OnDataFromFrontNode(ImsMediaSubType subtype, uint8_t* pData,
-        uint32_t nDataSize, uint32_t nTimestamp, bool bMark, uint32_t nSeqNum,
-        ImsMediaSubType nDataType, uint32_t arrivalTime)
+        uint32_t nDataSize, uint32_t nTimestamp, bool /*bMark*/, uint32_t nSeqNum,
+        ImsMediaSubType /*nDataType*/, uint32_t arrivalTime)
 {
-    (void)nDataType;
-    (void)bMark;
-    (void)arrivalTime;
-
     if (mDisableSocket == true && subtype != MEDIASUBTYPE_RTCPPACKET_BYE)
     {
         IMLOGW3("[OnDataFromFrontNode] media[%d] subtype[%d] socket is disabled, bytes[%d]",
                 mMediaType, subtype, nDataSize);
     }
 
-    IMLOGD_PACKET3(IM_PACKET_LOG_SOCKET, "[OnDataFromFrontNode] TS[%d], SeqNum[%u], size[%u]",
-            nTimestamp, nSeqNum, nDataSize);
+    IMLOGD_PACKET4(IM_PACKET_LOG_SOCKET,
+            "[OnDataFromFrontNode] TS[%d], SeqNum[%u], size[%u], timeDiff[%d]", nTimestamp, nSeqNum,
+            nDataSize, arrivalTime != 0 ? ImsMediaTimer::GetTimeInMilliSeconds() - arrivalTime : 0);
 
     if (mSocket == nullptr)
     {

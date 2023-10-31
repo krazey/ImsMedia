@@ -96,7 +96,7 @@ void AudioRtpPayloadEncoderNode::OnDataFromFrontNode(ImsMediaSubType /*subtype*/
     {
         case kAudioCodecAmr:
         case kAudioCodecAmrWb:
-            EncodePayloadAmr(pData, nDataSize, nTimestamp);
+            EncodePayloadAmr(pData, nDataSize, nTimestamp, arrivalTime);
             break;
         case kAudioCodecPcmu:
         case kAudioCodecPcma:
@@ -104,7 +104,7 @@ void AudioRtpPayloadEncoderNode::OnDataFromFrontNode(ImsMediaSubType /*subtype*/
                     nSeqNum, nDataType, arrivalTime);
             break;
         case kAudioCodecEvs:
-            EncodePayloadEvs(pData, nDataSize, nTimestamp);
+            EncodePayloadEvs(pData, nDataSize, nTimestamp, arrivalTime);
             break;
         default:
             IMLOGE1("[OnDataFromFrontNode] invalid codec type[%d]", mCodecType);
@@ -167,7 +167,7 @@ bool AudioRtpPayloadEncoderNode::IsSameConfig(void* config)
 }
 
 void AudioRtpPayloadEncoderNode::EncodePayloadAmr(
-        uint8_t* pData, uint32_t nDataSize, uint32_t nTimestamp)
+        uint8_t* pData, uint32_t nDataSize, uint32_t nTimestamp, uint32_t arrivalTime)
 {
     uint32_t nCmr = 15;
     uint32_t f, ft, q, nDataBitSize;
@@ -260,8 +260,8 @@ void AudioRtpPayloadEncoderNode::EncodePayloadAmr(
 
         if (mTotalPayloadSize > 0)
         {
-            SendDataToRearNode(
-                    MEDIASUBTYPE_RTPPAYLOAD, mPayload, nTotalSize, mTimestamp, mFirstFrame, 0);
+            SendDataToRearNode(MEDIASUBTYPE_RTPPAYLOAD, mPayload, nTotalSize, mTimestamp,
+                    mFirstFrame, 0, MEDIASUBTYPE_UNDEFINED, arrivalTime);
         }
 
         mCurrNumOfFrame = 0;
@@ -275,7 +275,7 @@ void AudioRtpPayloadEncoderNode::EncodePayloadAmr(
 }
 
 void AudioRtpPayloadEncoderNode::EncodePayloadEvs(
-        uint8_t* pData, uint32_t nDataSize, uint32_t nTimeStamp)
+        uint8_t* pData, uint32_t nDataSize, uint32_t nTimeStamp, uint32_t arrivalTime)
 {
     if (nDataSize == 0)
     {
@@ -334,8 +334,8 @@ void AudioRtpPayloadEncoderNode::EncodePayloadEvs(
 
             if (mTotalPayloadSize > 0)
             {
-                SendDataToRearNode(
-                        MEDIASUBTYPE_RTPPAYLOAD, mPayload, nTotalSize, mTimestamp, mFirstFrame, 0);
+                SendDataToRearNode(MEDIASUBTYPE_RTPPAYLOAD, mPayload, nTotalSize, mTimestamp,
+                        mFirstFrame, 0, MEDIASUBTYPE_UNDEFINED, arrivalTime);
             }
 
             mCurrNumOfFrame = 0;
@@ -421,8 +421,8 @@ void AudioRtpPayloadEncoderNode::EncodePayloadEvs(
 
             if (mTotalPayloadSize > 0)
             {
-                SendDataToRearNode(
-                        MEDIASUBTYPE_RTPPAYLOAD, mPayload, nTotalSize, mTimestamp, mFirstFrame, 0);
+                SendDataToRearNode(MEDIASUBTYPE_RTPPAYLOAD, mPayload, nTotalSize, mTimestamp,
+                        mFirstFrame, 0, MEDIASUBTYPE_UNDEFINED, arrivalTime);
             }
 
             mCurrNumOfFrame = 0;
@@ -519,7 +519,8 @@ void AudioRtpPayloadEncoderNode::EncodePayloadEvs(
                 if (mTotalPayloadSize > 0)
                 {
                     SendDataToRearNode(MEDIASUBTYPE_RTPPAYLOAD, mPayload,
-                            CheckPaddingNecessity(nTotalSize), mTimestamp, mFirstFrame, 0);
+                            CheckPaddingNecessity(nTotalSize), mTimestamp, mFirstFrame, 0,
+                            MEDIASUBTYPE_UNDEFINED, arrivalTime);
                 }
 
                 mCurrNumOfFrame = 0;
@@ -600,7 +601,8 @@ void AudioRtpPayloadEncoderNode::EncodePayloadEvs(
                 if (mTotalPayloadSize > 0)
                 {
                     SendDataToRearNode(MEDIASUBTYPE_RTPPAYLOAD, mPayload,
-                            CheckPaddingNecessity(nTotalSize), mTimestamp, mFirstFrame, 0);
+                            CheckPaddingNecessity(nTotalSize), mTimestamp, mFirstFrame, 0,
+                            MEDIASUBTYPE_UNDEFINED, arrivalTime);
                 }
 
                 mCurrNumOfFrame = 0;

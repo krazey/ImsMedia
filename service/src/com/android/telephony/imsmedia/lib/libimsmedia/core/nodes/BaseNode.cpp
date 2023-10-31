@@ -30,6 +30,7 @@ static std::vector<NODE_ID_PAIR> vectorNodeId{
         std::make_pair(kNodeIdAudioSource, "AudioSource"),
         std::make_pair(kNodeIdAudioPlayer, "AudioPlayer"),
         std::make_pair(kNodeIdDtmfEncoder, "DtmfEncoder"),
+        std::make_pair(kNodeIdDtmfSender, "DtmfSender"),
         std::make_pair(kNodeIdAudioPayloadEncoder, "AudioPayloadEncoder"),
         std::make_pair(kNodeIdAudioPayloadDecoder, "AudioPayloadDecoder"),
         std::make_pair(kNodeIdVideoSource, "VideoSource"),
@@ -127,6 +128,11 @@ ImsMediaResult BaseNode::ProcessStart()
 {
     IMLOGW0("[ProcessStart] Error - base method");
     return RESULT_NOT_SUPPORTED;
+}
+
+bool BaseNode::IsRunTime()
+{
+    return true;
 }
 
 bool BaseNode::IsRunTimeStart()
