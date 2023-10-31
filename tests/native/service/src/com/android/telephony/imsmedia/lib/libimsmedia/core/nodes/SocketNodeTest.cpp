@@ -251,16 +251,22 @@ TEST_F(SocketNodeTest, testIncomingPacketAfterStop)
     EXPECT_EQ(mWriter->Start(), RESULT_SUCCESS);
 
     mReader->Stop();
+    EXPECT_EQ(mReader->GetState(), kNodeStateStopped);
 
     uint8_t testPacket[] = {0x80, 0x68, 0x00, 0x0b, 0xbc, 0xbc, 0xe8, 0xa4, 0x00, 0x04, 0x11, 0x68,
             0xf4, 0xfa, 0xfe, 0x67, 0x58, 0x84, 0x80};
 
+    ON_CALL(mMockNode, GetState).WillByDefault(Return(kNodeStateStopped));
+    EXPECT_CALL(mMockNode,
+            OnDataFromFrontNode(MEDIASUBTYPE_UNDEFINED, Pointee(Eq(*testPacket)),
+                    sizeof(testPacket), 0, false, 0, _, _))
+            .Times(0);
+
     mWriter->OnDataFromFrontNode(
             MEDIASUBTYPE_UNDEFINED, testPacket, sizeof(testPacket), 0, false, 0);
     mCondition.wait_timeout(20);
-    EXPECT_EQ(mReader->GetDataCount(), 1);
     EXPECT_EQ(mReader->Start(), RESULT_SUCCESS);
-    EXPECT_EQ(mReader->GetDataCount(), 0);
+    EXPECT_EQ(mReader->GetState(), kNodeStateRunning);
     mWriter->Stop();
     mReader->Stop();
 }
