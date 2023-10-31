@@ -53,8 +53,6 @@ bool SocketReaderNode::Prepare()
 
 ImsMediaResult SocketReaderNode::Start()
 {
-    ClearDataQueue();  // clear the old data stacked
-
     if (mSocketOpened)
     {
         IMLOGD0("[Start] opened already");
@@ -74,34 +72,13 @@ ImsMediaResult SocketReaderNode::Start()
 void SocketReaderNode::Stop()
 {
     IMLOGD2("[Stop] media[%d], protocolType[%d]", mMediaType, mProtocolType);
+    std::lock_guard<std::mutex> guard(mMutex);
     mNodeState = kNodeStateStopped;
-}
-
-void SocketReaderNode::ProcessData()
-{
-    uint8_t* data = nullptr;
-    uint32_t dataSize = 0;
-    uint32_t timeStamp = 0;
-    bool bMark = false;
-    uint32_t seqNum = 0;
-    ImsMediaSubType subtype;
-    ImsMediaSubType dataType;
-    uint32_t arrivalTime;
-
-    while (GetData(
-            &subtype, &data, &dataSize, &timeStamp, &bMark, &seqNum, &dataType, &arrivalTime))
-    {
-        IMLOGD_PACKET3(IM_PACKET_LOG_SOCKET, "[ProcessData] media[%d], size[%d], arrivalTime[%u]",
-                mMediaType, dataSize, arrivalTime);
-        SendDataToRearNode(MEDIASUBTYPE_UNDEFINED, reinterpret_cast<uint8_t*>(data), dataSize,
-                timeStamp, bMark, seqNum, dataType, arrivalTime);
-        DeleteData();
-    }
 }
 
 bool SocketReaderNode::IsRunTime()
 {
-    return false;
+    return true;
 }
 
 bool SocketReaderNode::IsSourceNode()
@@ -198,27 +175,22 @@ ImsMediaResult SocketReaderNode::UpdateConfig(void* config)
 
 void SocketReaderNode::OnReadDataFromSocket()
 {
-    IMLOGD_PACKET1(IM_PACKET_LOG_SOCKET, "[OnReadDataFromSocket] media[%d]", mMediaType);
     std::lock_guard<std::mutex> guard(mMutex);
-
-    // prevent infinite frame stacked in the queue
-    if (mDataQueue.GetCount() > MAX_BUFFER_QUEUE)
-    {
-        mDataQueue.Delete();
-    }
 
     if (mSocketOpened && mSocket != nullptr)
     {
-        int nLen = mSocket->ReceiveFrom(mBuffer, DEFAULT_MTU);
+        int len = mSocket->ReceiveFrom(mBuffer, DEFAULT_MTU);
 
-        if (nLen > 0)
+        if (len > 0)
         {
-            IMLOGD_PACKET3(IM_PACKET_LOG_SOCKET,
-                    "[OnReadDataFromSocket] media[%d], data size[%d], queue size[%d]", mMediaType,
-                    nLen, GetDataCount());
+            IMLOGD_PACKET2(IM_PACKET_LOG_SOCKET, "[OnReadDataFromSocket] media[%d], data size[%d]",
+                    mMediaType, len);
 
-            OnDataFromFrontNode(MEDIASUBTYPE_UNDEFINED, mBuffer, nLen, 0, 0, 0,
-                    MEDIASUBTYPE_UNDEFINED, ImsMediaTimer::GetTimeInMilliSeconds());
+            if (mNodeState == kNodeStateRunning)
+            {
+                SendDataToRearNode(MEDIASUBTYPE_UNDEFINED, mBuffer, len, 0, 0, 0,
+                        MEDIASUBTYPE_UNDEFINED, ImsMediaTimer::GetTimeInMilliSeconds());
+            }
         }
     }
 }
