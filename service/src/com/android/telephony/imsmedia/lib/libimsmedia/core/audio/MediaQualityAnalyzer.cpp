@@ -551,7 +551,7 @@ void MediaQualityAnalyzer::processMediaQuality()
             int32_t lossRate = numLostPacketsInDuration * 100 /
                     (numReceivedPacketsInDuration + numLostPacketsInDuration);
 
-            IMLOGD4("[processMediaQuality] MediaQuality stats [last %d seconds]: lossRate=%d, "
+            IMLOGD4("[processMediaQuality] MediaQuality stats [last %d msec]: lossRate=%d, "
                     "received=%d, lost=%d",
                     mPacketLossDuration, lossRate, numReceivedPacketsInDuration,
                     numLostPacketsInDuration);
