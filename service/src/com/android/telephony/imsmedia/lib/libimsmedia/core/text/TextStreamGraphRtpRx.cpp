@@ -46,32 +46,35 @@ ImsMediaResult TextStreamGraphRtpRx::create(RtpConfig* config)
     ImsMediaNetworkUtil::getLocalIpPortFromSocket(mLocalFd, localIp, MAX_IP_LEN, localPort);
     RtpAddress localAddress(localIp, localPort);
 
-    BaseNode* pNodeSocketReader = new SocketReaderNode(mCallback);
-    pNodeSocketReader->SetMediaType(IMS_MEDIA_TEXT);
-    (static_cast<SocketReaderNode*>(pNodeSocketReader))->SetLocalFd(mLocalFd);
-    (static_cast<SocketReaderNode*>(pNodeSocketReader))->SetLocalAddress(localAddress);
-    (static_cast<SocketReaderNode*>(pNodeSocketReader))->SetProtocolType(kProtocolRtp);
-    pNodeSocketReader->SetConfig(config);
-    AddNode(pNodeSocketReader);
+    BaseNode* nodeSocketReader = new SocketReaderNode(mCallback);
+    nodeSocketReader->SetMediaType(IMS_MEDIA_TEXT);
+    (static_cast<SocketReaderNode*>(nodeSocketReader))->SetLocalFd(mLocalFd);
+    (static_cast<SocketReaderNode*>(nodeSocketReader))->SetLocalAddress(localAddress);
+    (static_cast<SocketReaderNode*>(nodeSocketReader))->SetProtocolType(kProtocolRtp);
+    nodeSocketReader->SetConfig(config);
+    AddNode(nodeSocketReader);
 
-    BaseNode* pNodeRtpDecoder = new RtpDecoderNode(mCallback);
-    pNodeRtpDecoder->SetMediaType(IMS_MEDIA_TEXT);
-    pNodeRtpDecoder->SetConfig(mConfig);
-    (static_cast<RtpDecoderNode*>(pNodeRtpDecoder))->SetLocalAddress(localAddress);
-    AddNode(pNodeRtpDecoder);
-    pNodeSocketReader->ConnectRearNode(pNodeRtpDecoder);
+    BaseNode* nodeRtpDecoder = new RtpDecoderNode(mCallback);
+    nodeRtpDecoder->SetMediaType(IMS_MEDIA_TEXT);
+    nodeRtpDecoder->SetConfig(mConfig);
+    (static_cast<RtpDecoderNode*>(nodeRtpDecoder))->SetLocalAddress(localAddress);
+    AddNode(nodeRtpDecoder);
+    nodeSocketReader->ConnectRearNode(nodeRtpDecoder);
 
-    BaseNode* pNodeRtpPayloadDecoder = new TextRtpPayloadDecoderNode(mCallback);
-    pNodeRtpPayloadDecoder->SetMediaType(IMS_MEDIA_TEXT);
-    pNodeRtpPayloadDecoder->SetConfig(mConfig);
-    AddNode(pNodeRtpPayloadDecoder);
-    pNodeRtpDecoder->ConnectRearNode(pNodeRtpPayloadDecoder);
+    BaseNode* rtpPayloadDecoder = new TextRtpPayloadDecoderNode(mCallback);
+    rtpPayloadDecoder->SetMediaType(IMS_MEDIA_TEXT);
+    rtpPayloadDecoder->SetConfig(mConfig);
+    rtpPayloadDecoder->SetSchedulerCallback(
+            std::static_pointer_cast<StreamSchedulerCallback>(mScheduler));
+    AddNode(rtpPayloadDecoder);
+    nodeRtpDecoder->ConnectRearNode(rtpPayloadDecoder);
 
-    BaseNode* pNodeRenderer = new TextRendererNode(mCallback);
-    pNodeRenderer->SetMediaType(IMS_MEDIA_TEXT);
-    pNodeRenderer->SetConfig(mConfig);
-    AddNode(pNodeRenderer);
-    pNodeRtpPayloadDecoder->ConnectRearNode(pNodeRenderer);
+    BaseNode* renderer = new TextRendererNode(mCallback);
+    renderer->SetMediaType(IMS_MEDIA_TEXT);
+    renderer->SetConfig(mConfig);
+    renderer->SetSchedulerCallback(std::static_pointer_cast<StreamSchedulerCallback>(mScheduler));
+    AddNode(renderer);
+    rtpPayloadDecoder->ConnectRearNode(renderer);
     setState(StreamState::kStreamStateCreated);
     return RESULT_SUCCESS;
 }

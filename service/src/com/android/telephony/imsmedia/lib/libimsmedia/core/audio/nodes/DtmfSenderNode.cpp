@@ -37,6 +37,7 @@ kBaseNodeId DtmfSenderNode::GetNodeId()
 
 ImsMediaResult DtmfSenderNode::Start()
 {
+    IMLOGD0("[Start]");
     mNextTime = 0;
     mNodeState = kNodeStateRunning;
     return RESULT_SUCCESS;
@@ -44,6 +45,7 @@ ImsMediaResult DtmfSenderNode::Start()
 
 void DtmfSenderNode::Stop()
 {
+    IMLOGD0("[Stop]");
     mNextTime = 0;
     ClearDataQueue();
     mNodeState = kNodeStateStopped;
@@ -89,7 +91,7 @@ void DtmfSenderNode::ProcessData()
     bool bMark;
     uint32_t currTime;
 
-    if (GetData(&subtype, &data, &size, &timestamp, &bMark, nullptr) == false)
+    if (!GetData(&subtype, &data, &size, &timestamp, &bMark, nullptr))
     {
         return;
     }

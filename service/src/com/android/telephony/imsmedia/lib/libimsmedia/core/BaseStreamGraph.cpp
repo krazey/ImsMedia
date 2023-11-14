@@ -22,8 +22,7 @@ BaseStreamGraph::BaseStreamGraph(BaseSessionCallback* callback, int localFd) :
         mLocalFd(localFd),
         mGraphState(kStreamStateIdle)
 {
-    std::unique_ptr<StreamScheduler> scheduler(new StreamScheduler());
-    mScheduler = std::move(scheduler);
+    mScheduler = std::make_shared<StreamScheduler>();
 
     if (mCallback != nullptr)
     {
