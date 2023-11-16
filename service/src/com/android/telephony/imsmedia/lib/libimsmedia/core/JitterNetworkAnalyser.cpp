@@ -21,6 +21,7 @@
 #include <numeric>
 #include <cmath>
 #include <algorithm>
+#include <climits>
 
 #define MAX_JITTER_LIST_SIZE    (150)
 #define PACKET_INTERVAL         (20)    // milliseconds
@@ -28,6 +29,7 @@
 #define BUFFER_DECREASE_TH      (2000)  // milliseconds
 #define MARGIN_WEIGHT           (1.0f)
 #define BUFFER_IN_DECREASE_SIZE (2)
+#define ROUNDUP_MARGIN          (10)  // milliseconds
 
 JitterNetworkAnalyser::JitterNetworkAnalyser()
 {
@@ -38,7 +40,7 @@ JitterNetworkAnalyser::JitterNetworkAnalyser()
     mBufferStepSize = BUFFER_IN_DECREASE_SIZE;
     mBufferWeight = MARGIN_WEIGHT;
 
-    IMLOGD4("[JitterNetworkAnalyser] incThreshold[%d], decThreshold[%d], stepSize[%d], "
+    IMLOGD4("[JitterNetworkAnalyser] incThreshold=%d, decThreshold=%d, stepSize=%d, "
             "weight[%.3f]",
             mBufferIncThreshold, mBufferDecThreshold, mBufferStepSize, mBufferWeight);
     Reset();
@@ -59,6 +61,7 @@ void JitterNetworkAnalyser::Reset()
         mPrevArrivalTime = 0;
         mTimeLateArrivals = 0;
         mPrevDelta = 0;
+        minJitterInBeginning = INT_MAX;
     }
 }
 
@@ -77,7 +80,7 @@ void JitterNetworkAnalyser::SetJitterOptions(
     mBufferStepSize = stepSize;
     mBufferWeight = weight;
 
-    IMLOGD4("[SetJitterOptions] incThreshold[%d], decThreshold[%d], stepSize[%d], weight[%.3f]",
+    IMLOGD4("[SetJitterOptions] incThreshold=%d, decThreshold=%d, stepSize=%d, weight[%.3f]",
             mBufferIncThreshold, mBufferDecThreshold, mBufferStepSize, mBufferWeight);
 }
 
@@ -101,6 +104,7 @@ int32_t JitterNetworkAnalyser::CalculateTransitTimeDifference(
     {
         mPrevTimestamp = timestamp;
         mPrevArrivalTime = arrivalTime;
+        minJitterInBeginning = INT_MAX;
         return 0;
     }
 
@@ -112,11 +116,20 @@ int32_t JitterNetworkAnalyser::CalculateTransitTimeDifference(
     mPrevArrivalTime = arrivalTime;
 
     mPrevDelta += delta;
-    mListAccumDeltas.push_back(mPrevDelta);
+    mListAccumDeltas.push_back(
+            minJitterInBeginning == INT_MAX ? mPrevDelta : mPrevDelta - minJitterInBeginning);
 
     if (mListAccumDeltas.size() > MAX_JITTER_LIST_SIZE)
     {
         mListAccumDeltas.pop_front();
+    }
+    else
+    {
+        // for normalization
+        if (minJitterInBeginning > mPrevDelta)
+        {
+            minJitterInBeginning = mPrevDelta;
+        }
     }
 
     return delta;
@@ -174,13 +187,14 @@ uint32_t JitterNetworkAnalyser::GetNextJitterBufferSize(
     double calcJitterSize = 0;
     int32_t maxJitter = GetMaxJitterValue();
     dev = CalculateDeviation(&mean);
-    calcJitterSize = (double)maxJitter * mBufferWeight;
+    calcJitterSize = (double)maxJitter * mBufferWeight + ROUNDUP_MARGIN;
+    uint32_t bufferSize = calcJitterSize / PACKET_INTERVAL;
 
-    if (calcJitterSize >= nCurrJitterBufferSize * PACKET_INTERVAL)
+    if (bufferSize > nCurrJitterBufferSize)
     {
         networkStatus = NETWORK_STATUS_BAD;
     }
-    else if (calcJitterSize < (nCurrJitterBufferSize - 1) * PACKET_INTERVAL)
+    else if (bufferSize < nCurrJitterBufferSize - 1)
     {
         networkStatus = NETWORK_STATUS_GOOD;
     }
@@ -190,35 +204,28 @@ uint32_t JitterNetworkAnalyser::GetNextJitterBufferSize(
     }
 
     IMLOGD_PACKET6(IM_PACKET_LOG_JITTER,
-            "[GetNextJitterBufferSize] size[%4.2f], mean[%4.2f], dev[%4.2f], max[%d], curr[%d], "
-            "status[%d]",
+            "[GetNextJitterBufferSize] size=%4.2f, mean=%4.2f, dev=%4.2f, max=%d, curr=%d, "
+            "status=%d",
             calcJitterSize, mean, dev, maxJitter, nCurrJitterBufferSize, networkStatus);
 
     switch (networkStatus)
     {
         case NETWORK_STATUS_BAD:
         {
-            if (mBadStatusChangedTime == 0 ||
-                    (currentTime - mBadStatusChangedTime) >= mBufferIncThreshold)
+            nextJitterBuffer = bufferSize;
+
+            if (nextJitterBuffer > mMaxJitterBufferSize)
             {
-                nextJitterBuffer = (calcJitterSize + PACKET_INTERVAL) / PACKET_INTERVAL;
-
-                if (nextJitterBuffer > mMaxJitterBufferSize)
-                {
-                    nextJitterBuffer = mMaxJitterBufferSize;
-                }
-
-                if (nextJitterBuffer < mMinJitterBufferSize)
-                {
-                    nextJitterBuffer = mMinJitterBufferSize;
-                }
-
-                IMLOGD_PACKET2(IM_PACKET_LOG_JITTER,
-                        "[GetNextJitterBufferSize] increase curr[%d], next[%d]",
-                        nCurrJitterBufferSize, nextJitterBuffer);
-                mBadStatusChangedTime = currentTime;
+                nextJitterBuffer = mMaxJitterBufferSize;
+            }
+            else if (nextJitterBuffer < mMinJitterBufferSize)
+            {
+                nextJitterBuffer = mMinJitterBufferSize;
             }
 
+            IMLOGD_PACKET2(IM_PACKET_LOG_JITTER,
+                    "[GetNextJitterBufferSize] increase curr=%d, next=%d", nCurrJitterBufferSize,
+                    nextJitterBuffer);
             break;
         }
         case NETWORK_STATUS_GOOD:
@@ -235,16 +242,11 @@ uint32_t JitterNetworkAnalyser::GetNextJitterBufferSize(
                         (mTimeLateArrivals == 0 ||
                                 currentTime - mTimeLateArrivals > mBufferDecThreshold))
                 {
-                    nextJitterBuffer = (calcJitterSize + PACKET_INTERVAL) / PACKET_INTERVAL;
+                    uint32_t decreaseStep = nCurrJitterBufferSize - bufferSize;
 
-                    if (nCurrJitterBufferSize - nextJitterBuffer >= mBufferStepSize)
-                    {
-                        nextJitterBuffer = nCurrJitterBufferSize - mBufferStepSize;
-                    }
-                    else
-                    {
-                        nextJitterBuffer = nCurrJitterBufferSize - 1;
-                    }
+                    decreaseStep > mBufferStepSize
+                            ? nextJitterBuffer = nCurrJitterBufferSize - mBufferStepSize
+                            : nextJitterBuffer = nCurrJitterBufferSize - decreaseStep;
 
                     if (nextJitterBuffer < mMinJitterBufferSize)
                     {
@@ -252,7 +254,7 @@ uint32_t JitterNetworkAnalyser::GetNextJitterBufferSize(
                     }
 
                     IMLOGD_PACKET2(IM_PACKET_LOG_JITTER,
-                            "[GetNextJitterBufferSize] decrease curr[%d], next[%d]",
+                            "[GetNextJitterBufferSize] decrease curr=%d, next=%d",
                             nCurrJitterBufferSize, nextJitterBuffer);
                     networkStatus = NETWORK_STATUS_NORMAL;
                 }
