@@ -108,22 +108,22 @@ ImsMediaResult AudioManager::modifySession(int sessionId, AudioConfig* config)
     {
         if ((config->getMediaDirection() == RtpConfig::MEDIA_DIRECTION_SEND_RECEIVE ||
                     config->getMediaDirection() == RtpConfig::MEDIA_DIRECTION_RECEIVE_ONLY ||
-                    config->getMediaDirection() == RtpConfig::MEDIA_DIRECTION_SEND_ONLY) &&
-                isOtherSessionActive(sessionId))
+                    config->getMediaDirection() == RtpConfig::MEDIA_DIRECTION_SEND_ONLY))
         {
-            return RESULT_NO_RESOURCES;
+            if (!deactivateOtherSessionIfActive(sessionId))
+            {
+                return RESULT_NO_RESOURCES;
+            }
+        }
+
+        if ((session->second)->IsGraphAlreadyExist(config) ||
+                (session->second)->getGraphSize(kStreamRtpTx) == 0)
+        {
+            return (session->second)->startGraph(config);
         }
         else
         {
-            if ((session->second)->IsGraphAlreadyExist(config) ||
-                    (session->second)->getGraphSize(kStreamRtpTx) == 0)
-            {
-                return (session->second)->startGraph(config);
-            }
-            else
-            {
-                return (session->second)->addGraph(config, false);
-            }
+            return (session->second)->addGraph(config, false);
         }
     }
     else
@@ -566,7 +566,7 @@ void AudioManager::ResponseHandler::processEvent(
     }
 }
 
-bool AudioManager::isOtherSessionActive(const int sessionId)
+bool AudioManager::deactivateOtherSessionIfActive(const int sessionId)
 {
     for (auto const& session : mSessions)
     {
@@ -577,9 +577,15 @@ bool AudioManager::isOtherSessionActive(const int sessionId)
                     state == kSessionStateSending)
             {
                 IMLOGE1("[modifySession] Another session id[%d] is active", session.first);
-                return true;
+                if ((session.second)->deactivate())
+                {
+                    IMLOGI1("[modifySession] Moved session id[%d] to inactive", session.first);
+                    return true;
+                }
+                IMLOGE1("[modifySession] Failed to move session id[%d] to inactive", session.first);
+                return false;
             }
         }
     }
-    return false;
+    return true;
 }
