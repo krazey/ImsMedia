@@ -230,3 +230,37 @@ void TextSession::onEvent(int32_t type, uint64_t param1, uint64_t param2)
             break;
     }
 }
+
+bool TextSession::deactivate()
+{
+    IMLOGI0("[deactivate]");
+
+    if (mGraphRtpTx != nullptr)
+    {
+        if (mGraphRtpTx->getState() == kStreamStateRunning)
+        {
+            mGraphRtpTx->stop();
+        }
+
+        delete mGraphRtpTx;
+        mGraphRtpTx = nullptr;
+    }
+
+    if (mGraphRtpRx != nullptr)
+    {
+        if (mGraphRtpRx->getState() == kStreamStateRunning)
+        {
+            mGraphRtpRx->stop();
+        }
+
+        delete mGraphRtpRx;
+        mGraphRtpRx = nullptr;
+    }
+
+    if (getState() == kSessionStateActive)
+    {
+        return false;
+    }
+
+    return true;
+}

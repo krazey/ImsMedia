@@ -62,7 +62,7 @@ protected:
     ImsMediaResult openSession(
             const int sessionId, const int rtpFd, const int rtcpFd, TextConfig* config);
     ImsMediaResult closeSession(const int sessionId);
-    virtual bool isOtherSessionActive(const int sessionId);
+    virtual bool deactivateOtherSessionIfActive(const int sessionId);
     ImsMediaResult modifySession(const int sessionId, TextConfig* config);
     virtual void setMediaQualityThreshold(const int sessionId, MediaQualityThreshold* threshold);
     virtual ImsMediaResult sendRtt(const int sessionId, const android::String8* text);

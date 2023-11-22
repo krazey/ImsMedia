@@ -111,15 +111,15 @@ ImsMediaResult TextManager::modifySession(const int sessionId, TextConfig* confi
     {
         if ((config->getMediaDirection() == RtpConfig::MEDIA_DIRECTION_SEND_RECEIVE ||
                     config->getMediaDirection() == RtpConfig::MEDIA_DIRECTION_RECEIVE_ONLY ||
-                    config->getMediaDirection() == RtpConfig::MEDIA_DIRECTION_SEND_ONLY) &&
-                isOtherSessionActive(sessionId))
+                    config->getMediaDirection() == RtpConfig::MEDIA_DIRECTION_SEND_ONLY))
         {
-            return RESULT_NO_RESOURCES;
+            if (!deactivateOtherSessionIfActive(sessionId))
+            {
+                return RESULT_NO_RESOURCES;
+            }
         }
-        else
-        {
-            return (session->second)->startGraph(config);
-        }
+
+        return (session->second)->startGraph(config);
     }
     else
     {
@@ -381,7 +381,7 @@ void TextManager::ResponseHandler::processEvent(
     }
 }
 
-bool TextManager::isOtherSessionActive(const int sessionId)
+bool TextManager::deactivateOtherSessionIfActive(const int sessionId)
 {
     for (auto const& session : mSessions)
     {
@@ -391,9 +391,15 @@ bool TextManager::isOtherSessionActive(const int sessionId)
             if (state == kSessionStateActive)
             {
                 IMLOGE1("[modifySession] Another session id[%d] is active", session.first);
-                return true;
+                if ((session.second)->deactivate())
+                {
+                    IMLOGI1("[modifySession] Moved session id[%d] to inactive", session.first);
+                    return true;
+                }
+                IMLOGE1("[modifySession] Failed to move session id[%d] to inactive", session.first);
+                return false;
             }
         }
     }
-    return false;
+    return true;
 }
