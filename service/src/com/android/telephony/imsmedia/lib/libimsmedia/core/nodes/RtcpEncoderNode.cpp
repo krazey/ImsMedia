@@ -92,13 +92,6 @@ ImsMediaResult RtcpEncoderNode::Start()
 void RtcpEncoderNode::Stop()
 {
     IMLOGD0("[Stop]");
-    std::lock_guard<std::mutex> guard(mMutexTimer);
-
-    if (mRtpSession != nullptr)
-    {
-        mRtpSession->StopRtcp();
-    }
-
     if (mTimer != nullptr)
     {
         ImsMediaTimer::TimerStop(mTimer, nullptr);
@@ -106,7 +99,17 @@ void RtcpEncoderNode::Stop()
         IMLOGD0("[Stop] Rtcp Timer stopped");
     }
 
-    mNodeState = kNodeStateStopped;
+    {
+        std::lock_guard<std::mutex> guard(mMutexTimer);
+        IMLOGD0("[Stop] mutex taken");
+
+        if (mRtpSession != nullptr)
+        {
+            mRtpSession->StopRtcp();
+        }
+
+        mNodeState = kNodeStateStopped;
+    }
 }
 
 bool RtcpEncoderNode::IsRunTime()

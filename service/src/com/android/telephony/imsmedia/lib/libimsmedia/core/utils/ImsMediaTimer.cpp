@@ -37,9 +37,9 @@ struct TimerInstance
     bool mTerminateThread;
     uint32_t mStartTimeSec;
     uint32_t mStartTimeMSec;
+    std::mutex mMutex;
 };
 
-static std::mutex gMutex;
 static std::mutex gMutexList;
 static std::list<TimerInstance*> gTimerList;
 
@@ -135,20 +135,18 @@ static void* ImsMediaTimer_run(void* arg)
                     pInstance->mStartTimeMSec = nCurrTimeMSec;
                 }
 
-                gMutex.lock();
+                {  // Critical section
+                    std::lock_guard<std::mutex> guard(pInstance->mMutex);
+                    if (pInstance->mTerminateThread)
+                    {
+                        break;
+                    }
 
-                if (pInstance->mTerminateThread)
-                {
-                    gMutex.unlock();
-                    break;
+                    if (pInstance->mTimerCb)
+                    {
+                        pInstance->mTimerCb(pInstance, pInstance->mUserData);
+                    }
                 }
-
-                if (pInstance->mTimerCb)
-                {
-                    pInstance->mTimerCb(pInstance, pInstance->mUserData);
-                }
-
-                gMutex.unlock();
 
                 if (pInstance->mRepeat == false)
                 {
@@ -162,7 +160,7 @@ static void* ImsMediaTimer_run(void* arg)
 
     if (pInstance != nullptr)
     {
-        free(pInstance);
+        delete pInstance;
         pInstance = nullptr;
     }
 
@@ -173,7 +171,7 @@ hTimerHandler ImsMediaTimer::TimerStart(
         uint32_t nDuration, bool bRepeat, fn_TimerCb pTimerCb, void* pUserData)
 {
     struct timeval tp;
-    TimerInstance* pInstance = reinterpret_cast<TimerInstance*>(malloc(sizeof(TimerInstance)));
+    TimerInstance* pInstance = new TimerInstance;
 
     if (pInstance == nullptr)
     {
@@ -186,7 +184,7 @@ hTimerHandler ImsMediaTimer::TimerStart(
     pInstance->mUserData = pUserData;
     pInstance->mTerminateThread = false;
 
-    IMLOGD3("[TimerStart] Duratation[%u], bRepeat[%d], pUserData[%x]", pInstance->mDuration,
+    IMLOGD3("[TimerStart] Duration[%u], bRepeat[%d], pUserData[%x]", pInstance->mDuration,
             bRepeat, pInstance->mUserData);
 
     if (gettimeofday(&tp, nullptr) != -1)
@@ -196,7 +194,7 @@ hTimerHandler ImsMediaTimer::TimerStart(
     }
     else
     {
-        free(pInstance);
+        delete pInstance;
         return nullptr;
     }
 
@@ -211,6 +209,7 @@ bool ImsMediaTimer::TimerStop(hTimerHandler hTimer, void** ppUserData)
 {
     TimerInstance* pInstance = reinterpret_cast<TimerInstance*>(hTimer);
 
+    IMLOGD1("[TimerStop] pInstance[%x]", pInstance);
     if (pInstance == nullptr)
     {
         return false;
@@ -221,15 +220,18 @@ bool ImsMediaTimer::TimerStop(hTimerHandler hTimer, void** ppUserData)
         return false;
     }
 
-    gMutex.lock();  // just wait until timer callback returns...
-    pInstance->mTerminateThread = true;
-
-    if (ppUserData)
     {
-        *ppUserData = pInstance->mUserData;
+        std::lock_guard<std::mutex> guard(pInstance->mMutex);
+        IMLOGD1("[TimerStop] mutex taken pInstance[%x]", pInstance);
+
+        pInstance->mTerminateThread = true;
+
+        if (ppUserData)
+        {
+            *ppUserData = pInstance->mUserData;
+        }
     }
 
-    gMutex.unlock();
     return true;
 }
 
