@@ -246,22 +246,15 @@ TEST_F(TextSourceNodeTest, sendRttTestChunkSizeFour)
     EXPECT_TRUE(mFakeNode->getEmptyFlag());
 }
 
-TEST_F(TextSourceNodeTest, sendRttTestLongString)
+TEST_F(TextSourceNodeTest, sendRttTextOverMaxCharacter)
 {
-    String8 testText1 = String8("a");
-    String8 testText2 = String8("\xC2\xA9");
-    String8 testText3 = String8("\xE2\x9C\x82");
-    String8 testText4 = String8("\xF0\x9F\x9A\x80");
-    String8 testText5;
-
-    testText5.append(testText1);
-    testText5.append(testText2);
-    testText5.append(testText3);
-    testText5.append(testText4);
+    String8 testText = String8("aaaaaaaaaabbbbbbbbbb");
+    String8 confirmText1 = String8("aaaaaaaaaa");
+    String8 confirmText2 = String8("bbbbbbbbbb");
 
     EXPECT_EQ(mNode->Start(), RESULT_SUCCESS);
     EXPECT_FALSE(mFakeNode->getEmptyFlag());
-    mNode->SendRtt(&testText5);
+    mNode->SendRtt(&testText);
 
     mNode->ProcessData();
     // expect BOM
@@ -269,7 +262,11 @@ TEST_F(TextSourceNodeTest, sendRttTestLongString)
 
     mCondition.wait_timeout(kTextInterval);
     mNode->ProcessData();
-    EXPECT_EQ(memcmp(mFakeNode->getData(), testText5.c_str(), testText5.length()), 0);
+    EXPECT_EQ(memcmp(mFakeNode->getData(), confirmText1.c_str(), confirmText1.length()), 0);
+
+    mCondition.wait_timeout(kTextInterval);
+    mNode->ProcessData();
+    EXPECT_EQ(memcmp(mFakeNode->getData(), confirmText2.c_str(), confirmText2.length()), 0);
 
     mCondition.wait_timeout(kTextInterval);
     mNode->ProcessData();
