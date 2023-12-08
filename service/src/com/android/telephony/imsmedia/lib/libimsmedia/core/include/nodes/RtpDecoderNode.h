@@ -21,11 +21,6 @@
 #include <IRtpSession.h>
 #include <RtpHeaderExtension.h>
 
-// #define DEBUG_JITTER_GEN_SIMULATION_DELAY
-// #define DEBUG_JITTER_GEN_SIMULATION_REORDER
-// #define DEBUG_JITTER_GEN_SIMULATION_DUPLICATE
-// #define DEBUG_JITTER_GEN_SIMULATION_LOSS
-
 /**
  * @brief This class is to depacketize the rtp packet and acquires sequence number, ssrc, timestamp,
  * mark flag from the rtp packet header by interfacing with the RtpStack module. This module can
@@ -90,15 +85,19 @@ private:
     uint32_t mArrivalTime;
     ImsMediaSubType mSubtype;
     bool mDtmfEndBit;
-#if (defined(DEBUG_JITTER_GEN_SIMULATION_LOSS) || defined(DEBUG_JITTER_GEN_SIMULATION_DUPLICATE))
+#if defined(SIMULATION_LOSS) || defined(SIMULATION_DUPLICATE) || defined(SIMULATION_SSRC_CHANGE)
     uint32_t mPacketCounter;
 #endif
-#ifdef DEBUG_JITTER_GEN_SIMULATION_DELAY
+#ifdef SIMULATION_DELAY
     uint32_t mNextTime;
 #endif
-#ifdef DEBUG_JITTER_GEN_SIMULATION_REORDER
+#ifdef SIMULATION_REORDER
     ImsMediaDataQueue jitterData;
     uint32_t mReorderDataCount;
+#endif
+#ifdef SIMULATION_SSRC_CHANGE
+    uint32_t mTestSsrc;
+    uint16_t mTestSeq;
 #endif
 };
 

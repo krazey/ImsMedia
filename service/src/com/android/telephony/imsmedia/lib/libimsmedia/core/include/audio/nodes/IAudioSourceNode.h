@@ -55,7 +55,7 @@ public:
      * @param cmr The cmr value to change. The value will be 0-7 for AMR, or 0-8 for AMR-WB. CMR
        value 15 indicates that no mode request is present, and other values are for future use.
      */
-    void ProcessCmr(uint32_t cmr);
+    void ProcessCmr(const uint32_t cmrType, const uint32_t cmrDefine = 0);
 
 public:
     bool mFirstFrame;

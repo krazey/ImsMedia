@@ -81,7 +81,6 @@ void TextRendererNode::SetConfig(void* config)
 
     TextConfig* pConfig = reinterpret_cast<TextConfig*>(config);
     mCodecType = pConfig->getCodecType();
-    mRedundantLevel = pConfig->getRedundantLevel();
 }
 
 bool TextRendererNode::IsSameConfig(void* config)
@@ -93,8 +92,22 @@ bool TextRendererNode::IsSameConfig(void* config)
 
     TextConfig* pConfig = reinterpret_cast<TextConfig*>(config);
 
-    return (mCodecType == pConfig->getCodecType() &&
-            mRedundantLevel == pConfig->getRedundantLevel());
+    return (mCodecType == pConfig->getCodecType());
+}
+
+void TextRendererNode::OnDataFromFrontNode(ImsMediaSubType subtype, uint8_t* data, uint32_t size,
+        uint32_t timestamp, bool mark, uint32_t seq, ImsMediaSubType dataType, uint32_t arrivalTime)
+{
+    if (subtype == MEDIASUBTYPE_REFRESHED)
+    {
+        mFirstFrameReceived = false;
+        mBOMReceived = false;
+        mLastPlayedSeq = 0;
+        mLossWaitTime = 0;
+    }
+
+    JitterBufferControlNode::OnDataFromFrontNode(
+            subtype, data, size, timestamp, mark, seq, dataType, arrivalTime);
 }
 
 void TextRendererNode::ProcessData()

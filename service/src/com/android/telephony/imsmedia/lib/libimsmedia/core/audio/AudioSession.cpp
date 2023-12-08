@@ -494,11 +494,13 @@ void AudioSession::onEvent(int32_t type, uint64_t param1, uint64_t param2)
                     "AUDIO_RESPONSE_EVENT", kAudioCallQualityChangedInd, mSessionId, param1);
             break;
         case kRequestAudioCmr:
+        case kRequestAudioCmrEvs:
         case kRequestSendRtcpXrReport:
             ImsMediaEventHandler::SendEvent(
                     "AUDIO_REQUEST_EVENT", type, mSessionId, param1, param2);
             break;
         case kRequestRoundTripTimeDelayUpdate:
+        case kRequestAudioPlayingStatus:
         case kCollectPacketInfo:
         case kCollectOptionalInfo:
         case kCollectRxRtpStatus:
@@ -507,6 +509,26 @@ void AudioSession::onEvent(int32_t type, uint64_t param1, uint64_t param2)
             if (mMediaQualityAnalyzer != nullptr)
             {
                 mMediaQualityAnalyzer->SendEvent(type, param1, param2);
+            }
+            else
+            {
+                switch (type)
+                {
+                    case kCollectRxRtpStatus:
+                    case kCollectOptionalInfo:
+                        if (param1)
+                        {
+                            delete reinterpret_cast<SessionCallbackParameter*>(param1);
+                        }
+                        break;
+
+                    case kCollectPacketInfo:
+                        if (param2)
+                        {
+                            delete reinterpret_cast<RtpPacket*>(param2);
+                        }
+                        break;
+                }
             }
             break;
         default:
@@ -591,6 +613,7 @@ void AudioSession::SendInternalEvent(int32_t type, uint64_t param1, uint64_t par
     switch (type)
     {
         case kRequestAudioCmr:
+        case kRequestAudioCmrEvs:
             for (std::list<AudioStreamGraphRtpTx*>::iterator iter = mListGraphRtpTx.begin();
                     iter != mListGraphRtpTx.end(); iter++)
             {
@@ -598,7 +621,24 @@ void AudioSession::SendInternalEvent(int32_t type, uint64_t param1, uint64_t par
 
                 if (graph != nullptr && graph->getState() == kStreamStateRunning)
                 {
-                    graph->processCmr(static_cast<uint32_t>(param1));
+                    type == kRequestAudioCmr ? graph->processCmr(static_cast<uint32_t>(param1))
+                                             : graph->processCmr(static_cast<uint32_t>(param1),
+                                                       static_cast<uint32_t>(param2));
+                }
+            }
+
+            if (type == kRequestAudioCmrEvs)
+            {
+                for (std::list<AudioStreamGraphRtpRx*>::iterator iter = mListGraphRtpRx.begin();
+                        iter != mListGraphRtpRx.end(); iter++)
+                {
+                    AudioStreamGraphRtpRx* graph = *iter;
+
+                    if (graph != nullptr && graph->getState() == kStreamStateRunning)
+                    {
+                        graph->processCmr(
+                                static_cast<uint32_t>(param1), static_cast<uint32_t>(param2));
+                    }
                 }
             }
             break;

@@ -27,7 +27,6 @@ public:
             BaseSessionCallback* callback = nullptr, ImsMediaType type = IMS_MEDIA_AUDIO);
     virtual ~JitterBufferControlNode();
     void SetJitterBufferSize(uint32_t nInit, uint32_t nMin, uint32_t nMax);
-    void SetJitterOptions(uint32_t nReduceTH, uint32_t nStepSize, double zValue, bool bIgnoreSID);
     void Reset();
     virtual uint32_t GetDataCount();
     virtual void OnDataFromFrontNode(ImsMediaSubType subtype, uint8_t* pData, uint32_t nDataSize,
@@ -37,6 +36,9 @@ public:
     virtual bool GetData(ImsMediaSubType* psubtype, uint8_t** ppData, uint32_t* pnDataSize,
             uint32_t* ptimestamp, bool* pmark, uint32_t* pnSeqNum,
             ImsMediaSubType* pnDataType = nullptr, uint32_t* arrivalTime = nullptr);
+    virtual bool GetRedundantFrame(uint32_t lostSeq, uint8_t** ppData = nullptr,
+            uint32_t* pnDataSize = nullptr, bool* hasNextFrame = nullptr,
+            uint8_t* nextFrameFirstByte = nullptr);
     virtual void DeleteData();
 
 private:

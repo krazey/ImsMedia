@@ -25,6 +25,14 @@
 
 using android::sp;
 
+enum FrameType : uint8_t
+{
+    SPEECH = 0,
+    SID,
+    LOST,
+    NO_DATA
+};
+
 class ImsMediaAudioPlayer
 {
 public:
@@ -97,6 +105,13 @@ public:
     void SetOctetAligned(bool isOctetAligned);
 
     /**
+     * @brief Set the cmr value to change the audio mode
+     *
+     * @param cmr The 4 bit of cmr define code for EVS modes and not used for AMR/AMR-WB codec
+     */
+    void ProcessCmr(const uint32_t cmr);
+
+    /**
      * @brief Starts audio player to play the decoded audio frame and ndk audio decoder to decode
      * the given data
      *
@@ -113,15 +128,28 @@ public:
     void Stop();
 
     /**
-     * @brief Gets input audio frames from jitter buffer and decodes Amr and Evs codec
-     * based on input buffer and size.
+     * @brief decodeFrame sends encoded audio frame for decoding.
      *
-     * @param buffer The audio frames to decode and play
-     * @param size The size of encoded audio frame
-     * @return true
-     * @return false
+     * @param decoderInput compressed audio frame passed to AoC for decode and playback.
+     * @param nDataSize compressed frame size as per negotiated bitrate.
+     * @param frameType
+     *          0 - SPEECH frame
+     *          1 - SID
+     *              size > 0 : SID packet.
+     *              size = 0 : SID interval.
+     *          2 - LOST frame.
+     *              size > 0 if Partial Frame is present and buffer contains partial frame (EVS
+     * only). size = 0 iF Partial Frame is not present. 3 - NO_DATA : SID interval
+     * @param hasNextFrame true when next frame is available in JitterBuffer (EVS only). false
+     * otherwise.
+     * @param nextFrameFirstByte first byte of next frame if available in JitterBuffer (EVS only). 0
+     * otherwise.
+     *
+     * @return true on audio frame decoded successfully.
+     * @return false on audio frame decode failure.
      */
-    virtual bool onDataFrame(uint8_t* buffer, uint32_t size);
+    virtual bool onDataFrame(uint8_t* buffer, uint32_t size, FrameType frameType, bool hasNextFrame,
+            uint8_t nextFrameByte);
 
 private:
     void openAudioStream();

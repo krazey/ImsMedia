@@ -99,7 +99,7 @@ public:
             int32_t subTxPayloadTypeNum = 0, int32_t subRxPayloadTypeNum = 0,
             int32_t subSamplingRate = 0);
     void SetRtcpInterval(int32_t nInterval);
-    void StartRtp();
+    void StartRtp(bool bResetSsrc = false);
     void StopRtp();
     void StartRtcp(bool bSendRtcpBye = false);
     void StopRtcp();
@@ -114,6 +114,8 @@ public:
     void increaseRefCounter();
     void decreaseRefCounter();
     uint32_t getRefCounter();
+    void SetRtpContext(uint32_t ssrc, uint32_t timestamp, uint16_t sequenceNumber);
+    void GetRtpContext(uint32_t& ssrc, uint32_t& timestamp, uint16_t& sequenceNumber);
     // receive Rtp packet, send it to rtp tx node
     virtual int OnRtpPacket(unsigned char* pData, RtpSvc_Length wLen);
     // receive Rtcp packet, send it to rtcp node

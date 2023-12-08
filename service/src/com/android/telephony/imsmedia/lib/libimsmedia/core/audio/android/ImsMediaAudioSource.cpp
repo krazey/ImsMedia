@@ -118,29 +118,6 @@ void ImsMediaAudioSource::SetOctetAligned(bool isOctetAligned)
 
 bool ImsMediaAudioSource::Start()
 {
-    char kMimeType[128] = {'\0'};
-    int amrBitrate = 0;
-    // TODO: Integration with libEVS is required.
-    ImsMediaAudioUtil::ConvertEvsBandwidthToStr(mEvsBandwidth, mEvsbandwidthStr, MAX_EVS_BW_STRLEN);
-
-    switch (mCodecType)
-    {
-        case kAudioCodecAmr:
-            sprintf(kMimeType, "audio/3gpp");
-            amrBitrate = ImsMediaAudioUtil::ConvertAmrModeToBitrate(mMode);
-            break;
-        case kAudioCodecAmrWb:
-            sprintf(kMimeType, "audio/amr-wb");
-            amrBitrate = ImsMediaAudioUtil::ConvertAmrWbModeToBitrate(mMode);
-            break;
-        case kAudioCodecEvs:
-            // TODO: Integration with libEVS is required.
-            sprintf(kMimeType, "audio/evs");
-            break;
-        default:
-            return false;
-    }
-
     openAudioStream();
 
     if (mAudioStream == nullptr)
@@ -149,60 +126,21 @@ bool ImsMediaAudioSource::Start()
         return false;
     }
 
-    IMLOGD1("[Start] Creating codec[%s]", kMimeType);
-
-    if (mCodecType == kAudioCodecAmr || mCodecType == kAudioCodecAmrWb)
+    // configure and start codec
+    if (!startCodec())
     {
-        mFormat = AMediaFormat_new();
-        AMediaFormat_setString(mFormat, AMEDIAFORMAT_KEY_MIME, kMimeType);
-        AMediaFormat_setInt32(mFormat, AMEDIAFORMAT_KEY_SAMPLE_RATE, mSamplingRate);
-        AMediaFormat_setInt32(mFormat, AMEDIAFORMAT_KEY_CHANNEL_COUNT, 1);
-        AMediaFormat_setInt32(mFormat, AMEDIAFORMAT_KEY_BIT_RATE, amrBitrate);
-
-        mCodec = AMediaCodec_createEncoderByType(kMimeType);
-
-        if (mCodec == nullptr)
-        {
-            IMLOGE1("[Start] unable to create %s codec instance", kMimeType);
-            AMediaFormat_delete(mFormat);
-            mFormat = nullptr;
-            return false;
-        }
-
-        IMLOGD0("[Start] configure codec");
-        media_status_t codecResult = AMediaCodec_configure(
-                mCodec, mFormat, nullptr, nullptr, AMEDIACODEC_CONFIGURE_FLAG_ENCODE);
-
-        if (codecResult != AMEDIA_OK)
-        {
-            IMLOGE2("[Start] unable to configure[%s] codec - err[%d]", kMimeType, codecResult);
-            AMediaCodec_delete(mCodec);
-            mCodec = nullptr;
-            AMediaFormat_delete(mFormat);
-            mFormat = nullptr;
-            return false;
-        }
-    }
-    else if (mCodecType == kAudioCodecEvs)
-    {
-        // TODO: Integration with libEVS is required.
-        mIsEvsInitialized = true;
+        IMLOGE0("[Start] start codec failed");
+        return false;
     }
 
+    // start audio
     auto audioResult = AAudioStream_requestStart(mAudioStream);
 
     if (audioResult != AAUDIO_OK)
     {
         IMLOGE1("[Start] Error start stream[%s]", AAudio_convertResultToText(audioResult));
 
-        if (mCodecType == kAudioCodecAmr || mCodecType == kAudioCodecAmrWb)
-        {
-            AMediaCodec_delete(mCodec);
-            mCodec = nullptr;
-            AMediaFormat_delete(mFormat);
-            mFormat = nullptr;
-        }
-
+        stopCodec();
         return false;
     }
 
@@ -227,21 +165,6 @@ bool ImsMediaAudioSource::Start()
     }
 
     IMLOGI1("[Start] start stream state[%s]", AAudio_convertStreamStateToText(nextState));
-
-    if (mCodecType == kAudioCodecAmr || mCodecType == kAudioCodecAmrWb)
-    {
-        media_status_t codecResult = AMediaCodec_start(mCodec);
-
-        if (codecResult != AMEDIA_OK)
-        {
-            IMLOGE1("[Start] unable to start codec - err[%d]", codecResult);
-            AMediaCodec_delete(mCodec);
-            mCodec = nullptr;
-            AMediaFormat_delete(mFormat);
-            mFormat = nullptr;
-            return false;
-        }
-    }
 
     // start audio read thread
     StartThread();
@@ -287,18 +210,7 @@ void ImsMediaAudioSource::Stop()
         mAudioStream = nullptr;
     }
 
-    if (mCodec != nullptr)
-    {
-        AMediaCodec_stop(mCodec);
-        AMediaCodec_delete(mCodec);
-        mCodec = nullptr;
-    }
-
-    if (mFormat != nullptr)
-    {
-        AMediaFormat_delete(mFormat);
-        mFormat = nullptr;
-    }
+    stopCodec();
 }
 
 void ImsMediaAudioSource::ProcessCmr(const uint32_t cmr)
@@ -310,9 +222,10 @@ void ImsMediaAudioSource::ProcessCmr(const uint32_t cmr)
         return;
     }
 
+    std::lock_guard<std::mutex> guard(mMutexUplink);
     mMode = cmr;
-    Stop();
-    Start();
+    stopCodec();
+    startCodec();
 }
 
 void ImsMediaAudioSource::audioErrorCallback(
@@ -355,6 +268,8 @@ void* ImsMediaAudioSource::run()
             break;
         }
 
+        mMutexUplink.lock();
+
         if (mAudioStream != nullptr &&
                 AAudioStream_getState(mAudioStream) == AAUDIO_STREAM_STATE_STARTED)
         {
@@ -366,6 +281,7 @@ void* ImsMediaAudioSource::run()
                 if (mCodecType == kAudioCodecAmr || mCodecType == kAudioCodecAmrWb)
                 {
                     queueInputBuffer(buffer, readSize * sizeof(uint16_t));
+                    dequeueOutputBuffer();
                 }
                 else if (mCodecType == kAudioCodecEvs)
                 {
@@ -388,12 +304,9 @@ void* ImsMediaAudioSource::run()
                     size = 0;
                 }
             }
-
-            if (mCodecType == kAudioCodecAmr || mCodecType == kAudioCodecAmrWb)
-            {
-                dequeueOutputBuffer();
-            }
         }
+
+        mMutexUplink.unlock();
 
         nNextTime += mPtime;
         uint32_t nCurrTime = ImsMediaTimer::GetTimeInMilliSeconds();
@@ -497,6 +410,102 @@ void ImsMediaAudioSource::restartAudioStream()
             AAudio_convertStreamStateToText(nextState));
 }
 
+bool ImsMediaAudioSource::startCodec()
+{
+    char kMimeType[128] = {'\0'};
+    int amrBitrate = 0;
+    // TODO: Integration with libEVS is required.
+    ImsMediaAudioUtil::ConvertEvsBandwidthToStr(mEvsBandwidth, mEvsbandwidthStr, MAX_EVS_BW_STRLEN);
+
+    switch (mCodecType)
+    {
+        case kAudioCodecAmr:
+            sprintf(kMimeType, "audio/3gpp");
+            amrBitrate = ImsMediaAudioUtil::ConvertAmrModeToBitrate(mMode);
+            break;
+        case kAudioCodecAmrWb:
+            sprintf(kMimeType, "audio/amr-wb");
+            amrBitrate = ImsMediaAudioUtil::ConvertAmrWbModeToBitrate(mMode);
+            break;
+        case kAudioCodecEvs:
+            // TODO: Integration with libEVS is required.
+            sprintf(kMimeType, "audio/evs");
+            break;
+        default:
+            return false;
+    }
+
+    IMLOGD1("[startCodec] codec type[%s]", kMimeType);
+
+    if (mCodecType == kAudioCodecAmr || mCodecType == kAudioCodecAmrWb)
+    {
+        mFormat = AMediaFormat_new();
+        AMediaFormat_setString(mFormat, AMEDIAFORMAT_KEY_MIME, kMimeType);
+        AMediaFormat_setInt32(mFormat, AMEDIAFORMAT_KEY_SAMPLE_RATE, mSamplingRate);
+        AMediaFormat_setInt32(mFormat, AMEDIAFORMAT_KEY_CHANNEL_COUNT, 1);
+        AMediaFormat_setInt32(mFormat, AMEDIAFORMAT_KEY_BIT_RATE, amrBitrate);
+
+        mCodec = AMediaCodec_createEncoderByType(kMimeType);
+
+        if (mCodec == nullptr)
+        {
+            IMLOGE1("[startCodec] unable to create %s codec instance", kMimeType);
+            AMediaFormat_delete(mFormat);
+            mFormat = nullptr;
+            return false;
+        }
+
+        IMLOGD0("[startCodec] configure codec");
+        media_status_t codecResult = AMediaCodec_configure(
+                mCodec, mFormat, nullptr, nullptr, AMEDIACODEC_CONFIGURE_FLAG_ENCODE);
+
+        if (codecResult != AMEDIA_OK)
+        {
+            IMLOGE2("[startCodec] unable to configure[%s] codec - err[%d]", kMimeType, codecResult);
+            AMediaCodec_delete(mCodec);
+            mCodec = nullptr;
+            AMediaFormat_delete(mFormat);
+            mFormat = nullptr;
+            return false;
+        }
+
+        codecResult = AMediaCodec_start(mCodec);
+
+        if (codecResult != AMEDIA_OK)
+        {
+            IMLOGE1("[Start] unable to start codec - err[%d]", codecResult);
+            AMediaCodec_delete(mCodec);
+            mCodec = nullptr;
+            AMediaFormat_delete(mFormat);
+            mFormat = nullptr;
+            return false;
+        }
+    }
+    else if (mCodecType == kAudioCodecEvs)
+    {
+        // TODO: Integration with libEVS is required.
+        mIsEvsInitialized = true;
+    }
+
+    return true;
+}
+
+void ImsMediaAudioSource::stopCodec()
+{
+    if (mCodec != nullptr)
+    {
+        AMediaCodec_stop(mCodec);
+        AMediaCodec_delete(mCodec);
+        mCodec = nullptr;
+    }
+
+    if (mFormat != nullptr)
+    {
+        AMediaFormat_delete(mFormat);
+        mFormat = nullptr;
+    }
+}
+
 void ImsMediaAudioSource::queueInputBuffer(int16_t* buffer, uint32_t size)
 {
     if (mCodec == nullptr)
@@ -536,8 +545,7 @@ void ImsMediaAudioSource::dequeueOutputBuffer()
     if (index >= 0)
     {
         IMLOGD_PACKET5(IM_PACKET_LOG_AUDIO,
-                "[dequeueOutputBuffer] index[%d], size[%d], offset[%d], time[%ld],\
-flags[%d]",
+                "[dequeueOutputBuffer] index[%d], size[%d], offset[%d], time[%ld], flags[%d]",
                 index, info.size, info.offset, info.presentationTimeUs, info.flags);
 
         if (info.size > 0)

@@ -41,6 +41,37 @@ ImsMediaCondition ImsMediaSocket::mConditionExit;
 std::mutex ImsMediaSocket::sMutexRxSocket;
 std::mutex ImsMediaSocket::sMutexSocketList;
 
+enum kDscp
+{
+    DSCP_CS0 = 0,
+    DSCP_CS1 = 8,
+    DSCP_CS2 = 16,
+    DSCP_CS3 = 24,
+    DSCP_CS4 = 32,
+    DSCP_CS5 = 40,
+    DSCP_CS6 = 48,
+    DSCP_CS7 = 56,
+    DSCP_AF11 = 10,
+    DSCP_AF12 = 12,
+    DSCP_AF13 = 14,
+    DSCP_AF21 = 18,
+    DSCP_AF22 = 20,
+    DSCP_AF23 = 22,
+    DSCP_AF31 = 26,
+    DSCP_AF32 = 28,
+    DSCP_AF33 = 30,
+    DSCP_AF41 = 34,
+    DSCP_AF42 = 36,
+    DSCP_AF43 = 38,
+    DSCP_EF = 46,
+    DSCP_VOICEADMIT = 44,
+};
+
+const std::initializer_list<kDscp> dscpValues = {DSCP_EF, DSCP_AF41, DSCP_CS0, DSCP_CS1, DSCP_CS2,
+        DSCP_CS3, DSCP_CS4, DSCP_CS5, DSCP_CS6, DSCP_CS7, DSCP_AF11, DSCP_AF12, DSCP_AF13,
+        DSCP_AF21, DSCP_AF22, DSCP_AF23, DSCP_AF31, DSCP_AF32, DSCP_AF33, DSCP_AF42, DSCP_AF43,
+        DSCP_VOICEADMIT};
+
 ImsMediaSocket* ImsMediaSocket::GetInstance(
         uint32_t localPort, const char* peerIpAddress, uint32_t peerPort)
 {
@@ -344,6 +375,29 @@ void ImsMediaSocket::Close()
     IMLOGD0("[Close] exit");
 }
 
+bool ImsMediaSocket::isValidDscp(int32_t dscp)
+{
+    for (const auto value : dscpValues)
+    {
+        if (value == dscp)
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+int32_t ImsMediaSocket::convertDscpToTos(int32_t dscp)
+{
+    if (dscp == DSCP_CS0 || !isValidDscp(dscp))
+    {
+        return (DSCP_EF << 2) & 0XFF;
+    }
+
+    return (dscp << 2) & 0xFF;
+}
+
 bool ImsMediaSocket::SetSocketOpt(kSocketOption nOption, int32_t nOptionValue)
 {
     if (mSocketFd == -1)
@@ -352,14 +406,15 @@ bool ImsMediaSocket::SetSocketOpt(kSocketOption nOption, int32_t nOptionValue)
         return false;
     }
 
+    int32_t tos = 0;
+
     switch (nOption)
     {
         case kSocketOptionIpTos:
+            tos = convertDscpToTos(nOptionValue);
             if (mLocalIPVersion == IPV4)
             {
-                if (-1 ==
-                        setsockopt(
-                                mSocketFd, IPPROTO_IP, IP_TOS, &nOptionValue, sizeof(nOptionValue)))
+                if (-1 == setsockopt(mSocketFd, IPPROTO_IP, IP_TOS, &tos, sizeof(tos)))
                 {
                     IMLOGW0("[SetSocketOpt] IP_TOS - IPv4");
                     return false;
@@ -367,16 +422,14 @@ bool ImsMediaSocket::SetSocketOpt(kSocketOption nOption, int32_t nOptionValue)
             }
             else
             {
-                if (-1 ==
-                        setsockopt(mSocketFd, IPPROTO_IPV6, IPV6_TCLASS, &nOptionValue,
-                                sizeof(nOptionValue)))
+                if (-1 == setsockopt(mSocketFd, IPPROTO_IPV6, IPV6_TCLASS, &tos, sizeof(tos)))
                 {
                     IMLOGW0("[SetSocketOpt] IP_TOS - IPv6");
                     return false;
                 }
             }
 
-            IMLOGD1("[SetSocketOpt] IP_QOS[%d]", nOptionValue);
+            IMLOGD1("[SetSocketOpt] IP_QOS[%d]", tos);
             break;
         case kSocketOptionIpTtl:
             if (-1 ==

@@ -56,15 +56,16 @@ public:
     virtual int getState(int sessionId);
     virtual void sendMessage(const int sessionId, const android::Parcel& parcel);
 
-private:
+protected:
     TextManager();
     virtual ~TextManager();
     ImsMediaResult openSession(
             const int sessionId, const int rtpFd, const int rtcpFd, TextConfig* config);
     ImsMediaResult closeSession(const int sessionId);
+    virtual bool isOtherSessionActive(const int sessionId);
     ImsMediaResult modifySession(const int sessionId, TextConfig* config);
-    void setMediaQualityThreshold(const int sessionId, MediaQualityThreshold* threshold);
-    ImsMediaResult sendRtt(const int sessionId, const android::String8* text);
+    virtual void setMediaQualityThreshold(const int sessionId, MediaQualityThreshold* threshold);
+    virtual ImsMediaResult sendRtt(const int sessionId, const android::String8* text);
 
     static TextManager* manager;
     std::unordered_map<int, std::unique_ptr<TextSession>> mSessions;

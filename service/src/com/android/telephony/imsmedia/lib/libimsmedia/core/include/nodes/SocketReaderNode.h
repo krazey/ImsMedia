@@ -27,6 +27,7 @@ public:
     SocketReaderNode(BaseSessionCallback* callback = nullptr);
     virtual ~SocketReaderNode();
     virtual kBaseNodeId GetNodeId();
+    virtual bool Prepare();
     virtual ImsMediaResult Start();
     virtual void Stop();
     virtual void ProcessData();
@@ -34,6 +35,7 @@ public:
     virtual bool IsSourceNode();
     void SetConfig(void* config);
     virtual bool IsSameConfig(void* config);
+    virtual ImsMediaResult UpdateConfig(void* config);
     virtual void OnReadDataFromSocket();
 
     /**
@@ -56,7 +58,13 @@ public:
      */
     void SetProtocolType(kProtocolType type) { mProtocolType = type; }
 
-private:
+    /* Get socket is opened */
+    bool IsSocketOpened() { return mSocketOpened; }
+
+protected:
+    bool OpenSocket();
+    void CloseSocket();
+
     int mLocalFd;
     kProtocolType mProtocolType;
     ISocket* mSocket;

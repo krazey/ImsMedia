@@ -109,7 +109,17 @@ ImsMediaResult TextManager::modifySession(const int sessionId, TextConfig* confi
 
     if (session != mSessions.end())
     {
-        return (session->second)->startGraph(config);
+        if ((config->getMediaDirection() == RtpConfig::MEDIA_DIRECTION_SEND_RECEIVE ||
+                    config->getMediaDirection() == RtpConfig::MEDIA_DIRECTION_RECEIVE_ONLY ||
+                    config->getMediaDirection() == RtpConfig::MEDIA_DIRECTION_SEND_ONLY) &&
+                isOtherSessionActive(sessionId))
+        {
+            return RESULT_NO_RESOURCES;
+        }
+        else
+        {
+            return (session->second)->startGraph(config);
+        }
     }
     else
     {
@@ -359,4 +369,21 @@ void TextManager::ResponseHandler::processEvent(
         default:
             break;
     }
+}
+
+bool TextManager::isOtherSessionActive(const int sessionId)
+{
+    for (auto const& session : mSessions)
+    {
+        if (session.first != sessionId)
+        {
+            SessionState state = (session.second)->getState();
+            if (state == kSessionStateActive)
+            {
+                IMLOGE1("[modifySession] Another session id[%d] is active", session.first);
+                return true;
+            }
+        }
+    }
+    return false;
 }

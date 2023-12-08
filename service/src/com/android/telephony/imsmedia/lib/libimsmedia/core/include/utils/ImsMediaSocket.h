@@ -39,6 +39,8 @@ private:
     static void SocketMonitorThread();
     static uint32_t SetSocketFD(void* pReadFds, void* pWriteFds, void* pExceptFds);
     static void ReadDataFromSocket(void* pReadfds);
+    bool isValidDscp(int32_t dscp);
+    int32_t convertDscpToTos(int32_t dscp);
 
 public:
     /**

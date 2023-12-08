@@ -34,14 +34,14 @@ public:
     IAudioPlayerNode(BaseSessionCallback* callback = nullptr);
     virtual ~IAudioPlayerNode();
     virtual kBaseNodeId GetNodeId();
-    virtual ImsMediaResult ProcessStart();
+    virtual ImsMediaResult Start();
     virtual void Stop();
     virtual bool IsRunTime();
-    virtual bool IsRunTimeStart();
     virtual bool IsSourceNode();
     virtual void SetConfig(void* config);
     virtual bool IsSameConfig(void* config);
     virtual void* run();
+    void ProcessCmr(const uint32_t cmrType, const uint32_t cmrDefine);
 
 private:
     AudioConfig* mConfig;
@@ -55,6 +55,7 @@ private:
     int32_t mEvsPayloadHeaderMode;
     bool mIsDtxEnabled;
     bool mIsOctetAligned;
+    uint32_t mRunningCodecMode;
 };
 
 #endif
