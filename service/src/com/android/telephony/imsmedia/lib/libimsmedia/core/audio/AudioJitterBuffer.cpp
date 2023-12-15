@@ -63,7 +63,6 @@ void AudioJitterBuffer::Reset()
     mLastPlayedSeqNum = 0;
     mLastPlayedTimestamp = 0;
     mFirstFrameReceived = false;
-    mNextJitterBufferSize = mCurrJitterBufferSize;
     mDtxPlayed = false;
     mDtxReceived = false;
     mWaiting = true;
@@ -160,6 +159,8 @@ void AudioJitterBuffer::Add(ImsMediaSubType subtype, uint8_t* pbBuffer, uint32_t
         mSsrc = nBufferSize;
         mTimeStarted = arrivalTime;
         mJitterAnalyzer.Reset();
+        mCurrJitterBufferSize = mInitJitterBufferSize;
+        mNextJitterBufferSize = mCurrJitterBufferSize;
         mDataQueue.Add(&currEntry);
 
         IMLOGI2("[Add] ssrc=%u, startTime=%d", mSsrc, mTimeStarted);
@@ -340,7 +341,7 @@ bool AudioJitterBuffer::Get(ImsMediaSubType* psubtype, uint8_t** ppData, uint32_
     }
     else if (mDataQueue.Get(&pEntry) && mWaiting)
     {
-        if (currentTime - mTimeStarted + ALLOWABLE_ERROR < mInitJitterBufferSize * FRAME_INTERVAL)
+        if (currentTime - mTimeStarted + ALLOWABLE_ERROR < mCurrJitterBufferSize * FRAME_INTERVAL)
         {
             if (psubtype)
                 *psubtype = MEDIASUBTYPE_UNDEFINED;
@@ -367,7 +368,7 @@ bool AudioJitterBuffer::Get(ImsMediaSubType* psubtype, uint8_t** ppData, uint32_
         else
         {
             // resync when the audio frame stacked over the current jitter buffer size
-            Resync(mInitJitterBufferSize + 1);
+            Resync(mCurrJitterBufferSize + 1);
             mWaiting = false;
         }
     }
