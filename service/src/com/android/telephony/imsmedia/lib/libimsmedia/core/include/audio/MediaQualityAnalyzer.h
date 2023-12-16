@@ -280,6 +280,12 @@ protected:
     uint32_t mCallQualityNumRxPacket;
     /** The number of lost rx packet for call quality calculation */
     uint32_t mCallQualityNumLostPacket;
+    /** The number of dropped packets this period for call quality calculation */
+    uint32_t mCallQualityNumDroppedPacket;
+    /** The number of received packets this period for call quality inactivity */
+    uint32_t mCallQualityInactNumRxPacket;
+    /** The number of 1s periods without activity for call quality inactivity */
+    uint32_t mCallQualityNumInactPeriods;
 
     // MediaQualityThreshold parameters
     std::vector<int32_t> mBaseRtpInactivityTimes;

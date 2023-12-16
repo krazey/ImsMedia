@@ -358,6 +358,7 @@ void MediaQualityAnalyzer::collectRxRtpStatus(
         case kRtpStatusLate:
         case kRtpStatusDiscarded:
             mCallQuality.setNumDroppedRtpPackets(mCallQuality.getNumDroppedRtpPackets() + 1);
+            mCallQualityNumDroppedPacket++;
             mCallQualityNumRxPacket++;
             IMLOGD_PACKET1(IM_PACKET_LOG_RTP, "[collectRxRtpStatus] num late arrival[%d]",
                     mCallQuality.getNumDroppedRtpPackets());
@@ -399,37 +400,73 @@ void MediaQualityAnalyzer::processData(const int32_t timeCount)
 {
     IMLOGD_PACKET1(IM_PACKET_LOG_RTP, "[processData] count[%d]", timeCount);
 
+
     // call quality inactivity
-    if (timeCount == DEFAULT_INACTIVITY_TIME_FOR_CALL_QUALITY &&
-            mCallQuality.getNumRtpPacketsReceived() == 0)
+    uint32_t packets_this_period = mCallQuality.getNumRtpPacketsReceived() -
+        mCallQualityInactNumRxPacket;
+    mCallQualityInactNumRxPacket = mCallQuality.getNumRtpPacketsReceived();
+
+    if (packets_this_period == 0)
     {
-        mCallQuality.setRtpInactivityDetected(true);
-        notifyCallQuality();
+        mCallQualityNumInactPeriods++;
+        if ((mCallQualityNumInactPeriods >= DEFAULT_INACTIVITY_TIME_FOR_CALL_QUALITY) &&
+            (!mCallQuality.getRtpInactivityDetected()))
+        {
+            mCallQuality.setRtpInactivityDetected(true);
+            notifyCallQuality();
+        }
     }
+    else
+    {
+        mCallQualityNumInactPeriods = 0;
+        if (mCallQuality.getRtpInactivityDetected())
+        {
+            mCallQuality.setRtpInactivityDetected(false);
+            notifyCallQuality();
+        }
+    }
+
 
     // call quality packet loss
     if (timeCount % CALL_QUALITY_MONITORING_TIME == 0)
     {
         double lossRate = 0;
+        int32_t quality;
 
-        mCallQualityNumRxPacket == 0 ? lossRate = 0
-                                     : lossRate = (double)mCallQualityNumLostPacket /
-                        (mCallQualityNumLostPacket + mCallQualityNumRxPacket) * 100;
-
-        int32_t quality = getCallQuality(lossRate);
-
-        IMLOGD4("[processData] lost[%d], received[%d], dropped[%d], quality[%d]",
-                mCallQualityNumLostPacket, mCallQualityNumRxPacket,
-                mCallQuality.getNumDroppedRtpPackets(), quality);
-
-        if (mCallQuality.getDownlinkCallQualityLevel() != quality)
-        {
-            mCallQuality.setDownlinkCallQualityLevel(quality);
-            notifyCallQuality();
+        // Calculate loss rate based on lost packets only
+        /* b/314203053 Dropped packets will also be included in the calculation,
+           but that will only happen once Lassen also includes it in their calculation,
+           so that the two implementations match */
+        if (mCallQualityNumRxPacket == 0) {
+            lossRate = 0;
+            // Set quality to bad, based on no packets received in 5 seconds
+            quality = CallQuality::kCallQualityBad;
         }
+        else
+        {
+            // mCallQualityNumRxPacket includes dropped packets, so mCallQualityNumDroppedPacket
+            // is not included separately in the denominator for this calculation
+            uint32_t totalLostPackets = mCallQualityNumLostPacket; //+mCallQualityNumDroppedPacket;
+            lossRate = (double)totalLostPackets /
+                (mCallQualityNumLostPacket + mCallQualityNumRxPacket) * 100;
+
+            // Set quality based on lossRate
+            quality = getCallQuality(lossRate);
+        }
+
+        mCallQuality.setDownlinkCallQualityLevel(quality);
+
+        IMLOGD6("[processData] CallQuality stats [last %d seconds]: lost[%d], received[%d], "
+                "dropped[%d], lossRate[%.1f], quality[%d]",
+                CALL_QUALITY_MONITORING_TIME, mCallQualityNumLostPacket, mCallQualityNumRxPacket,
+                mCallQualityNumDroppedPacket, lossRate, quality);
 
         mCallQualityNumLostPacket = 0;
         mCallQualityNumRxPacket = 0;
+        mCallQualityNumDroppedPacket = 0;
+
+        // Notify every period
+        notifyCallQuality();
     }
 
     processMediaQuality();
@@ -780,7 +817,7 @@ void* MediaQualityAnalyzer::run()
         if (currTimeInMsec - prevTimeInMsec >= TIMER_INTERVAL)
         {
             processData(++timeCount);
-            prevTimeInMsec = currTimeInMsec;
+            prevTimeInMsec += TIMER_INTERVAL;
         }
     }
 
@@ -803,6 +840,9 @@ void MediaQualityAnalyzer::reset()
     mMaxBufferSize = 0;
     mCallQualityNumRxPacket = 0;
     mCallQualityNumLostPacket = 0;
+    mCallQualityNumDroppedPacket = 0;
+    mCallQualityInactNumRxPacket = 0;
+    mCallQualityNumInactPeriods = 0;
     clearPacketList(mListRxPacket, DELETE_ALL);
     clearPacketList(mListTxPacket, DELETE_ALL);
     clearLostPacketList(DELETE_ALL);
