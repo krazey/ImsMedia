@@ -116,9 +116,9 @@ ImsMediaResult AudioSession::startGraph(RtpConfig* config)
         return RESULT_INVALID_PARAM;
     }
 
-    AudioConfig* audioConfig = reinterpret_cast<AudioConfig*>(config);
+    AudioConfig* pConfig = reinterpret_cast<AudioConfig*>(config);
 
-    if (std::strcmp(audioConfig->getRemoteAddress().c_str(), "") == 0)
+    if (std::strcmp(pConfig->getRemoteAddress().c_str(), "") == 0)
     {
         return RESULT_INVALID_PARAM;
     }
@@ -127,15 +127,8 @@ ImsMediaResult AudioSession::startGraph(RtpConfig* config)
 
     if (mMediaQualityAnalyzer != nullptr)
     {
-        if (audioConfig->getMediaDirection() == RtpConfig::MEDIA_DIRECTION_NO_FLOW)
-        {
-            mMediaQualityAnalyzer->stop();
-        }
-        else
-        {
-            mMediaQualityAnalyzer->setConfig(audioConfig);
-            mMediaQualityAnalyzer->start();
-        }
+        mMediaQualityAnalyzer->setConfig(reinterpret_cast<AudioConfig*>(config));
+        mMediaQualityAnalyzer->start();
     }
 
     ImsMediaResult ret = RESULT_NOT_READY;
