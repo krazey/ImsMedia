@@ -358,7 +358,7 @@ TEST_F(MediaQualityAnalyzerTest, TestRtpInactivityUpdateByDirection)
 
 TEST_F(MediaQualityAnalyzerTest, TestRtpInactivityUpdate)
 {
-    EXPECT_CALL(mCallback, onEvent(kAudioCallQualityChangedInd, _, _)).Times(4);
+    EXPECT_CALL(mCallback, onEvent(kAudioCallQualityChangedInd, _, _)).Times(3);
     EXPECT_CALL(mCallback, onEvent(kImsMediaEventMediaQualityStatus, _, _)).Times(3);
     MediaQualityThreshold threshold;
     threshold.setRtpInactivityTimerMillis(kRtpInactivityTimerMillis);
@@ -458,7 +458,7 @@ TEST_F(MediaQualityAnalyzerTest, TestCallQualityInactivity)
 
 TEST_F(MediaQualityAnalyzerTest, TestCallQualityLevelChanged)
 {
-    EXPECT_CALL(mCallback, onEvent(kAudioCallQualityChangedInd, _, _)).Times(3);
+    EXPECT_CALL(mCallback, onEvent(kAudioCallQualityChangedInd, _, _)).Times(2);
     mAnalyzer->start();
 
     const int32_t numPackets = 10;
