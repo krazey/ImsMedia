@@ -85,6 +85,7 @@ private:
     uint32_t mArrivalTime;
     ImsMediaSubType mSubtype;
     bool mDtmfEndBit;
+    uint64_t mPacketTimestamp;
 #if defined(SIMULATION_LOSS) || defined(SIMULATION_DUPLICATE) || defined(SIMULATION_SSRC_CHANGE)
     uint32_t mPacketCounter;
 #endif
