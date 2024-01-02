@@ -20,7 +20,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/time.h>
+#include <time.h>
 #include <chrono>
 #include <thread>
 #include <utils/Atomic.h>
@@ -35,27 +35,26 @@ struct TimerInstance
     bool mRepeat;
     void* mUserData;
     bool mTerminateThread;
-    uint32_t mStartTimeSec;
-    uint32_t mStartTimeMSec;
+    uint32_t mStartTimeMillisecond;
     std::mutex mMutex;
 };
 
 static std::mutex gMutexList;
 static std::list<TimerInstance*> gTimerList;
 
-static void AddTimerToList(TimerInstance* pInstance)
+static void AddTimerToList(TimerInstance* timer)
 {
     std::lock_guard<std::mutex> guard(gMutexList);
-    gTimerList.push_back(pInstance);
+    gTimerList.push_back(timer);
 }
 
-static void DeleteTimerFromList(TimerInstance* pInstance)
+static void DeleteTimerFromList(TimerInstance* timer)
 {
     std::lock_guard<std::mutex> guard(gMutexList);
-    gTimerList.remove(pInstance);
+    gTimerList.remove(timer);
 }
 
-static bool IsValidTimer(const TimerInstance* pInstance)
+static bool IsValidTimer(const TimerInstance* timer)
 {
     std::lock_guard<std::mutex> guard(gMutexList);
 
@@ -64,238 +63,164 @@ static bool IsValidTimer(const TimerInstance* pInstance)
         return false;
     }
 
-    auto result = std::find(gTimerList.begin(), gTimerList.end(), pInstance);
+    auto result = std::find(gTimerList.begin(), gTimerList.end(), timer);
     return (result != gTimerList.end());
-}
-
-static int32_t ImsMediaTimer_GetMilliSecDiff(
-        uint32_t startTimeSec, uint32_t startTimeMSec, uint32_t currTimeSec, uint32_t currTimeMSec)
-{
-    uint32_t nDiffSec;
-    uint32_t nDiffMSec;
-    nDiffSec = currTimeSec - startTimeSec;
-    currTimeMSec += (nDiffSec * 1000);
-    nDiffMSec = currTimeMSec - startTimeMSec;
-    return nDiffMSec;
 }
 
 static void* ImsMediaTimer_run(void* arg)
 {
-    TimerInstance* pInstance = reinterpret_cast<TimerInstance*>(arg);
-    uint32_t nSleepTime;
+    TimerInstance* timer = reinterpret_cast<TimerInstance*>(arg);
 
-    if (pInstance == nullptr)
+    if (timer == nullptr)
     {
         return nullptr;
     }
 
-    if (pInstance->mDuration < 100)
+    uint32_t sleepTime = timer->mDuration;
+
+    if (timer->mDuration > 10 && timer->mDuration < 100)
     {
-        nSleepTime = 10;
+        sleepTime = 10;
     }
-    else if (pInstance->mDuration < 1000)
+    else if (timer->mDuration >= 100 && timer->mDuration < 1000)
     {
-        nSleepTime = pInstance->mDuration / 10;
+        sleepTime = timer->mDuration / 10;
     }
-    else
+    else if (timer->mDuration >= 1000)
     {
-        nSleepTime = 100;
+        sleepTime = 100;
     }
 
     for (;;)
     {
-        struct timeval tp;
-
-        if (pInstance->mTerminateThread)
+        if (timer->mTerminateThread)
         {
             break;
         }
 
-        std::this_thread::sleep_for(std::chrono::milliseconds(nSleepTime));
+        std::this_thread::sleep_for(std::chrono::milliseconds(sleepTime));
 
-        if (pInstance->mTerminateThread)
+        if (timer->mTerminateThread)
         {
             break;
         }
 
-        if (gettimeofday(&tp, nullptr) != -1)
-        {
-            uint32_t nCurrTimeSec, nCurrTimeMSec;
-            uint32_t nTimeDiff;
-            nCurrTimeSec = tp.tv_sec;
-            nCurrTimeMSec = tp.tv_usec / 1000;
-            nTimeDiff = ImsMediaTimer_GetMilliSecDiff(pInstance->mStartTimeSec,
-                    pInstance->mStartTimeMSec, nCurrTimeSec, nCurrTimeMSec);
+        uint32_t currTimeMillisecond = ImsMediaTimer::GetTimeInMilliSeconds();
+        uint32_t nTimeDiff = currTimeMillisecond - timer->mStartTimeMillisecond;
 
-            if (nTimeDiff >= pInstance->mDuration)
+        if (nTimeDiff >= timer->mDuration)
+        {
+            if (timer->mRepeat)
             {
-                if (pInstance->mRepeat == true)
-                {
-                    pInstance->mStartTimeSec = nCurrTimeSec;
-                    pInstance->mStartTimeMSec = nCurrTimeMSec;
-                }
+                timer->mStartTimeMillisecond = currTimeMillisecond;
+            }
 
-                {  // Critical section
-                    std::lock_guard<std::mutex> guard(pInstance->mMutex);
-                    if (pInstance->mTerminateThread)
-                    {
-                        break;
-                    }
-
-                    if (pInstance->mTimerCb)
-                    {
-                        pInstance->mTimerCb(pInstance, pInstance->mUserData);
-                    }
-                }
-
-                if (pInstance->mRepeat == false)
+            {  // Critical section
+                std::lock_guard<std::mutex> guard(timer->mMutex);
+                if (timer->mTerminateThread)
                 {
                     break;
                 }
+
+                if (timer->mTimerCb)
+                {
+                    timer->mTimerCb(timer, timer->mUserData);
+                }
+            }
+
+            if (!timer->mRepeat)
+            {
+                break;
             }
         }
     }
 
-    DeleteTimerFromList(pInstance);
+    DeleteTimerFromList(timer);
 
-    if (pInstance != nullptr)
+    if (timer != nullptr)
     {
-        delete pInstance;
-        pInstance = nullptr;
+        delete timer;
+        timer = nullptr;
     }
 
     return nullptr;
 }
 
 hTimerHandler ImsMediaTimer::TimerStart(
-        uint32_t nDuration, bool bRepeat, fn_TimerCb pTimerCb, void* pUserData)
+        uint32_t duration, bool repeat, fn_TimerCb timerCallback, void* userData)
 {
-    struct timeval tp;
-    TimerInstance* pInstance = new TimerInstance;
+    TimerInstance* timer = new TimerInstance;
 
-    if (pInstance == nullptr)
+    if (timer == nullptr)
     {
         return nullptr;
     }
 
-    pInstance->mTimerCb = pTimerCb;
-    pInstance->mDuration = nDuration;
-    pInstance->mRepeat = bRepeat;
-    pInstance->mUserData = pUserData;
-    pInstance->mTerminateThread = false;
+    timer->mTimerCb = timerCallback;
+    timer->mDuration = duration;
+    timer->mRepeat = repeat;
+    timer->mUserData = userData;
+    timer->mTerminateThread = false;
 
-    IMLOGD3("[TimerStart] Duration[%u], bRepeat[%d], pUserData[%x]", pInstance->mDuration,
-            bRepeat, pInstance->mUserData);
+    IMLOGD3("[TimerStart] duration[%u], repeat[%d], userData[%x]", timer->mDuration, repeat,
+            timer->mUserData);
 
-    if (gettimeofday(&tp, nullptr) != -1)
-    {
-        pInstance->mStartTimeSec = tp.tv_sec;
-        pInstance->mStartTimeMSec = tp.tv_usec / 1000;
-    }
-    else
-    {
-        delete pInstance;
-        return nullptr;
-    }
+    timer->mStartTimeMillisecond = ImsMediaTimer::GetTimeInMilliSeconds();
+    AddTimerToList(timer);
 
-    AddTimerToList(pInstance);
-
-    std::thread t1(&ImsMediaTimer_run, pInstance);
+    std::thread t1(&ImsMediaTimer_run, timer);
     t1.detach();
-    return (hTimerHandler)pInstance;
+    return (hTimerHandler)timer;
 }
 
-bool ImsMediaTimer::TimerStop(hTimerHandler hTimer, void** ppUserData)
+bool ImsMediaTimer::TimerStop(hTimerHandler hTimer, void** puserData)
 {
-    TimerInstance* pInstance = reinterpret_cast<TimerInstance*>(hTimer);
+    TimerInstance* timer = reinterpret_cast<TimerInstance*>(hTimer);
+    IMLOGD1("[TimerStop] timer[%x]", timer);
 
-    IMLOGD1("[TimerStop] pInstance[%x]", pInstance);
-    if (pInstance == nullptr)
+    if (timer == nullptr)
     {
         return false;
     }
 
-    if (IsValidTimer(pInstance) == false)
+    if (IsValidTimer(timer) == false)
     {
         return false;
     }
 
     {
-        std::lock_guard<std::mutex> guard(pInstance->mMutex);
-        IMLOGD1("[TimerStop] mutex taken pInstance[%x]", pInstance);
+        std::lock_guard<std::mutex> guard(timer->mMutex);
+        IMLOGD1("[TimerStop] mutex taken timer[%x]", timer);
 
-        pInstance->mTerminateThread = true;
+        timer->mTerminateThread = true;
 
-        if (ppUserData)
+        if (puserData)
         {
-            *ppUserData = pInstance->mUserData;
+            *puserData = timer->mUserData;
         }
     }
 
     return true;
 }
 
-void ImsMediaTimer::GetNtpTime(IMNtpTime* pNtpTime)
+uint64_t ImsMediaTimer::GetTimeInMicroSeconds(void)
 {
-    struct timeval stAndrodTp;
-
-    if (gettimeofday(&stAndrodTp, nullptr) != -1)
-    {
-        // To convert a UNIX timestamp (seconds since 1970) to NTP time, add 2,208,988,800 seconds
-        pNtpTime->ntpHigh32Bits = stAndrodTp.tv_sec + 2208988800UL;
-        pNtpTime->ntpLow32Bits = (unsigned int)(stAndrodTp.tv_usec * 4294UL);
-    }
-    else
-    {
-        pNtpTime->ntpHigh32Bits = 0;
-        pNtpTime->ntpLow32Bits = 0;
-    }
-}
-
-/*!
- * @brief       GetRtpTsFromNtpTs
- * @details     Transforms the current NTP time to the corresponding RTP TIme Stamp
- *              using the RTP time stamp rate for the session.
- */
-uint32_t ImsMediaTimer::GetRtpTsFromNtpTs(IMNtpTime* initNtpTimestamp, uint32_t samplingRate)
-{
-    IMNtpTime currentNtpTs;
-    int32_t timeDiffHigh32Bits;
-    int32_t timeDiffLow32Bits;
-    uint32_t timeDiff; /*! In Micro seconds: should always be positive */
-
-    GetNtpTime(&currentNtpTs);
-
-    /* SPR #1256 BEGIN */
-    timeDiffHigh32Bits = currentNtpTs.ntpHigh32Bits - initNtpTimestamp->ntpHigh32Bits;
-    timeDiffLow32Bits =
-            (currentNtpTs.ntpLow32Bits / 4294) - (initNtpTimestamp->ntpLow32Bits / 4294);
-    /*! timeDiffHigh32Bits should always be positive */
-    timeDiff = (timeDiffHigh32Bits * 1000) + timeDiffLow32Bits / 1000;
-    return timeDiff * (samplingRate / 1000);
+    struct timespec time;
+    clock_gettime(CLOCK_MONOTONIC, &time);
+    return (time.tv_sec * 1000000) + (time.tv_nsec / 1000);
 }
 
 uint32_t ImsMediaTimer::GetTimeInMilliSeconds(void)
 {
-    struct timeval tp;
-    gettimeofday(&tp, nullptr);
-    return (tp.tv_sec * 1000) + (tp.tv_usec / 1000);
-}
-
-uint64_t ImsMediaTimer::GetTimeInMicroSeconds(void)
-{
-    struct timeval tp;
-    gettimeofday(&tp, nullptr);
-    return (tp.tv_sec * 1000000) + (tp.tv_usec);
+    return ImsMediaTimer::GetTimeInMicroSeconds() / 1000;
 }
 
 uint32_t ImsMediaTimer::GenerateRandom(uint32_t nRange)
 {
     uint32_t rand;
-    struct timeval tp;
-
-    gettimeofday(&tp, nullptr);
-    rand = (tp.tv_sec * 13) + (tp.tv_usec / 1000);
+    struct timespec time;
+    clock_gettime(CLOCK_MONOTONIC, &time);
+    rand = (time.tv_sec * 13) + (time.tv_nsec / 1000000);
 
     if (0 == nRange)
     {
