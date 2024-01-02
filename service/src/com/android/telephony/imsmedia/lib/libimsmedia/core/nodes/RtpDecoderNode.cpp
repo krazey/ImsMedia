@@ -40,7 +40,7 @@
 #ifdef SIMULATION_DUPLICATE
 #define DEBUG_JITTER_DUPLICATE_PACKET_INTERVAL 30
 #endif
-#define MAX_INTER_ARRIVAL_DELAY 300  // Log if inter-arrival delay is greater than 300msec.
+#define MAX_INTER_ARRIVAL_DELAY 350  // Log if inter-arrival delay is greater than 350msec.
 
 RtpDecoderNode::RtpDecoderNode(BaseSessionCallback* callback) :
         BaseNode(callback)
