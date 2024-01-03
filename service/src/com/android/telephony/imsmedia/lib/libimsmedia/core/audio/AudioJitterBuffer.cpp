@@ -625,14 +625,14 @@ void AudioJitterBuffer::CountLostFrames(int32_t currentSeq, int32_t lastSeq)
 uint32_t AudioJitterBuffer::GetDropVoiceRateInDuration(uint32_t duration, uint32_t currentTime)
 {
     uint32_t numVoice = std::count_if(mListVoiceFrames.begin(), mListVoiceFrames.end(),
-            [=](uint32_t frameTime)
+            [duration, currentTime, this](uint32_t frameTime)
             {
                 return ((currentTime - frameTime + mCurrJitterBufferSize * FRAME_INTERVAL) <=
                         duration);
             });
 
     uint32_t numDrop = std::count_if(mListDropVoiceFrames.begin(), mListDropVoiceFrames.end(),
-            [=](uint32_t frameTime)
+            [duration, currentTime](uint32_t frameTime)
             {
                 return (currentTime - frameTime <= duration);
             });

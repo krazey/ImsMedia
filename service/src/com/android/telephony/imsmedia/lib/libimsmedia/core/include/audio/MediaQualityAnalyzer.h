@@ -65,7 +65,7 @@ public:
 
         // cross the threshold case
         auto iterCrossed = find_if(thresholds.begin(), thresholds.end(),
-                [=](int32_t thres)
+                [=, *this](int32_t thres)
                 {
                     return ((currentValue >= thres && previousValue < thres) ||
                             (currentValue < thres && previousValue >= thres));

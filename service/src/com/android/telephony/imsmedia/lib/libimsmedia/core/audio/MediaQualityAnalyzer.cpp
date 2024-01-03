@@ -1,9 +1,7 @@
 /**
  * Copyright (C) 2022 The Android Open Source Project
  *
- * Licensed under the Apache License, Version 2.0 (the "License") {
-}
-
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
@@ -514,7 +512,7 @@ void MediaQualityAnalyzer::processMediaQuality()
         // counts received packets for the duration
         int32_t numReceivedPacketsInDuration =
                 std::count_if(mListRxPacket.begin(), mListRxPacket.end(),
-                        [=](RtpPacket* packet)
+                        [=, this](RtpPacket* packet)
                         {
                             return (ImsMediaTimer::GetTimeInMilliSeconds() - packet->arrival <=
                                     mPacketLossDuration);
@@ -528,7 +526,7 @@ void MediaQualityAnalyzer::processMediaQuality()
             std::list<LostPacket*> listLostPacketInDuration;
             std::copy_if(mListLostPacket.begin(), mListLostPacket.end(),
                     std::back_inserter(listLostPacketInDuration),
-                    [=](LostPacket* packet)
+                    [=, this](LostPacket* packet)
                     {
                         return (ImsMediaTimer::GetTimeInMilliSeconds() - packet->markedTime <=
                                 mPacketLossDuration);
@@ -536,7 +534,7 @@ void MediaQualityAnalyzer::processMediaQuality()
 
             numLostPacketsInDuration = std::accumulate(begin(listLostPacketInDuration),
                     end(listLostPacketInDuration), 0,
-                    [=](int i, const LostPacket* packet)
+                    [](int i, const LostPacket* packet)
                     {
                         return packet->numLoss + i;
                     });
@@ -603,7 +601,7 @@ void MediaQualityAnalyzer::processMediaQuality()
     {
         std::vector<int32_t>::iterator rtpIter = std::find_if(mCurrentRtpInactivityTimes.begin(),
                 mCurrentRtpInactivityTimes.end(),
-                [=](int32_t inactivityTime)
+                [=, this](int32_t inactivityTime)
                 {
                     return (inactivityTime != 0 &&
                             mCountRtpInactivity >= inactivityTime);  // check cross the threshold
