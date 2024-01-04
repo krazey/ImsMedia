@@ -32,6 +32,9 @@ const int8_t kDscp = 0;
 const int8_t kRxPayload = 96;
 const int8_t kTxPayload = 96;
 const int8_t kSamplingRate = 16;
+// AnbrParam
+const int32_t kAnbrMUplinkMode = 1;
+const int32_t kAnbrMDownlinkMode = 2;
 
 // RtcpConfig
 const android::String8 kCanonicalName("name");
@@ -89,6 +92,7 @@ protected:
     AudioStreamGraphRtpTx* graph;
     AudioConfig config;
     RtcpConfig rtcp;
+    AnbrMode anbr;
     AmrParams amr;
     EvsParams evs;
     int socketRtpFd;
@@ -111,6 +115,9 @@ protected:
         evs.setUseHeaderFullOnly(kUseHeaderFullOnly);
         evs.setCodecModeRequest(kcodecModeRequest);
 
+        anbr.setAnbrUplinkCodecMode(kAnbrMUplinkMode);
+        anbr.setAnbrDownlinkCodecMode(kAnbrMDownlinkMode);
+
         config.setMediaDirection(kMediaDirection);
         config.setRemoteAddress(kRemoteAddress);
         config.setRemotePort(kRemotePort);
@@ -119,6 +126,7 @@ protected:
         config.setRxPayloadTypeNumber(kRxPayload);
         config.setTxPayloadTypeNumber(kTxPayload);
         config.setSamplingRateKHz(kSamplingRate);
+        config.setAnbrMode(anbr);
         config.setPtimeMillis(kPTimeMillis);
         config.setMaxPtimeMillis(kMaxPtimeMillis);
         config.setDtxEnabled(kDtxEnabled);

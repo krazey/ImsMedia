@@ -578,7 +578,16 @@ void AudioManager::ResponseHandler::processEvent(
         }
         break;
         case kAudioTriggerAnbrQueryInd:
-            /** TODO: add implementation */
+        {
+            parcel.writeInt32(event);
+            AudioConfig* status = reinterpret_cast<AudioConfig*>(paramA);
+            if (status != nullptr)
+            {
+                status->writeToParcel(&parcel);
+                AudioManager::getInstance()->sendResponse(sessionId, parcel);
+                delete status;
+            }
+        }
             break;
         case kAudioDtmfReceivedInd:
             parcel.writeInt32(event);
