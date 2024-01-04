@@ -553,7 +553,6 @@ public final class AudioSession extends IImsAudioSession.Stub implements IMediaS
         }  catch (RemoteException e) {
             Log.e(TAG, "Failed to notify media quality status: " + e);
         }
-
     }
 
     private void handleTriggerAnbrQuery(AudioConfig config) {

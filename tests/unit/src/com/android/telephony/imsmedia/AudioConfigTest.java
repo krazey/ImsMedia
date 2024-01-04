@@ -22,6 +22,7 @@ import android.net.InetAddresses;
 import android.os.Parcel;
 import android.telephony.AccessNetworkConstants.AccessNetworkType;
 import android.telephony.imsmedia.AmrParams;
+import android.telephony.imsmedia.AnbrMode;
 import android.telephony.imsmedia.AudioConfig;
 import android.telephony.imsmedia.EvsParams;
 import android.telephony.imsmedia.RtcpConfig;
@@ -48,6 +49,10 @@ public class AudioConfigTest {
     private static final String CANONICAL_NAME = "name";
     private static final int RTCP_PORT = 3333;
     private static final int RTCP_INTERVAL = 66;
+
+    // AnbrParam
+    private static final int ANBR_UPLINK_MODE = 1;
+    private static final int ANBR_DOWNLINK_MODE = 2;
 
     // AudioConfig
     private static final String REMOTE_RTP_ADDRESS = "122.22.22.22";
@@ -82,6 +87,11 @@ public class AudioConfigTest {
             .setMaxRedundancyMillis(MAX_REDUNDANCY_MILLIS)
             .build();
 
+    private static final AnbrMode sAnbr = new AnbrMode.Builder()
+            .setAnbrUplinkCodecMode(ANBR_UPLINK_MODE)
+            .setAnbrDownlinkCodecMode(ANBR_DOWNLINK_MODE)
+            .build();
+
     @Test
     public void testConstructorAndGetters() {
         AudioConfig config = createAudioConfig();
@@ -105,6 +115,7 @@ public class AudioConfigTest {
         assertThat(config.getTxPayloadTypeNumber()).isEqualTo(TX_PAYLOAD);
         assertThat(config.getSamplingRateKHz()).isEqualTo(SAMPLING_RATE);
         assertThat(config.getDscp()).isEqualTo(DSCP);
+        assertThat(config.getAnbrMode()).isEqualTo(sAnbr);
     }
 
     @Test
@@ -142,6 +153,7 @@ public class AudioConfigTest {
                 .setRxPayloadTypeNumber(RX_PAYLOAD)
                 .setTxPayloadTypeNumber(TX_PAYLOAD)
                 .setSamplingRateKHz(SAMPLING_RATE)
+                .setAnbrMode(sAnbr)
                 .setPtimeMillis(PTIME)
                 .setMaxPtimeMillis(MAX_PTIME)
                 .setDtxEnabled(DTX_ENABLED)
@@ -167,6 +179,7 @@ public class AudioConfigTest {
                 .setRxPayloadTypeNumber(RX_PAYLOAD)
                 .setTxPayloadTypeNumber(TX_PAYLOAD)
                 .setSamplingRateKHz(SAMPLING_RATE)
+                .setAnbrMode(sAnbr)
                 .setPtimeMillis(PTIME)
                 .setMaxPtimeMillis(MAX_PTIME)
                 .setDtxEnabled(DTX_ENABLED)

@@ -16,6 +16,7 @@
 
 package com.android.telephony.imsmedia;
 
+import android.hardware.radio.ims.media.CodecMode;
 import android.hardware.radio.ims.media.CodecParams;
 import android.hardware.radio.ims.media.CodecSpecificParams;
 import android.hardware.radio.ims.media.DtmfParams;
@@ -28,6 +29,7 @@ import android.os.ParcelFileDescriptor;
 import android.telephony.CallQuality;
 import android.telephony.ims.RtpHeaderExtension;
 import android.telephony.imsmedia.AmrParams;
+import android.telephony.imsmedia.AnbrMode;
 import android.telephony.imsmedia.AudioConfig;
 import android.telephony.imsmedia.EvsParams;
 import android.telephony.imsmedia.MediaQualityStatus;
@@ -172,6 +174,36 @@ public final class Utils {
         return codecParams;
     }
 
+    private static android.hardware.radio.ims.media.AnbrMode
+            buildAnbrMode(final AudioConfig audioConfig) {
+        final android.hardware.radio.ims.media.AnbrMode anbrModeParams =
+                new android.hardware.radio.ims.media.AnbrMode();
+        if (audioConfig.getAnbrMode() == null) {
+            return null;
+        } else {
+            if (audioConfig.getCodecType() == AudioConfig.CODEC_AMR
+                    || audioConfig.getCodecType() == AudioConfig.CODEC_AMR_WB) {
+                anbrModeParams.anbrUplinkMode = new CodecMode();
+                anbrModeParams.anbrDownlinkMode = new CodecMode();
+
+                anbrModeParams.anbrUplinkMode.setAmr(
+                        audioConfig.getAnbrMode().getAnbrUplinkCodecMode());
+                anbrModeParams.anbrDownlinkMode.setAmr(
+                        audioConfig.getAnbrMode().getAnbrDownlinkCodecMode());
+            } else if (audioConfig.getCodecType() == AudioConfig.CODEC_EVS) {
+                anbrModeParams.anbrUplinkMode = new CodecMode();
+                anbrModeParams.anbrDownlinkMode = new CodecMode();
+
+                anbrModeParams.anbrUplinkMode.setEvs(
+                        audioConfig.getAnbrMode().getAnbrUplinkCodecMode());
+                anbrModeParams.anbrDownlinkMode.setEvs(
+                        audioConfig.getAnbrMode().getAnbrDownlinkCodecMode());
+            }
+
+            return anbrModeParams;
+        }
+    }
+
     private static RtpSessionParams buildSessionParams(final AudioConfig audioConfig) {
         final RtpSessionParams sessionParams = new RtpSessionParams();
 
@@ -211,6 +243,7 @@ public final class Utils {
             rtpConfig.remoteAddress = buildRtpAddress(audioConfig);
             rtpConfig.sessionParams = buildSessionParams(audioConfig);
             rtpConfig.rtcpConfig = buildRtcpConfig(audioConfig);
+            rtpConfig.anbrModeParams = buildAnbrMode(audioConfig);
         }
 
         return rtpConfig;
@@ -296,6 +329,39 @@ public final class Utils {
         return amrParams;
     }
 
+    private static AnbrMode buildAnbrMode(
+            final android.hardware.radio.ims.media.RtpConfig rtpConfig) {
+        final AnbrMode anbrMode;
+
+        if (rtpConfig == null
+                || rtpConfig.sessionParams == null
+                || rtpConfig.sessionParams.codecParams == null) {
+            anbrMode = null;
+        } else {
+            if (rtpConfig.sessionParams.codecParams.codecType == AudioConfig.CODEC_EVS) {
+                anbrMode = new AnbrMode.Builder()
+                        .setAnbrUplinkCodecMode(rtpConfig.anbrModeParams.anbrUplinkMode.getEvs())
+                        .setAnbrDownlinkCodecMode(
+                                rtpConfig.anbrModeParams.anbrDownlinkMode.getEvs())
+                        .build();
+            } else if (rtpConfig.sessionParams.codecParams.codecType == AudioConfig.CODEC_AMR
+                    || rtpConfig.sessionParams.codecParams.codecType == AudioConfig.CODEC_AMR_WB) {
+                anbrMode = new AnbrMode.Builder()
+                        .setAnbrUplinkCodecMode(rtpConfig.anbrModeParams.anbrUplinkMode.getAmr())
+                        .setAnbrDownlinkCodecMode(
+                                rtpConfig.anbrModeParams.anbrDownlinkMode.getAmr())
+                        .build();
+            } else {
+                anbrMode = new AnbrMode.Builder()
+                        .setAnbrUplinkCodecMode(0)
+                        .setAnbrDownlinkCodecMode(0)
+                        .build();
+            }
+        }
+
+        return anbrMode;
+    }
+
     private static InetSocketAddress buildRtpAddress(
             final android.hardware.radio.ims.media.RtpConfig rtpConfig) {
         final InetSocketAddress rtpAddress;
@@ -326,6 +392,7 @@ public final class Utils {
                     .setRtcpConfig(buildRtcpConfig(rtpConfig))
                     .setEvsParams(buildEvsParams(rtpConfig))
                     .setAmrParams(buildAmrParams(rtpConfig))
+                    .setAnbrMode(buildAnbrMode(rtpConfig))
                     .build();
 
             /** Populate session related parameters if present */
