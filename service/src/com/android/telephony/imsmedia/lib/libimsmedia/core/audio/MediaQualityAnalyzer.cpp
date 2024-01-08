@@ -19,6 +19,7 @@
 #include <ImsMediaTrace.h>
 #include <ImsMediaAudioUtil.h>
 #include <RtcpXrEncoder.h>
+#include <RtpReceptionStats.h>
 #include <AudioConfig.h>
 #include <stdlib.h>
 #include <algorithm>

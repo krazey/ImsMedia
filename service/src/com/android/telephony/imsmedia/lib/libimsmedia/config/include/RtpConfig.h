@@ -22,7 +22,6 @@
 #include <binder/Status.h>
 #include <RtcpConfig.h>
 #include <RtpContextParams.h>
-#include <RtpReceptionStats.h>
 #include <stdint.h>
 
 namespace android
@@ -88,8 +87,6 @@ public:
     int8_t getSamplingRateKHz();
     RtpContextParams getRtpContextParams();
     void setRtpContextParams(RtpContextParams& rtpContextParams);
-    RtpReceptionStats getRtpReceptionStats();
-    void setRtpReceptionStats(const RtpReceptionStats& stats);
 
 protected:
     RtpConfig(int32_t type);
@@ -155,12 +152,6 @@ protected:
      * in RTP steams even after switching between RTP stacks.
      */
     RtpContextParams rtpContextParams;
-
-    /**
-     * @brief The rtp reception statistics for the delay adjustment to synchronize the latency with
-     * the video stream session
-     */
-    RtpReceptionStats mRtpReceptionStats;
 };
 
 }  // namespace imsmedia

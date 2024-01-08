@@ -18,6 +18,7 @@
 #include <ImsMediaTrace.h>
 #include <ImsMediaNetworkUtil.h>
 #include <MediaQualityStatus.h>
+#include <RtpReceptionStats.h>
 
 using namespace android;
 
