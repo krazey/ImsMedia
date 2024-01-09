@@ -3,6 +3,7 @@
 #include <thread>
 #include <ImsMediaTimer.h>
 #include <ImsMediaTrace.h>
+#include <limits.h>
 
 class ImsMediaTimerTest : public ::testing::Test
 {
@@ -77,4 +78,15 @@ TEST_F(ImsMediaTimerTest, MillisecTimeDifference)
     std::this_thread::sleep_for(std::chrono::milliseconds(timeDiff));
     uint32_t timeEnd = ImsMediaTimer::GetTimeInMilliSeconds();
     EXPECT_TRUE(timeEnd - timeStart >= timeDiff);
+}
+
+TEST_F(ImsMediaTimerTest, CheckMillisecTimeOverflow)
+{
+    const uint32_t timeDiff = 100;
+    ImsMediaTimer::SetStartTimeInMicroSeconds(static_cast<uint64_t>(UINT_MAX) * 1000);
+    const uint32_t timeStart = ImsMediaTimer::GetTimeInMilliSeconds();
+    std::this_thread::sleep_for(std::chrono::milliseconds(timeDiff));
+    const uint32_t timeEnd = ImsMediaTimer::GetTimeInMilliSeconds();
+
+    EXPECT_TRUE(timeEnd - timeStart <= timeDiff * 1.05f);
 }

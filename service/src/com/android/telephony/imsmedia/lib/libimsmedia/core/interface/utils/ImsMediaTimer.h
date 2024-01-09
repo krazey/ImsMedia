@@ -33,6 +33,7 @@ public:
     static hTimerHandler TimerStart(
             uint32_t nDuration, bool bRepeat, fn_TimerCb pTimerCb, void* pUserData);
     static bool TimerStop(hTimerHandler hTimer, void** ppUserData);
+    static void SetStartTimeInMicroSeconds(uint64_t time);
     static uint64_t GetTimeInMicroSeconds(void);
     static uint32_t GetTimeInMilliSeconds(void);
     static uint32_t GenerateRandom(uint32_t nRange);
