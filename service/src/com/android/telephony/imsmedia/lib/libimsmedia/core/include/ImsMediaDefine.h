@@ -415,18 +415,18 @@ enum kVideoCodecType
     kVideoCodecHevc,
 };
 
-enum kRtpPyaloadHeaderMode
+enum kRtpPayloadHeaderMode
 {
     // Amr mode
-    kRtpPyaloadHeaderModeAmrOctetAligned = 0,  // octet aligned mode
-    kRtpPyaloadHeaderModeAmrEfficient = 1,     // efficient mode
+    kRtpPayloadHeaderModeAmrOctetAligned = 0,  // octet aligned mode
+    kRtpPayloadHeaderModeAmrEfficient = 1,     // efficient mode
                                                // Video packetization mode
-    kRtpPyaloadHeaderModeSingleNalUnit = 0,    // packet mode 0
-    kRtpPyaloadHeaderModeNonInterleaved = 1,   // packet mode 1
+    kRtpPayloadHeaderModeSingleNalUnit = 0,    // packet mode 0
+    kRtpPayloadHeaderModeNonInterleaved = 1,   // packet mode 1
                                                // Evs mode
-    kRtpPyaloadHeaderModeEvsCompact = 0,       // EVS compact format 0
-    kRtpPyaloadHeaderModeEvsHeaderFull = 1,    // EVS header-full format 1
-    kRtpPyaloadHeaderModeMax
+    kRtpPayloadHeaderModeEvsCompact = 0,       // EVS compact format 0
+    kRtpPayloadHeaderModeEvsHeaderFull = 1,    // EVS header-full format 1
+    kRtpPayloadHeaderModeMax
 };
 
 enum kIpVersion

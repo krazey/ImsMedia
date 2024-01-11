@@ -157,7 +157,7 @@ public:
     static uint32_t GetMaximumAmrMode(int32_t bitmask);
     static uint32_t GetMaximumEvsMode(int32_t bitmask);
     static uint32_t GetBitrateEVS(int mode);
-    static kRtpPyaloadHeaderMode ConvertEVSPayloadMode(
+    static kRtpPayloadHeaderMode ConvertEVSPayloadMode(
             uint32_t nDataSize, kEvsCodecMode* pEVSCodecMode, uint32_t* pEVSCompactId);
     static kEvsCodecMode CheckEVSCodecMode(const uint32_t nAudioFrameLength);
     static int32_t ConvertEVSModeToBitRate(const int32_t mode);

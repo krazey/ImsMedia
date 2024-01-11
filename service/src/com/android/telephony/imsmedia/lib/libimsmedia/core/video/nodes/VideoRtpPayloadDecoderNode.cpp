@@ -175,7 +175,7 @@ void VideoRtpPayloadDecoderNode::DecodeAvc(ImsMediaSubType subtype, uint8_t* pDa
         uint8_t* pCurrData = pData + 1;
         int32_t nRemainSize = (int32_t)(nDataSize - 1);
 
-        if (mPayloadMode == kRtpPyaloadHeaderModeSingleNalUnit)
+        if (mPayloadMode == kRtpPayloadHeaderModeSingleNalUnit)
         {
             IMLOGD_PACKET0(IM_PACKET_LOG_PH, "[DecodeAvc] Warning - single nal unit mode");
         }
@@ -226,7 +226,7 @@ void VideoRtpPayloadDecoderNode::DecodeAvc(ImsMediaSubType subtype, uint8_t* pDa
         uint8_t bStartBit;
         uint8_t bEndBit;
 
-        if (mPayloadMode == kRtpPyaloadHeaderModeSingleNalUnit)
+        if (mPayloadMode == kRtpPayloadHeaderModeSingleNalUnit)
         {
             IMLOGW0("[DecodeAvc] Warning - (FU-A, 28) for single nal unit mode");
         }
@@ -345,7 +345,7 @@ void VideoRtpPayloadDecoderNode::DecodeHevc(ImsMediaSubType subtype, uint8_t* pD
         uint8_t bStartBit;
         uint8_t bEndBit;
 
-        if (mPayloadMode == kRtpPyaloadHeaderModeSingleNalUnit)
+        if (mPayloadMode == kRtpPayloadHeaderModeSingleNalUnit)
         {
             IMLOGW0("[DecodeHevc] Warning - invalid packet type(FU, 49) for single nal unit mode");
         }

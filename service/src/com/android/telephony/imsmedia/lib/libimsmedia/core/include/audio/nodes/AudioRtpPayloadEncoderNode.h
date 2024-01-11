@@ -62,7 +62,7 @@ private:
     int8_t mSendCMR;
     kEvsBitrate mEvsMode;
     int32_t mCoreEvsMode;
-    kRtpPyaloadHeaderMode mEvsPayloadHeaderMode;
+    kRtpPayloadHeaderMode mEvsPayloadHeaderMode;
 };
 
 #endif

@@ -48,7 +48,7 @@ ImsMediaAudioPlayer::ImsMediaAudioPlayer()
     mEvsBandwidth = kEvsBandwidthNone;
     memset(mBuffer, 0, sizeof(mBuffer));
     mEvsBitRate = 0;
-    mEvsCodecHeaderMode = kRtpPyaloadHeaderModeEvsHeaderFull;
+    mEvsCodecHeaderMode = kRtpPayloadHeaderModeEvsHeaderFull;
     mIsFirstFrame = false;
     mIsEvsInitialized = false;
     mIsOctetAligned = false;
@@ -85,7 +85,7 @@ void ImsMediaAudioPlayer::SetEvsBandwidth(int32_t evsBandwidth)
 
 void ImsMediaAudioPlayer::SetEvsPayloadHeaderMode(int32_t EvsPayloadHeaderMode)
 {
-    mEvsCodecHeaderMode = (kRtpPyaloadHeaderMode)EvsPayloadHeaderMode;
+    mEvsCodecHeaderMode = (kRtpPayloadHeaderMode)EvsPayloadHeaderMode;
 }
 
 void ImsMediaAudioPlayer::SetCodecMode(uint32_t mode)

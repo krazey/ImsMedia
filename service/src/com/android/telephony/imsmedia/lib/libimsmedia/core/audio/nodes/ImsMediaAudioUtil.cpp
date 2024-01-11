@@ -505,7 +505,7 @@ kEvsCodecMode ImsMediaAudioUtil::CheckEVSCodecMode(const uint32_t nAudioFrameLen
     }
 }
 
-kRtpPyaloadHeaderMode ImsMediaAudioUtil::ConvertEVSPayloadMode(
+kRtpPayloadHeaderMode ImsMediaAudioUtil::ConvertEVSPayloadMode(
         uint32_t nDataSize, kEvsCodecMode* pEVSCodecMode, uint32_t* pEVSCompactId)
 {
     uint32_t i = 0;
@@ -520,7 +520,7 @@ kRtpPyaloadHeaderMode ImsMediaAudioUtil::ConvertEVSPayloadMode(
         {
             *pEVSCodecMode = kEvsCodecModePrimary;
             *pEVSCompactId = i;
-            return kRtpPyaloadHeaderModeEvsCompact;
+            return kRtpPayloadHeaderModeEvsCompact;
         }
     }
 
@@ -531,14 +531,14 @@ kRtpPyaloadHeaderMode ImsMediaAudioUtil::ConvertEVSPayloadMode(
         {
             *pEVSCodecMode = kEvsCodecModeAmrIo;
             *pEVSCompactId = i;
-            return kRtpPyaloadHeaderModeEvsCompact;
+            return kRtpPayloadHeaderModeEvsCompact;
         }
     }
 
     // TODO : need to check ID...
     *pEVSCodecMode = kEvsCodecModePrimary;
     *pEVSCompactId = EVS_COMPACT_PAYLOAD_MAX_NUM;
-    return kRtpPyaloadHeaderModeEvsHeaderFull;
+    return kRtpPayloadHeaderModeEvsHeaderFull;
 }
 
 kEvsBandwidth ImsMediaAudioUtil::FindMaxEvsBandwidthFromRange(const int32_t EvsBandwidthRange)

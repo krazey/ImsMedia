@@ -39,7 +39,7 @@ AudioRtpPayloadEncoderNode::AudioRtpPayloadEncoderNode(BaseSessionCallback* call
     mSendCMR = 0;
     mEvsMode = kEvsAmrIoModeBitrate00660;
     mCoreEvsMode = 0;
-    mEvsPayloadHeaderMode = kRtpPyaloadHeaderModeEvsCompact;
+    mEvsPayloadHeaderMode = kRtpPayloadHeaderModeEvsCompact;
 }
 
 AudioRtpPayloadEncoderNode::~AudioRtpPayloadEncoderNode() {}
@@ -129,7 +129,7 @@ void AudioRtpPayloadEncoderNode::SetConfig(void* config)
         {
             mEvsBandwidth = (kEvsBandwidth)pConfig->getEvsParams().getEvsBandwidth();
             mEvsPayloadHeaderMode =
-                    (kRtpPyaloadHeaderMode)pConfig->getEvsParams().getUseHeaderFullOnly();
+                    (kRtpPayloadHeaderMode)pConfig->getEvsParams().getUseHeaderFullOnly();
             mCoreEvsMode = pConfig->getEvsParams().getEvsMode();
             mEvsOffset = pConfig->getEvsParams().getChannelAwareMode();
             mSendCMR = pConfig->getEvsParams().getCodecModeRequest();
@@ -155,7 +155,7 @@ bool AudioRtpPayloadEncoderNode::IsSameConfig(void* config)
         {
             return (mEvsBandwidth == (kEvsBandwidth)pConfig->getEvsParams().getEvsBandwidth() &&
                     mEvsPayloadHeaderMode ==
-                            (kRtpPyaloadHeaderMode)pConfig->getEvsParams().getUseHeaderFullOnly() &&
+                            (kRtpPayloadHeaderMode)pConfig->getEvsParams().getUseHeaderFullOnly() &&
                     mCoreEvsMode ==
                             ImsMediaAudioUtil::GetMaximumEvsMode(
                                     pConfig->getEvsParams().getEvsMode()) &&
@@ -288,7 +288,7 @@ void AudioRtpPayloadEncoderNode::EncodePayloadEvs(
     // primary or amr-wb io mode base on frameSize.
     mCurrNumOfFrame++;
 
-    if (mEvsPayloadHeaderMode == kRtpPyaloadHeaderModeEvsCompact)
+    if (mEvsPayloadHeaderMode == kRtpPayloadHeaderModeEvsCompact)
     {
         memset(mPayload, 0, MAX_AUDIO_PAYLOAD_SIZE);
         mBWHeader.SetBuffer(mPayload, MAX_AUDIO_PAYLOAD_SIZE);
@@ -436,7 +436,7 @@ void AudioRtpPayloadEncoderNode::EncodePayloadEvs(
             return;
         }
     }
-    else if (mEvsPayloadHeaderMode == kRtpPyaloadHeaderModeEvsHeaderFull)
+    else if (mEvsPayloadHeaderMode == kRtpPayloadHeaderModeEvsHeaderFull)
     {
         // 0111 1111 is no request.
         uint32_t nEVSBW = 0x07;
@@ -635,7 +635,7 @@ uint32_t AudioRtpPayloadEncoderNode::CheckPaddingNecessity(uint32_t nTotalSize)
     // check EVS compact size
     while (nSize != 0 &&
             ImsMediaAudioUtil::ConvertEVSPayloadMode(nSize, &evsCodecMode, &nEVSCompactId) ==
-                    kRtpPyaloadHeaderModeEvsCompact)
+                    kRtpPayloadHeaderModeEvsCompact)
     {
         mPayload[nSize] = 0;
         nSize++;
