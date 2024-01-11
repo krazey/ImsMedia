@@ -30,8 +30,11 @@ RtpDt_Void RtpOsUtil::GetNtpTime(tRTP_NTP_TIME& pstNtpTime)
     if (gettimeofday(&stAndrodTp, nullptr) != -1)
     {
         // To convert a UNIX timestamp (seconds since 1970) to NTP time, add 2,208,988,800 seconds
-        pstNtpTime.m_uiNtpHigh32Bits = stAndrodTp.tv_sec + 2208988800UL;
-        pstNtpTime.m_uiNtpLow32Bits = (RtpDt_UInt32)(stAndrodTp.tv_usec * 4294UL);
+        uint64_t ntpts = ((unsigned long long)(stAndrodTp.tv_sec + 2208988800UL) << 32) +
+                (unsigned long long)(stAndrodTp.tv_usec / 1e6 * 4294967296.);
+
+        pstNtpTime.m_uiNtpHigh32Bits = (ntpts >> 32);
+        pstNtpTime.m_uiNtpLow32Bits = ntpts;
     }
 }
 
