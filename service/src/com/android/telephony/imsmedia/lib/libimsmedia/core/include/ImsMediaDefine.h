@@ -108,6 +108,16 @@ enum ImsMediaType
     IMS_MEDIA_TEXT,
 };
 
+enum AccessNetworkType
+{
+    ACCESS_NETWORK_UNKNOWN = 0,
+    ACCESS_NETWORK_GERAN = 1,
+    ACCESS_NETWORK_UTRAN = 2,
+    ACCESS_NETWORK_EUTRAN = 3,
+    ACCESS_NETWORK_IWLAN = 5,
+    ACCESS_NETWORK_NGRAN = 6,
+};
+
 enum kProtocolType
 {
     kProtocolRtp = 0,

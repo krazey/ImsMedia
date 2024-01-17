@@ -112,6 +112,21 @@ ImsMediaResult AudioStreamGraphRtpTx::update(RtpConfig* config)
             mConfig->getMediaDirection() == RtpConfig::MEDIA_DIRECTION_INACTIVE)
     {
         IMLOGI0("[update] pause TX");
+        RtpContextParams rtpContextParams = config->getRtpContextParams();
+        int32_t accessNetwork = pConfig->getAccessNetwork();
+
+        if (accessNetwork != ACCESS_NETWORK_IWLAN &&
+                mConfig->getMediaDirection() == RtpConfig::MEDIA_DIRECTION_NO_FLOW)
+        {
+            for (auto& node : mListNodeStarted)
+            {
+                if (node != nullptr && node->GetNodeId() == kNodeIdRtpEncoder)
+                {
+                    reinterpret_cast<RtpEncoderNode*>(node)->GetRtpContext(rtpContextParams);
+                    pConfig->setRtpContextParams(rtpContextParams);
+                }
+            }
+        }
         return stop();
     }
 

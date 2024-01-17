@@ -86,6 +86,13 @@ ImsMediaResult RtpEncoderNode::Start()
     {
         mRtpSession->SetRtpPayloadParam(mRtpPayloadTx, mRtpPayloadRx, mSamplingRate * 1000,
                 mRtpTxDtmfPayload, mRtpRxDtmfPayload, mDtmfSamplingRate * 1000);
+
+        if (mRtpContextParams.getSequenceNumber() >= 0)
+        {
+            // Set the next sequence number to use by RTP stack.
+            mRtpSession->SetRtpContext(mRtpContextParams.getSsrc(),
+                    mRtpContextParams.getTimestamp(), mRtpContextParams.getSequenceNumber() + 1);
+        }
     }
     else if (mMediaType == IMS_MEDIA_VIDEO)
     {
@@ -189,6 +196,14 @@ void RtpEncoderNode::SetConfig(void* config)
         mRtpTxDtmfPayload = pConfig->getTxDtmfPayloadTypeNumber();
         mRtpRxDtmfPayload = pConfig->getRxDtmfPayloadTypeNumber();
         mDtmfSamplingRate = pConfig->getDtmfsamplingRateKHz();
+
+        RtpContextParams rtpContextParams = pConfig->getRtpContextParams();
+
+        if (pConfig->getAccessNetwork() == ACCESS_NETWORK_IWLAN &&
+                          rtpContextParams.getSequenceNumber() >= 0)
+        {
+            SetRtpContext(rtpContextParams);
+        }
     }
     else if (mMediaType == IMS_MEDIA_VIDEO)
     {
@@ -211,8 +226,8 @@ void RtpEncoderNode::SetConfig(void* config)
 
         RtpContextParams rtpContextParams = pConfig->getRtpContextParams();
 
-        // TODO: #include <aidl/android/hardware/radio/AccessNetwork.h>
-        if (pConfig->getAccessNetwork() == 5 && rtpContextParams.getSequenceNumber() > 0)
+        if (pConfig->getAccessNetwork() == ACCESS_NETWORK_IWLAN &&
+                            rtpContextParams.getSequenceNumber() > 0)
         {
             SetRtpContext(rtpContextParams);
         }
@@ -233,6 +248,7 @@ bool RtpEncoderNode::IsSameConfig(void* config)
         AudioConfig* pConfig = reinterpret_cast<AudioConfig*>(config);
         return (mPeerAddress ==
                         RtpAddress(pConfig->getRemoteAddress().c_str(), pConfig->getRemotePort()) &&
+                mRtpContextParams == pConfig->getRtpContextParams() &&
                 mSamplingRate == pConfig->getSamplingRateKHz() &&
                 mRtpPayloadTx == pConfig->getTxPayloadTypeNumber() &&
                 mRtpPayloadRx == pConfig->getRxPayloadTypeNumber() &&
