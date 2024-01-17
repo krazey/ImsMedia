@@ -382,8 +382,9 @@ bool AudioJitterBuffer::Get(ImsMediaSubType* psubtype, uint8_t** ppData, uint32_
         mListJitterBufferSize.pop_front();
     }
 
-    // discard duplicated packet
-    if (mDataQueue.Get(&pEntry) && mFirstFrameReceived && pEntry->nSeqNum == mLastPlayedSeqNum)
+    // report duplicated packet
+    while (mDataQueue.Get(&pEntry) && mFirstFrameReceived && pEntry->nSeqNum == mLastPlayedSeqNum &&
+            pEntry->nTimestamp == mLastPlayedTimestamp)
     {
         IMLOGD6("[Get] duplicate - curTS=%u, seq=%d, mark=%d, TS=%u, size=%d, queue=%d",
                 mCurrPlayingTS, pEntry->nSeqNum, pEntry->bMark, pEntry->nTimestamp,
@@ -423,6 +424,7 @@ bool AudioJitterBuffer::Get(ImsMediaSubType* psubtype, uint8_t** ppData, uint32_
         {
             CountLostFrames(pEntry->nSeqNum, mLastPlayedSeqNum);
             mLastPlayedSeqNum = pEntry->nSeqNum;
+            mLastPlayedTimestamp = pEntry->nTimestamp;
         }
 
         IMLOGD_PACKET4(IM_PACKET_LOG_JITTER,
@@ -498,6 +500,7 @@ bool AudioJitterBuffer::Get(ImsMediaSubType* psubtype, uint8_t** ppData, uint32_
         mCurrPlayingTS = pEntry->nTimestamp + FRAME_INTERVAL;
         mFirstFrameReceived = true;
         mLastPlayedSeqNum = pEntry->nSeqNum;
+        mLastPlayedTimestamp = pEntry->nTimestamp;
         CollectRxRtpStatus(pEntry->nSeqNum, kRtpStatusNormal);
         CollectJitterBufferStatus(
                 mCurrJitterBufferSize * FRAME_INTERVAL, mMaxJitterBufferSize * FRAME_INTERVAL);
@@ -542,6 +545,7 @@ bool AudioJitterBuffer::Get(ImsMediaSubType* psubtype, uint8_t** ppData, uint32_
                     mCurrPlayingTS, currentTime);
 
             mLastPlayedSeqNum = pEntry->nSeqNum;
+            mLastPlayedTimestamp = pEntry->nTimestamp;
             mCurrPlayingTS += FRAME_INTERVAL;
             return true;
         }
@@ -595,6 +599,7 @@ void AudioJitterBuffer::Resync(uint32_t spareFrames)
         if (!mWaiting)
         {
             mLastPlayedSeqNum = entry->nSeqNum;
+            mLastPlayedTimestamp = entry->nTimestamp;
         }
 
         mDataQueue.Delete();
