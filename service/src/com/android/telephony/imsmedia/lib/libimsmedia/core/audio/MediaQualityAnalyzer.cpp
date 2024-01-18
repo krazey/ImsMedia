@@ -150,7 +150,7 @@ void MediaQualityAnalyzer::start()
     {
         IMLOGD0("[start]");
         mTimeStarted = ImsMediaTimer::GetTimeInMilliSeconds();
-        StartThread();
+        StartThread("MediaQualityAnalyzer");
     }
 }
 

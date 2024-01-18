@@ -49,6 +49,7 @@ enum kBaseNodeId
     kNodeIdAudioSource,
     kNodeIdAudioPlayer,
     kNodeIdDtmfEncoder,
+    kNodeIdDtmfSender,
     kNodeIdAudioPayloadEncoder,
     kNodeIdAudioPayloadDecoder,
     // for Video
@@ -142,7 +143,7 @@ public:
     /**
      * @brief Checks the node processes data in main thread.
      */
-    virtual bool IsRunTime() = 0;
+    virtual bool IsRunTime();
 
     /**
      * @brief Checks the node to start in main thread

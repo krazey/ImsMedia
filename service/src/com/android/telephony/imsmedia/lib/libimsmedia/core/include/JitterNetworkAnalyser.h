@@ -73,8 +73,11 @@ private:
     std::mutex mMutex;
     uint32_t mMinJitterBufferSize;
     uint32_t mMaxJitterBufferSize;
-    std::map<int32_t, int32_t> mMapDelta;
-    std::list<int32_t> mListJitters;
+    uint32_t mPrevTimestamp;
+    uint32_t mPrevArrivalTime;
+    std::list<int32_t> mListAccumDeltas;
+    int32_t mPrevDelta;
+    int32_t minJitterInBeginning;
     uint32_t mTimeLateArrivals;
     NETWORK_STATUS mNetworkStatus;
     uint32_t mGoodStatusEnteringTime;

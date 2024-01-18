@@ -35,6 +35,13 @@ public:
     virtual void onEvent(int32_t type, uint64_t param1, uint64_t param2);
     ImsMediaResult sendRtt(const android::String8* text);
 
+    /**
+     * @brief move session to inactive. i.e., Rtp Tx and Rtp Rx graphs are stopped
+     *
+     * @return bool false if failed to move session to inactive
+     */
+    bool deactivate();
+
 private:
     TextStreamGraphRtpTx* mGraphRtpTx;
     TextStreamGraphRtpRx* mGraphRtpRx;

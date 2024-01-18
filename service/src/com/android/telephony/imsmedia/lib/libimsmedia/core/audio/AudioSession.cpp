@@ -658,3 +658,33 @@ void AudioSession::SendInternalEvent(int32_t type, uint64_t param1, uint64_t par
             break;
     }
 }
+
+bool AudioSession::deactivate()
+{
+    IMLOGI0("[deactivate]");
+
+    for (auto& graph : mListGraphRtpTx)
+    {
+        if (graph != nullptr)
+        {
+            graph->stop();
+        }
+    }
+
+    for (auto& graph : mListGraphRtpRx)
+    {
+        if (graph != nullptr)
+        {
+            graph->stop();
+        }
+    }
+
+    SessionState state = getState();
+    if (state == kSessionStateActive || state == kSessionStateReceiving ||
+            state == kSessionStateSending)
+    {
+        return false;
+    }
+
+    return true;
+}

@@ -19,7 +19,7 @@
 #include <ImsMediaNetworkUtil.h>
 
 using namespace android;
-TextManager* TextManager::manager;
+TextManager* TextManager::sManager;
 
 TextManager::TextManager()
 {
@@ -31,17 +31,17 @@ TextManager::~TextManager()
 {
     mRequestHandler.Deinit();
     mResponseHandler.Deinit();
-    manager = nullptr;
+    sManager = nullptr;
 }
 
 TextManager* TextManager::getInstance()
 {
-    if (manager == nullptr)
+    if (sManager == nullptr)
     {
-        manager = new TextManager();
+        sManager = new TextManager();
     }
 
-    return manager;
+    return sManager;
 }
 
 int TextManager::getState(int sessionId)
@@ -111,15 +111,15 @@ ImsMediaResult TextManager::modifySession(const int sessionId, TextConfig* confi
     {
         if ((config->getMediaDirection() == RtpConfig::MEDIA_DIRECTION_SEND_RECEIVE ||
                     config->getMediaDirection() == RtpConfig::MEDIA_DIRECTION_RECEIVE_ONLY ||
-                    config->getMediaDirection() == RtpConfig::MEDIA_DIRECTION_SEND_ONLY) &&
-                isOtherSessionActive(sessionId))
+                    config->getMediaDirection() == RtpConfig::MEDIA_DIRECTION_SEND_ONLY))
         {
-            return RESULT_NO_RESOURCES;
+            if (!deactivateOtherSessionIfActive(sessionId))
+            {
+                return RESULT_NO_RESOURCES;
+            }
         }
-        else
-        {
-            return (session->second)->startGraph(config);
-        }
+
+        return (session->second)->startGraph(config);
     }
     else
     {
@@ -224,6 +224,12 @@ void TextManager::RequestHandler::processEvent(
 {
     IMLOGI4("[processEvent] event[%d], sessionId[%d], paramA[%d], paramB[%d]", event, sessionId,
             paramA, paramB);
+
+    if (sManager == nullptr)
+    {
+        return;
+    }
+
     ImsMediaResult result = RESULT_SUCCESS;
 
     switch (event)
@@ -234,7 +240,7 @@ void TextManager::RequestHandler::processEvent(
             if (param != nullptr)
             {
                 TextConfig* pConfig = reinterpret_cast<TextConfig*>(param->mConfig);
-                result = TextManager::getInstance()->openSession(
+                result = sManager->openSession(
                         static_cast<int>(sessionId), param->rtpFd, param->rtcpFd, pConfig);
 
                 if (result == RESULT_SUCCESS)
@@ -263,8 +269,7 @@ void TextManager::RequestHandler::processEvent(
         }
         break;
         case kTextCloseSession:
-            if (TextManager::getInstance()->closeSession(static_cast<int>(sessionId)) ==
-                    RESULT_SUCCESS)
+            if (sManager->closeSession(static_cast<int>(sessionId)) == RESULT_SUCCESS)
             {
                 ImsMediaEventHandler::SendEvent(
                         "TEXT_RESPONSE_EVENT", kTextSessionClosed, sessionId, 0, 0);
@@ -273,7 +278,7 @@ void TextManager::RequestHandler::processEvent(
         case kTextModifySession:
         {
             TextConfig* config = reinterpret_cast<TextConfig*>(paramA);
-            result = TextManager::getInstance()->modifySession(static_cast<int>(sessionId), config);
+            result = sManager->modifySession(static_cast<int>(sessionId), config);
             ImsMediaEventHandler::SendEvent(
                     "TEXT_RESPONSE_EVENT", kTextModifySessionResponse, sessionId, result, paramA);
         }
@@ -284,8 +289,7 @@ void TextManager::RequestHandler::processEvent(
 
             if (threshold != nullptr)
             {
-                TextManager::getInstance()->setMediaQualityThreshold(
-                        static_cast<int>(sessionId), threshold);
+                sManager->setMediaQualityThreshold(static_cast<int>(sessionId), threshold);
                 delete threshold;
             }
         }
@@ -296,7 +300,7 @@ void TextManager::RequestHandler::processEvent(
 
             if (text != nullptr)
             {
-                TextManager::getInstance()->sendRtt(static_cast<int>(sessionId), text);
+                sManager->sendRtt(static_cast<int>(sessionId), text);
                 delete text;
             }
         }
@@ -311,6 +315,12 @@ void TextManager::ResponseHandler::processEvent(
 {
     IMLOGI4("[processEvent] event[%d], sessionId[%d], paramA[%d], paramB[%d]", event, sessionId,
             paramA, paramB);
+
+    if (sManager == nullptr)
+    {
+        return;
+    }
+
     android::Parcel parcel;
     switch (event)
     {
@@ -325,7 +335,7 @@ void TextManager::ResponseHandler::processEvent(
                 parcel.writeInt32(static_cast<int>(paramA));
             }
 
-            TextManager::getInstance()->sendResponse(sessionId, parcel);
+            sManager->sendResponse(sessionId, parcel);
             break;
         case kTextModifySessionResponse:  // fall through
         {
@@ -336,7 +346,7 @@ void TextManager::ResponseHandler::processEvent(
             if (config != nullptr)
             {
                 config->writeToParcel(&parcel);
-                TextManager::getInstance()->sendResponse(sessionId, parcel);
+                sManager->sendResponse(sessionId, parcel);
                 delete config;
             }
         }
@@ -345,7 +355,7 @@ void TextManager::ResponseHandler::processEvent(
             parcel.writeInt32(event);
             parcel.writeInt32(static_cast<int>(paramA));  // type
             parcel.writeInt32(static_cast<int>(paramB));  // duration
-            TextManager::getInstance()->sendResponse(sessionId, parcel);
+            sManager->sendResponse(sessionId, parcel);
             break;
         case kTextRttReceived:
         {
@@ -356,7 +366,7 @@ void TextManager::ResponseHandler::processEvent(
             {
                 String16 rttText(*text);
                 parcel.writeString16(rttText);
-                TextManager::getInstance()->sendResponse(sessionId, parcel);
+                sManager->sendResponse(sessionId, parcel);
                 delete text;
             }
         }
@@ -364,14 +374,14 @@ void TextManager::ResponseHandler::processEvent(
         case kTextSessionClosed:
             parcel.writeInt32(event);
             parcel.writeInt32(static_cast<int>(sessionId));
-            TextManager::getInstance()->sendResponse(sessionId, parcel);
+            sManager->sendResponse(sessionId, parcel);
             break;
         default:
             break;
     }
 }
 
-bool TextManager::isOtherSessionActive(const int sessionId)
+bool TextManager::deactivateOtherSessionIfActive(const int sessionId)
 {
     for (auto const& session : mSessions)
     {
@@ -381,9 +391,15 @@ bool TextManager::isOtherSessionActive(const int sessionId)
             if (state == kSessionStateActive)
             {
                 IMLOGE1("[modifySession] Another session id[%d] is active", session.first);
-                return true;
+                if ((session.second)->deactivate())
+                {
+                    IMLOGI1("[modifySession] Moved session id[%d] to inactive", session.first);
+                    return true;
+                }
+                IMLOGE1("[modifySession] Failed to move session id[%d] to inactive", session.first);
+                return false;
             }
         }
     }
-    return false;
+    return true;
 }

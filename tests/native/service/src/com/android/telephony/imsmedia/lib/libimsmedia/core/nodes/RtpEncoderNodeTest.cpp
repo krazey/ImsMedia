@@ -310,7 +310,6 @@ TEST_F(RtpEncoderNodeTest, testAudioDataProcess)
 
     EXPECT_EQ(mFakeNode->GetFrameSize(), 0);
     mNode->OnDataFromFrontNode(MEDIASUBTYPE_UNDEFINED, testFrame, sizeof(testFrame), 0, false, 0);
-    mNode->ProcessData();
     EXPECT_EQ(mFakeNode->GetFrameSize(), sizeof(testFrame) + kRtpHeaderSize);
 }
 
@@ -338,14 +337,12 @@ TEST_F(RtpEncoderNodeTest, testVideoDataProcess)
 
     EXPECT_EQ(mFakeNode->GetFrameSize(), 0);
     mNode->OnDataFromFrontNode(MEDIASUBTYPE_RTPPAYLOAD, testFrame, sizeof(testFrame), 0, true, 0);
-    mNode->ProcessData();
 
     EXPECT_TRUE(mNode->SetCvoExtension(0, 0));
     EXPECT_EQ(mFakeNode->GetFrameSize(), sizeof(testFrame) + kRtpHeaderSize);
 
     mNode->OnDataFromFrontNode(
             MEDIASUBTYPE_VIDEO_IDR_FRAME, testFrame, sizeof(testFrame), 0, true, 0);
-    mNode->ProcessData();
     EXPECT_EQ(mFakeNode->GetFrameSize(), sizeof(testFrame) + kRtpHeaderSizeWithExtension);
 }
 
@@ -373,6 +370,5 @@ TEST_F(RtpEncoderNodeTest, testTextDataProcess)
     EXPECT_EQ(mFakeNode->GetFrameSize(), 0);
     mNode->OnDataFromFrontNode(
             MEDIASUBTYPE_BITSTREAM_T140_RED, testFrame, sizeof(testFrame), 0, true, 0);
-    mNode->ProcessData();
     EXPECT_EQ(mFakeNode->GetFrameSize(), sizeof(testFrame) + kRtpHeaderSize);
 }

@@ -469,6 +469,9 @@ public final class AudioSession extends IImsAudioSession.Stub implements IMediaS
 
     private void handleModifySessionRespose(AudioConfig config, int error) {
         try {
+            if (error != ImsMediaSession.RESULT_SUCCESS) {
+                Log.e(TAG, "modifySession failed with error: " + error);
+            }
             mCallback.onModifySessionResponse(config, error);
         }  catch (RemoteException e) {
             Log.e(TAG, "Failed to notify modifySessionResponse: " + e);

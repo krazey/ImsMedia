@@ -145,7 +145,8 @@ TEST_F(VideoConfigTest, TestParcel)
 
 TEST_F(VideoConfigTest, TestAssign)
 {
-    VideoConfig testConfig = config1;
+    VideoConfig testConfig;
+    testConfig = config1;
     EXPECT_EQ(config1, testConfig);
 
     VideoConfig* testConfig2 = new VideoConfig(config1);
