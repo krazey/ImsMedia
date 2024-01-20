@@ -32,6 +32,7 @@ import android.telephony.imsmedia.MediaQualityStatus;
 import android.telephony.imsmedia.MediaQualityThreshold;
 import android.telephony.imsmedia.RtpReceptionStats;
 import android.util.Log;
+import android.telephony.imsmedia.RtpConfig;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -145,11 +146,18 @@ public final class AudioSession extends IImsAudioSession.Stub implements IMediaS
     @Override
     public void openSession(OpenSessionParams sessionParams) {
         Utils.sendMessage(mHandler, CMD_OPEN_SESSION, sessionParams);
+        RtpConfig rtpConfig = sessionParams.getRtpConfig();
+        if (rtpConfig != null) {
+            WakeLockManager.getInstance().manageWakeLockOnMediaDirectionUpdate(
+                    mSessionId, rtpConfig.getMediaDirection());
+        }
     }
 
     @Override
     public void closeSession() {
         Utils.sendMessage(mHandler, CMD_CLOSE_SESSION);
+        WakeLockManager.getInstance().manageWakeLockOnMediaDirectionUpdate(
+                mSessionId, RtpConfig.MEDIA_DIRECTION_NO_FLOW);
     }
 
     @Override
@@ -161,6 +169,8 @@ public final class AudioSession extends IImsAudioSession.Stub implements IMediaS
     public void modifySession(AudioConfig config) {
         Log.d(TAG, "modifySession: " + config);
         Utils.sendMessage(mHandler, CMD_MODIFY_SESSION, config);
+        WakeLockManager.getInstance().manageWakeLockOnMediaDirectionUpdate(
+                mSessionId, config.getMediaDirection());
     }
 
     @Override
@@ -493,6 +503,9 @@ public final class AudioSession extends IImsAudioSession.Stub implements IMediaS
             mCallback.onOpenSessionFailure(error);
         }  catch (RemoteException e) {
             Log.e(TAG, "Failed to notify openFailure: " + e);
+        } finally {
+            WakeLockManager.getInstance().manageWakeLockOnMediaDirectionUpdate(
+                    mSessionId, RtpConfig.MEDIA_DIRECTION_NO_FLOW);
         }
     }
 

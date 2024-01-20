@@ -171,6 +171,8 @@ public class ImsMediaController extends Service {
     @Override
     public void onDestroy() {
         Log.d(TAG, "onDestroy");
+        // Release all wakelocks (if leaked)
+        WakeLockManager.getInstance().cleanup();
     }
 
     private IMediaSession getSession(int sessionId) {
@@ -201,6 +203,10 @@ public class ImsMediaController extends Service {
                 getSession(sessionId).onSessionClosed();
                 Log.d(TAG, "onSessionClosed: sessionId = " + sessionId);
                 mSessions.remove(sessionId);
+
+                if (mSessions.size() <= 0) {
+                    WakeLockManager.getInstance().cleanup();
+                }
             }
         }
     }
