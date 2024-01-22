@@ -24,6 +24,7 @@
 #include <chrono>
 #include <thread>
 #include <utils/Atomic.h>
+#include <limits.h>
 #include <mutex>
 #include <list>
 #include <algorithm>
@@ -41,6 +42,7 @@ struct TimerInstance
 
 static std::mutex gMutexList;
 static std::list<TimerInstance*> gTimerList;
+static std::uint64_t gStartTime = 0;
 
 static void AddTimerToList(TimerInstance* timer)
 {
@@ -203,16 +205,21 @@ bool ImsMediaTimer::TimerStop(hTimerHandler hTimer, void** puserData)
     return true;
 }
 
+void ImsMediaTimer::SetStartTimeInMicroSeconds(uint64_t time)
+{
+    gStartTime = time;
+}
+
 uint64_t ImsMediaTimer::GetTimeInMicroSeconds(void)
 {
     struct timespec time;
     clock_gettime(CLOCK_MONOTONIC, &time);
-    return (time.tv_sec * 1000000) + (time.tv_nsec / 1000);
+    return gStartTime + (time.tv_sec * 1000000) + (time.tv_nsec / 1000);
 }
 
 uint32_t ImsMediaTimer::GetTimeInMilliSeconds(void)
 {
-    return ImsMediaTimer::GetTimeInMicroSeconds() / 1000;
+    return (ImsMediaTimer::GetTimeInMicroSeconds() / 1000 % UINT_MAX);
 }
 
 uint32_t ImsMediaTimer::GenerateRandom(uint32_t nRange)
