@@ -15,7 +15,6 @@
  */
 
 #include <RtpReceptionStats.h>
-#include <string.h>
 
 namespace android
 {
@@ -28,19 +27,15 @@ namespace imsmedia
 
 RtpReceptionStats::RtpReceptionStats()
 {
-    mRtpTimestamp = 0;
-    mRtpSequenceNumber = 0;
-    mTimeDurationMs = 0;
-    mJitterBufferMs = 0;
-    mRoundTripTimeMs = 0;
+    setDefaultConfig();
 }
 
-RtpReceptionStats::RtpReceptionStats(const int32_t rtpTimestamp, const int32_t rtpSeq,
-        const int32_t timeDuration, const int32_t jitterBuffer, const int32_t roundTripTime)
+RtpReceptionStats::RtpReceptionStats(const int32_t rtpTimestamp, const int32_t rtcpSrTimestamp,
+        const int64_t ntp, const int32_t jitterBuffer, const int32_t roundTripTime)
 {
     mRtpTimestamp = rtpTimestamp;
-    mRtpSequenceNumber = rtpSeq;
-    mTimeDurationMs = timeDuration;
+    mRtcpSrTimestamp = rtcpSrTimestamp;
+    mRtcpSrNtpTimestamp = ntp;
     mJitterBufferMs = jitterBuffer;
     mRoundTripTimeMs = roundTripTime;
 }
@@ -48,8 +43,8 @@ RtpReceptionStats::RtpReceptionStats(const int32_t rtpTimestamp, const int32_t r
 RtpReceptionStats::RtpReceptionStats(const RtpReceptionStats& stats)
 {
     mRtpTimestamp = stats.mRtpTimestamp;
-    mRtpSequenceNumber = stats.mRtpSequenceNumber;
-    mTimeDurationMs = stats.mTimeDurationMs;
+    mRtcpSrTimestamp = stats.mRtcpSrTimestamp;
+    mRtcpSrNtpTimestamp = stats.mRtcpSrNtpTimestamp;
     mJitterBufferMs = stats.mJitterBufferMs;
     mRoundTripTimeMs = stats.mRoundTripTimeMs;
 }
@@ -61,8 +56,8 @@ RtpReceptionStats& RtpReceptionStats::operator=(const RtpReceptionStats& stats)
     if (this != &stats)
     {
         mRtpTimestamp = stats.mRtpTimestamp;
-        mRtpSequenceNumber = stats.mRtpSequenceNumber;
-        mTimeDurationMs = stats.mTimeDurationMs;
+        mRtcpSrTimestamp = stats.mRtcpSrTimestamp;
+        mRtcpSrNtpTimestamp = stats.mRtcpSrNtpTimestamp;
         mJitterBufferMs = stats.mJitterBufferMs;
         mRoundTripTimeMs = stats.mRoundTripTimeMs;
     }
@@ -71,110 +66,45 @@ RtpReceptionStats& RtpReceptionStats::operator=(const RtpReceptionStats& stats)
 
 bool RtpReceptionStats::operator==(const RtpReceptionStats& stats) const
 {
-    return (mRtpTimestamp == stats.mRtpTimestamp &&
-            mRtpSequenceNumber == stats.mRtpSequenceNumber &&
-            mTimeDurationMs == stats.mTimeDurationMs && mJitterBufferMs == stats.mJitterBufferMs &&
-            mRoundTripTimeMs == stats.mRoundTripTimeMs);
+    return (mRtpTimestamp == stats.mRtpTimestamp && mRtcpSrTimestamp == stats.mRtcpSrTimestamp &&
+            mRtcpSrNtpTimestamp == stats.mRtcpSrNtpTimestamp &&
+            mJitterBufferMs == stats.mJitterBufferMs && mRoundTripTimeMs == stats.mRoundTripTimeMs);
 }
 
 bool RtpReceptionStats::operator!=(const RtpReceptionStats& stats) const
 {
-    return (mRtpTimestamp != stats.mRtpTimestamp ||
-            mRtpSequenceNumber != stats.mRtpSequenceNumber ||
-            mTimeDurationMs != stats.mTimeDurationMs || mJitterBufferMs != stats.mJitterBufferMs ||
-            mRoundTripTimeMs != stats.mRoundTripTimeMs);
+    return (mRtpTimestamp != stats.mRtpTimestamp || mRtcpSrTimestamp != stats.mRtcpSrTimestamp ||
+            mRtcpSrNtpTimestamp != stats.mRtcpSrNtpTimestamp ||
+            mJitterBufferMs != stats.mJitterBufferMs || mRoundTripTimeMs != stats.mRoundTripTimeMs);
 }
 
 status_t RtpReceptionStats::writeToParcel(Parcel* out) const
 {
-    status_t err;
-
     if (out == nullptr)
     {
         return BAD_VALUE;
     }
 
-    err = out->writeInt32(mRtpTimestamp);
-
-    if (err != NO_ERROR)
-    {
-        return err;
-    }
-
-    err = out->writeInt32(mRtpSequenceNumber);
-
-    if (err != NO_ERROR)
-    {
-        return err;
-    }
-
-    err = out->writeInt32(mTimeDurationMs);
-
-    if (err != NO_ERROR)
-    {
-        return err;
-    }
-
-    err = out->writeInt32(mJitterBufferMs);
-
-    if (err != NO_ERROR)
-    {
-        return err;
-    }
-
-    err = out->writeInt32(mRoundTripTimeMs);
-
-    if (err != NO_ERROR)
-    {
-        return err;
-    }
-
+    out->writeInt32(mRtpTimestamp);
+    out->writeInt32(mRtcpSrTimestamp);
+    out->writeInt64(mRtcpSrNtpTimestamp);
+    out->writeInt32(mJitterBufferMs);
+    out->writeInt32(mRoundTripTimeMs);
     return NO_ERROR;
 }
 
 status_t RtpReceptionStats::readFromParcel(const Parcel* in)
 {
-    status_t err;
-
     if (in == nullptr)
     {
         return BAD_VALUE;
     }
 
-    err = in->readInt32(&mRtpTimestamp);
-
-    if (err != NO_ERROR)
-    {
-        return err;
-    }
-
-    err = in->readInt32(&mRtpSequenceNumber);
-
-    if (err != NO_ERROR)
-    {
-        return err;
-    }
-
-    err = in->readInt32(&mTimeDurationMs);
-
-    if (err != NO_ERROR)
-    {
-        return err;
-    }
-
-    err = in->readInt32(&mJitterBufferMs);
-
-    if (err != NO_ERROR)
-    {
-        return err;
-    }
-
-    err = in->readInt32(&mRoundTripTimeMs);
-
-    if (err != NO_ERROR)
-    {
-        return err;
-    }
+    in->readInt32(&mRtpTimestamp);
+    in->readInt32(&mRtcpSrTimestamp);
+    in->readInt64(&mRtcpSrNtpTimestamp);
+    in->readInt32(&mJitterBufferMs);
+    in->readInt32(&mRoundTripTimeMs);
 
     return NO_ERROR;
 }
@@ -184,29 +114,29 @@ int32_t RtpReceptionStats::getRtpTimestamp()
     return mRtpTimestamp;
 }
 
-void RtpReceptionStats::setRtpTimestamp(const int32_t rtpTimestamp)
+void RtpReceptionStats::setRtpTimestamp(const int32_t timestamp)
 {
-    mRtpTimestamp = rtpTimestamp;
+    mRtpTimestamp = timestamp;
 }
 
-int32_t RtpReceptionStats::getRtpSequenceNumber()
+int32_t RtpReceptionStats::getRtcpSrTimestamp()
 {
-    return mRtpSequenceNumber;
+    return mRtcpSrTimestamp;
 }
 
-void RtpReceptionStats::setRtpSequenceNumber(const int32_t rtpSequenceNumber)
+void RtpReceptionStats::setRtcpSrTimestamp(const int32_t timestamp)
 {
-    mRtpSequenceNumber = rtpSequenceNumber;
+    mRtcpSrTimestamp = timestamp;
 }
 
-int32_t RtpReceptionStats::getTimeDurationMs()
+int64_t RtpReceptionStats::getRtcpSrNtpTimestamp()
 {
-    return mTimeDurationMs;
+    return mRtcpSrNtpTimestamp;
 }
 
-void RtpReceptionStats::setTimeDurationMs(const int32_t timeDurationMs)
+void RtpReceptionStats::setRtcpSrNtpTimestamp(const int64_t ntp)
 {
-    mTimeDurationMs = timeDurationMs;
+    mRtcpSrNtpTimestamp = ntp;
 }
 
 int32_t RtpReceptionStats::getJitterBufferMs()
@@ -232,20 +162,10 @@ void RtpReceptionStats::setRoundTripTimeMs(const int32_t roundTripTimeMs)
 void RtpReceptionStats::setDefaultConfig()
 {
     mRtpTimestamp = 0;
-    mRtpSequenceNumber = 0;
-    mTimeDurationMs = 0;
+    mRtcpSrTimestamp = 0;
+    mRtcpSrNtpTimestamp = 0;
     mJitterBufferMs = 0;
     mRoundTripTimeMs = 0;
-}
-
-char* RtpReceptionStats::printDebugString()
-{
-    static char debugString[128] = {'\0'};
-    sprintf(debugString,
-            "mRtpTimestamp=%d, mRtpSequenceNumber=%d, mTimeDurationMs=%d, mJitterBufferMs=%d, "
-            "mRoundTripTimeMs=%d",
-            mRtpTimestamp, mRtpSequenceNumber, mTimeDurationMs, mJitterBufferMs, mRoundTripTimeMs);
-    return debugString;
 }
 
 }  // namespace imsmedia

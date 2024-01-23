@@ -534,7 +534,14 @@ void AudioSession::onEvent(int32_t type, uint64_t param1, uint64_t param2)
                         break;
 
                     case kCollectPacketInfo:
-                        if (param2)
+                        if (param1 == kStreamRtcp)
+                        {
+                            if (param2)
+                            {
+                                delete reinterpret_cast<RtcpSr*>(param2);
+                            }
+                        }
+                        else if (param2)
                         {
                             delete reinterpret_cast<RtpPacket*>(param2);
                         }

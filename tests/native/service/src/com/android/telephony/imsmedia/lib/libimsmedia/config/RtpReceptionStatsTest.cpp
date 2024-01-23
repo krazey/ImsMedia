@@ -24,8 +24,8 @@ TEST(RtpReceptionStatsTest, TestDefaultValues)
     RtpReceptionStats stats;
 
     EXPECT_EQ(stats.getRtpTimestamp(), 0);
-    EXPECT_EQ(stats.getRtpSequenceNumber(), 0);
-    EXPECT_EQ(stats.getTimeDurationMs(), 0);
+    EXPECT_EQ(stats.getRtcpSrTimestamp(), 0);
+    EXPECT_EQ(stats.getRtcpSrNtpTimestamp(), 0);
     EXPECT_EQ(stats.getJitterBufferMs(), 0);
     EXPECT_EQ(stats.getRoundTripTimeMs(), 0);
 }
@@ -34,15 +34,15 @@ TEST(RtpReceptionStatsTest, TestConstructors)
 {
     RtpReceptionStats stats1(100, 200, 300, 400, 500);
     EXPECT_EQ(stats1.getRtpTimestamp(), 100);
-    EXPECT_EQ(stats1.getRtpSequenceNumber(), 200);
-    EXPECT_EQ(stats1.getTimeDurationMs(), 300);
+    EXPECT_EQ(stats1.getRtcpSrTimestamp(), 200);
+    EXPECT_EQ(stats1.getRtcpSrNtpTimestamp(), 300);
     EXPECT_EQ(stats1.getJitterBufferMs(), 400);
     EXPECT_EQ(stats1.getRoundTripTimeMs(), 500);
 
     RtpReceptionStats stats2(stats1);
     EXPECT_EQ(stats2.getRtpTimestamp(), 100);
-    EXPECT_EQ(stats2.getRtpSequenceNumber(), 200);
-    EXPECT_EQ(stats2.getTimeDurationMs(), 300);
+    EXPECT_EQ(stats2.getRtcpSrTimestamp(), 200);
+    EXPECT_EQ(stats2.getRtcpSrNtpTimestamp(), 300);
     EXPECT_EQ(stats2.getJitterBufferMs(), 400);
     EXPECT_EQ(stats2.getRoundTripTimeMs(), 500);
 }
@@ -57,8 +57,8 @@ TEST(RtpReceptionStatsTest, TestOperators)
 
     stats2 = stats1;
     EXPECT_EQ(stats2.getRtpTimestamp(), 10);
-    EXPECT_EQ(stats2.getRtpSequenceNumber(), 20);
-    EXPECT_EQ(stats2.getTimeDurationMs(), 30);
+    EXPECT_EQ(stats2.getRtcpSrTimestamp(), 20);
+    EXPECT_EQ(stats2.getRtcpSrNtpTimestamp(), 30);
     EXPECT_EQ(stats2.getJitterBufferMs(), 40);
     EXPECT_EQ(stats2.getRoundTripTimeMs(), 50);
 
@@ -68,24 +68,32 @@ TEST(RtpReceptionStatsTest, TestOperators)
 
 TEST(RtpReceptionStatsTest, TestGetterSetters)
 {
-    RtpReceptionStats stats;
-
-    stats.setRtpTimestamp(100);
-    stats.setRtpSequenceNumber(200);
-    stats.setTimeDurationMs(300);
-    stats.setJitterBufferMs(400);
-    stats.setRoundTripTimeMs(500);
+    RtpReceptionStats stats(100, 200, 300, 400, 500);
 
     EXPECT_EQ(stats.getRtpTimestamp(), 100);
-    EXPECT_EQ(stats.getRtpSequenceNumber(), 200);
-    EXPECT_EQ(stats.getTimeDurationMs(), 300);
+    EXPECT_EQ(stats.getRtcpSrTimestamp(), 200);
+    EXPECT_EQ(stats.getRtcpSrNtpTimestamp(), 300);
     EXPECT_EQ(stats.getJitterBufferMs(), 400);
     EXPECT_EQ(stats.getRoundTripTimeMs(), 500);
 
     stats.setDefaultConfig();
     EXPECT_EQ(stats.getRtpTimestamp(), 0);
-    EXPECT_EQ(stats.getRtpSequenceNumber(), 0);
-    EXPECT_EQ(stats.getTimeDurationMs(), 0);
+    EXPECT_EQ(stats.getRtcpSrTimestamp(), 0);
+    EXPECT_EQ(stats.getRtcpSrNtpTimestamp(), 0);
     EXPECT_EQ(stats.getJitterBufferMs(), 0);
     EXPECT_EQ(stats.getRoundTripTimeMs(), 0);
+}
+
+TEST(RtpReceptionStatsTest, TestParcel)
+{
+    RtpReceptionStats stats1(100, 200, 300, 400, 500);
+    android::Parcel parcel;
+    EXPECT_EQ(stats1.writeToParcel(nullptr), android::BAD_VALUE);
+    stats1.writeToParcel(&parcel);
+    parcel.setDataPosition(0);
+
+    RtpReceptionStats stats2;
+    EXPECT_EQ(stats2.readFromParcel(nullptr), android::BAD_VALUE);
+    stats2.readFromParcel(&parcel);
+    EXPECT_EQ(stats1, stats2);
 }

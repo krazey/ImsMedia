@@ -62,6 +62,8 @@ MediaQualityAnalyzer::MediaQualityAnalyzer()
     mCountRtcpInactivity = 0;
     mNumRtcpPacketReceived = 0;
     mReceptionInterval = 0;
+    mLatestRtcpSrTimestamp = 0;
+    mLatestRtcpSrNtpTimestamp = 0;
     mLatestRoundTripDelayMs = 0;
     mTimeFactor = 1;
     reset();
@@ -179,10 +181,11 @@ void MediaQualityAnalyzer::stop()
     reset();
 }
 
-void MediaQualityAnalyzer::collectInfo(const int32_t streamType, RtpPacket* packet)
+void MediaQualityAnalyzer::collectInfo(const int32_t streamType, uint64_t param)
 {
-    if (streamType == kStreamRtpTx && packet != nullptr)
+    if (streamType == kStreamRtpTx && param != 0)
     {
+        RtpPacket* packet = reinterpret_cast<RtpPacket*>(param);
         mListTxPacket.push_back(packet);
 
         if (mListTxPacket.size() > MAX_NUM_PACKET_STORED)
@@ -194,8 +197,9 @@ void MediaQualityAnalyzer::collectInfo(const int32_t streamType, RtpPacket* pack
 
         mCallQuality.setNumRtpPacketsTransmitted(mCallQuality.getNumRtpPacketsTransmitted() + 1);
     }
-    else if (streamType == kStreamRtpRx && packet != nullptr)
+    else if (streamType == kStreamRtpRx && param != 0)
     {
+        RtpPacket* packet = reinterpret_cast<RtpPacket*>(param);
         // for call quality report
         mCallQuality.setNumRtpPacketsReceived(mCallQuality.getNumRtpPacketsReceived() + 1);
 
@@ -251,6 +255,18 @@ void MediaQualityAnalyzer::collectInfo(const int32_t streamType, RtpPacket* pack
         mNumRtcpPacketReceived++;
         IMLOGD_PACKET1(
                 IM_PACKET_LOG_RTP, "[collectInfo] rtcp received[%d]", mNumRtcpPacketReceived);
+
+        if (param != 0)
+        {
+            RtcpSr* rtcpSr = reinterpret_cast<RtcpSr*>(param);
+            uint64_t ntpTs = (static_cast<uint64_t>(rtcpSr->ntpTimestampMsw) << 32) |
+                    rtcpSr->ntpTimestampLsw;
+            IMLOGD_PACKET2(IM_PACKET_LOG_RTP, "[collectInfo] rtcp-sr : ts=%d, ntp=%ld",
+                    rtcpSr->rtpTimestamp, ntpTs);
+            mLatestRtcpSrTimestamp = rtcpSr->rtpTimestamp;
+            mLatestRtcpSrNtpTimestamp = ntpTs;
+            delete rtcpSr;
+        }
     }
 }
 
@@ -650,8 +666,8 @@ void MediaQualityAnalyzer::processRtpReceptionStats(const int32_t timeCount)
         if (!mListRxPacket.empty())
         {
             stats->setRtpTimestamp(mListRxPacket.back()->timestamp);
-            stats->setRtpSequenceNumber(mListRxPacket.back()->seqNum);
-            stats->setTimeDurationMs(mListRxPacket.back()->arrival);
+            stats->setRtcpSrTimestamp(mLatestRtcpSrTimestamp);
+            stats->setRtcpSrNtpTimestamp(mLatestRtcpSrNtpTimestamp);
             stats->setRoundTripTimeMs(mLatestRoundTripDelayMs);
             uint32_t meanDelay = mListPlayoutDelay.empty()
                     ? 0
@@ -661,7 +677,6 @@ void MediaQualityAnalyzer::processRtpReceptionStats(const int32_t timeCount)
             mListPlayoutDelay.clear();
         }
 
-        IMLOGD1("[processRtpReceptionStats] stats=%s", stats->printDebugString());
         mCallback->SendEvent(kAudioNotifyRtpReceptionStats, reinterpret_cast<uint64_t>(stats));
     }
 }
@@ -777,8 +792,7 @@ void MediaQualityAnalyzer::processEvent(uint32_t event, uint64_t paramA, uint64_
             collectOptionalInfo(kAudioPlayingStatus, 0, paramA);
             break;
         case kCollectPacketInfo:
-            collectInfo(
-                    static_cast<ImsMediaStreamType>(paramA), reinterpret_cast<RtpPacket*>(paramB));
+            collectInfo(static_cast<ImsMediaStreamType>(paramA), paramB);
             break;
         case kCollectOptionalInfo:
             if (paramA != 0)

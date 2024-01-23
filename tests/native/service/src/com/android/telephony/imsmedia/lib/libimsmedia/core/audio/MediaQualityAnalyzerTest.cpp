@@ -17,6 +17,7 @@
 #include <gtest/gtest.h>
 #include <gmock/gmock.h>
 #include <AudioConfig.h>
+#include <RtpReceptionStats.h>
 #include <ImsMediaAudioUtil.h>
 #include <MediaQualityAnalyzer.h>
 #include <MockBaseSessionCallback.h>
@@ -101,15 +102,27 @@ public:
                 delete status;
             }
         }
+        else if (type == kAudioNotifyRtpReceptionStats)
+        {
+            RtpReceptionStats* stats = reinterpret_cast<RtpReceptionStats*>(param1);
+
+            if (stats != nullptr)
+            {
+                mStats = *stats;
+                delete stats;
+            }
+        }
     }
 
     virtual void onEvent(int32_t /* type */, uint64_t /* param1 */, uint64_t /* param2 */) {}
     CallQuality getCallQuality() { return mCallQuality; }
     MediaQualityStatus getMediaQualityStatus() { return mStatus; }
+    RtpReceptionStats getRtpReceptionStats() { return mStats; }
 
 private:
     CallQuality mCallQuality;
     MediaQualityStatus mStatus;
+    RtpReceptionStats mStats;
 };
 
 class MediaQualityAnalyzerTest : public ::testing::Test
@@ -947,5 +960,48 @@ TEST_F(MediaQualityAnalyzerTest, TestNotifyMediaQualityStatus)
     mAnalyzer->setMediaQualityThreshold(threshold);
     mAnalyzer->start();
     mCondition.wait_timeout(2 * kTestingTimeInterval + kTimeWaitingMargin);
+    mAnalyzer->stop();
+}
+
+TEST_F(MediaQualityAnalyzerTest, TestNotifyRtpReceptionStats)
+{
+    const uint32_t kNtpH = 0x12341234;
+    const uint32_t kNtpL = 0x56785678;
+    const uint32_t kRtcpSrTimestamp = 0x12345678;
+    const uint32_t kRtpTimestamp = 0x12345678;
+    const uint32_t kSsrc = 0x1234;
+    const uint32_t kJitter = 100;
+    const uint32_t kSeq = 200;
+    const uint32_t kTimeArrival = 100;
+    const uint32_t kTimePlayed = 200;
+    const uint32_t kRoundTripTime = 100;
+
+    mAnalyzer->setNotifyRtpReceptionStatsInterval(2000);
+    EXPECT_CALL(mCallback, onEvent(kAudioCallQualityChangedInd, _, _)).Times(1);
+    EXPECT_CALL(mCallback, onEvent(kAudioNotifyRtpReceptionStats, _, _)).Times(1);
+
+    mAnalyzer->start();
+
+    RtcpSr* rtcpSr = new RtcpSr(kNtpH, kNtpL, kRtcpSrTimestamp, 1, 1,
+            RtcpRecvReport(kSsrc, 0, 0, 65535, 100, 1234, 100));
+    mAnalyzer->SendEvent(kCollectPacketInfo, kStreamRtcp, reinterpret_cast<uint64_t>(rtcpSr));
+
+    RtpPacket* packet =
+            new RtpPacket(kSsrc, kSeq, 0, kJitter, kRtpTimestamp, kTimeArrival, kRtpDataTypeNormal);
+    mAnalyzer->SendEvent(kCollectPacketInfo, kStreamRtpRx, reinterpret_cast<uint64_t>(packet));
+
+    SessionCallbackParameter* param =
+            new SessionCallbackParameter(kSeq, kRtpStatusNormal, kTimePlayed);
+    mAnalyzer->SendEvent(kCollectRxRtpStatus, reinterpret_cast<uint64_t>(param));
+    mAnalyzer->SendEvent(kRequestRoundTripTimeDelayUpdate, kRoundTripTime, 0);
+
+    uint64_t ntp = static_cast<uint64_t>(kNtpH) << 32 | kNtpL;
+
+    mCondition.wait_timeout(2 * kTestingTimeInterval + kTimeWaitingMargin);
+
+    RtpReceptionStats stats1(
+            kRtpTimestamp, kRtcpSrTimestamp, ntp, kTimePlayed - kTimeArrival, kRoundTripTime);
+
+    EXPECT_EQ(stats1, mFakeCallback.getRtpReceptionStats());
     mAnalyzer->stop();
 }

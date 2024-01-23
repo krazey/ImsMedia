@@ -160,9 +160,9 @@ public:
      * @brief Collect information of sending or receiving the rtp or the rtcp packet datas.
      *
      * @param streamType The stream type. Tx, Rx, Rtcp.
-     * @param packet The packet data struct.
+     * @param param The structure set of the rtp/rtcp payload.
      */
-    void collectInfo(const int32_t streamType, RtpPacket* packet);
+    void collectInfo(const int32_t streamType, uint64_t param);
 
     /**
      * @brief Collect optional information of sending or receiving the rtp or rtcp packet datas.
@@ -323,6 +323,8 @@ protected:
 
     // Rtp Reception Statistics
     int32_t mReceptionInterval;
+    int32_t mLatestRtcpSrTimestamp;
+    int64_t mLatestRtcpSrNtpTimestamp;
     int32_t mLatestRoundTripDelayMs;
 
     // Counter for inactivity check

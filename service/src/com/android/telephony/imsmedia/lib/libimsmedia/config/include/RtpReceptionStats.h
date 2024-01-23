@@ -37,7 +37,7 @@ class RtpReceptionStats : public Parcelable
 {
 public:
     RtpReceptionStats();
-    RtpReceptionStats(const int32_t rtpTimestamp, const int32_t rtpSeq, const int32_t timeDuration,
+    RtpReceptionStats(const int32_t rtpTimestamp, const int32_t rtcpSrTimestamp, const int64_t ntp,
             const int32_t jitterBuffer, const int32_t roundTripTime);
     RtpReceptionStats(const RtpReceptionStats& params);
     virtual ~RtpReceptionStats();
@@ -47,25 +47,24 @@ public:
     status_t writeToParcel(Parcel* out) const;
     status_t readFromParcel(const Parcel* in);
     int32_t getRtpTimestamp();
-    void setRtpTimestamp(const int32_t rtpTimestamp);
-    int32_t getRtpSequenceNumber();
-    void setRtpSequenceNumber(const int32_t rtpSequenceNumber);
-    int32_t getTimeDurationMs();
-    void setTimeDurationMs(const int32_t timeDurationMs);
+    void setRtpTimestamp(const int32_t timestamp);
+    int32_t getRtcpSrTimestamp();
+    void setRtcpSrTimestamp(const int32_t timestamp);
+    int64_t getRtcpSrNtpTimestamp();
+    void setRtcpSrNtpTimestamp(const int64_t ntp);
     int32_t getJitterBufferMs();
     void setJitterBufferMs(const int32_t jitterBufferMs);
     int32_t getRoundTripTimeMs();
     void setRoundTripTimeMs(const int32_t roundTripTimeMs);
     void setDefaultConfig();
-    char* printDebugString();
 
 private:
     /* The timestamp reflects the sampling instant of the latest RTP packet received */
     int32_t mRtpTimestamp;
-    /* The sequence number of latest RTP packet received */
-    int32_t mRtpSequenceNumber;
-    /* The clock time in millisecond of latest RTP packet received */
-    int32_t mTimeDurationMs;
+    /* The timestamp reflects the sampling instant of the latest RTCP-SR packet received */
+    int32_t mRtcpSrTimestamp;
+    /* The NTP timestamp of latest RTCP-SR packet received */
+    int64_t mRtcpSrNtpTimestamp;
     /** The mean jitter buffer delay of a media stream from received to playback, measured in
      * milliseconds, within the reporting interval */
     int32_t mJitterBufferMs;
