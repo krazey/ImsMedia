@@ -18,8 +18,6 @@ package com.android.telephony.imsmedia.tests;
 
 import static com.google.common.truth.Truth.assertThat;
 
-import static org.junit.Assert.assertEquals;
-
 import android.os.Parcel;
 import android.telephony.imsmedia.RtpReceptionStats;
 
@@ -32,8 +30,8 @@ import org.junit.runner.RunWith;
 public class RtpReceptionStatsTest {
     private static final int INVALID_NUMBER = -1;
     private static final int RTP_TIMESTAMP = 100;
-    private static final int RTP_SEQUENCE_NUMBER = 4390;
-    private static final int TIME_DURATION_MS = 200;
+    private static final int RTCPSR_TIMESTAMP = 4390;
+    private static final long RTCPSR_NTP_TIMESTAMP = Long.MAX_VALUE;
     private static final int JITTER_BUFFER_MS = 60;
     private static final int ROUND_TRIP_TIME_MS = 100;
 
@@ -41,8 +39,8 @@ public class RtpReceptionStatsTest {
     public void testConstructorAndGetters() {
         RtpReceptionStats stats = createRtpReceptionStats();
         assertThat(stats.getRtpTimestamp()).isEqualTo(RTP_TIMESTAMP);
-        assertThat(stats.getRtpSequenceNumber()).isEqualTo(RTP_SEQUENCE_NUMBER);
-        assertThat(stats.getTimeDurationMs()).isEqualTo(TIME_DURATION_MS);
+        assertThat(stats.getRtcpSrTimestamp()).isEqualTo(RTCPSR_TIMESTAMP);
+        assertThat(stats.getRtcpSrNtpTimestamp()).isEqualTo(RTCPSR_NTP_TIMESTAMP);
         assertThat(stats.getJitterBufferMs()).isEqualTo(JITTER_BUFFER_MS);
         assertThat(stats.getRoundTripTimeMs()).isEqualTo(ROUND_TRIP_TIME_MS);
     }
@@ -73,8 +71,8 @@ public class RtpReceptionStatsTest {
 
         RtpReceptionStats stats2 = new RtpReceptionStats.Builder()
                 .setRtpTimestamp(500)
-                .setRtpSequenceNumber(RTP_SEQUENCE_NUMBER)
-                .setTimeDurationMs(TIME_DURATION_MS)
+                .setRtcpSrTimestamp(RTCPSR_TIMESTAMP)
+                .setRtcpSrNtpTimestamp(RTCPSR_NTP_TIMESTAMP)
                 .setJitterBufferMs(JITTER_BUFFER_MS)
                 .setRoundTripTimeMs(ROUND_TRIP_TIME_MS)
                 .build();
@@ -83,8 +81,8 @@ public class RtpReceptionStatsTest {
 
         RtpReceptionStats stats3 = new RtpReceptionStats.Builder()
                 .setRtpTimestamp(RTP_TIMESTAMP)
-                .setRtpSequenceNumber(6)
-                .setTimeDurationMs(TIME_DURATION_MS)
+                .setRtcpSrTimestamp(6)
+                .setRtcpSrNtpTimestamp(RTCPSR_NTP_TIMESTAMP)
                 .setJitterBufferMs(JITTER_BUFFER_MS)
                 .setRoundTripTimeMs(ROUND_TRIP_TIME_MS)
                 .build();
@@ -93,8 +91,8 @@ public class RtpReceptionStatsTest {
 
         RtpReceptionStats stats4 = new RtpReceptionStats.Builder()
                 .setRtpTimestamp(RTP_TIMESTAMP)
-                .setRtpSequenceNumber(RTP_SEQUENCE_NUMBER)
-                .setTimeDurationMs(10)
+                .setRtcpSrTimestamp(RTCPSR_TIMESTAMP)
+                .setRtcpSrNtpTimestamp(10)
                 .setJitterBufferMs(JITTER_BUFFER_MS)
                 .setRoundTripTimeMs(ROUND_TRIP_TIME_MS)
                 .build();
@@ -103,8 +101,8 @@ public class RtpReceptionStatsTest {
 
         RtpReceptionStats stats5 = new RtpReceptionStats.Builder()
                 .setRtpTimestamp(RTP_TIMESTAMP)
-                .setRtpSequenceNumber(RTP_SEQUENCE_NUMBER)
-                .setTimeDurationMs(TIME_DURATION_MS)
+                .setRtcpSrTimestamp(RTCPSR_TIMESTAMP)
+                .setRtcpSrNtpTimestamp(RTCPSR_NTP_TIMESTAMP)
                 .setJitterBufferMs(120)
                 .setRoundTripTimeMs(ROUND_TRIP_TIME_MS)
                 .build();
@@ -113,37 +111,13 @@ public class RtpReceptionStatsTest {
 
         RtpReceptionStats stats6 = new RtpReceptionStats.Builder()
                 .setRtpTimestamp(RTP_TIMESTAMP)
-                .setRtpSequenceNumber(RTP_SEQUENCE_NUMBER)
-                .setTimeDurationMs(TIME_DURATION_MS)
+                .setRtcpSrTimestamp(RTCPSR_TIMESTAMP)
+                .setRtcpSrNtpTimestamp(RTCPSR_NTP_TIMESTAMP)
                 .setJitterBufferMs(JITTER_BUFFER_MS)
                 .setRoundTripTimeMs(200)
                 .build();
 
         assertThat(stats1).isNotEqualTo(stats6);
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    public void testInvalidSequenceNumber() {
-        RtpReceptionStats stats = new RtpReceptionStats.Builder()
-                .setRtpTimestamp(RTP_TIMESTAMP)
-                .setRtpSequenceNumber(Short.MAX_VALUE + 1)
-                .setTimeDurationMs(TIME_DURATION_MS)
-                .setJitterBufferMs(JITTER_BUFFER_MS)
-                .setRoundTripTimeMs(ROUND_TRIP_TIME_MS)
-                .build();
-        assertEquals(stats.getRtpSequenceNumber(), Short.MAX_VALUE + 1);
-    }
-
-    @Test(expected = IllegalArgumentException.class)
-    public void testNegativeSequenceNumber() {
-        RtpReceptionStats stats = new RtpReceptionStats.Builder()
-                .setRtpTimestamp(RTP_TIMESTAMP)
-                .setRtpSequenceNumber(INVALID_NUMBER)
-                .setTimeDurationMs(TIME_DURATION_MS)
-                .setJitterBufferMs(JITTER_BUFFER_MS)
-                .setRoundTripTimeMs(ROUND_TRIP_TIME_MS)
-                .build();
-        assertEquals(stats.getRtpSequenceNumber(), INVALID_NUMBER);
     }
 
     /**
@@ -153,8 +127,8 @@ public class RtpReceptionStatsTest {
     public static RtpReceptionStats createRtpReceptionStats() {
         return new RtpReceptionStats.Builder()
                 .setRtpTimestamp(RTP_TIMESTAMP)
-                .setRtpSequenceNumber(RTP_SEQUENCE_NUMBER)
-                .setTimeDurationMs(TIME_DURATION_MS)
+                .setRtcpSrTimestamp(RTCPSR_TIMESTAMP)
+                .setRtcpSrNtpTimestamp(RTCPSR_NTP_TIMESTAMP)
                 .setJitterBufferMs(JITTER_BUFFER_MS)
                 .setRoundTripTimeMs(ROUND_TRIP_TIME_MS)
                 .build();
