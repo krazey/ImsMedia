@@ -16,6 +16,8 @@
 
 package com.android.telephony.imsmedia;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.times;
@@ -68,6 +70,7 @@ public class VideoSessionTest extends ImsMediaTest {
             RESOLUTION_WIDTH, RESOLUTION_HEIGHT, ImageFormat.JPEG, 1).getSurface();
     private VideoSession mVideoSession;
     private VideoSession.VideoSessionHandler mHandler;
+    private WakeLockManager mWakeLockManager;
     @Mock
     private VideoService mVideoService;
     private VideoListener mVideoListener;
@@ -85,12 +88,14 @@ public class VideoSessionTest extends ImsMediaTest {
         mVideoListener = mVideoSession.getVideoListener();
         mHandler = mVideoSession.getVideoSessionHandler();
         mTestClass = VideoSessionTest.this;
+        mWakeLockManager = WakeLockManager.getInstance();
         super.setUp();
     }
 
     @After
     public void tearDown() throws Exception {
         super.tearDown();
+        mWakeLockManager.cleanup();
     }
 
     private Parcel createParcel(int message, int result, VideoConfig config) {
@@ -124,6 +129,7 @@ public class VideoSessionTest extends ImsMediaTest {
         mVideoSession.openSession(params);
         processAllMessages();
         verify(mVideoService, times(1)).openSession(eq(SESSION_ID), eq(params));
+        assertThat(mWakeLockManager.mWakeLock.isHeld()).isEqualTo(false);
     }
 
     @Test
@@ -131,6 +137,7 @@ public class VideoSessionTest extends ImsMediaTest {
         mVideoSession.closeSession();
         processAllMessages();
         verify(mVideoService, times(1)).closeSession(eq(SESSION_ID));
+        assertThat(mWakeLockManager.mWakeLock.isHeld()).isEqualTo(false);
     }
 
     @Test
@@ -140,6 +147,7 @@ public class VideoSessionTest extends ImsMediaTest {
         mVideoSession.modifySession(config);
         processAllMessages();
         verify(mVideoLocalSession, times(1)).modifySession(eq(config));
+        assertThat(mWakeLockManager.mWakeLock.isHeld()).isEqualTo(true);
 
         // Modify Session Response - Success
         mVideoListener.onMessage(
@@ -300,6 +308,7 @@ public class VideoSessionTest extends ImsMediaTest {
         processAllMessages();
         try {
             verify(mCallback, times(1)).onOpenSessionSuccess(mVideoSession);
+            assertThat(mWakeLockManager.mWakeLock.isHeld()).isEqualTo(false);
         } catch (RemoteException e) {
             fail("Failed to notify onOpenSessionSuccess: " + e);
         }
@@ -311,6 +320,7 @@ public class VideoSessionTest extends ImsMediaTest {
         processAllMessages();
         try {
             verify(mCallback, times(1)).onOpenSessionFailure(ImsMediaSession.RESULT_INVALID_PARAM);
+            assertThat(mWakeLockManager.mWakeLock.isHeld()).isEqualTo(false);
         } catch (RemoteException e) {
             fail("Failed to notify onOpenSessionFailure: " + e);
         }
@@ -322,6 +332,7 @@ public class VideoSessionTest extends ImsMediaTest {
         processAllMessages();
         try {
             verify(mCallback, times(1)).onSessionClosed();
+            assertThat(mWakeLockManager.mWakeLock.isHeld()).isEqualTo(false);
         } catch (RemoteException e) {
             fail("Failed to notify onSessionClosed: " + e);
         }

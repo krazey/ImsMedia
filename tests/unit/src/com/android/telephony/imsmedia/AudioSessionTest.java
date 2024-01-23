@@ -16,6 +16,8 @@
 
 package com.android.telephony.imsmedia;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.times;
@@ -64,6 +66,7 @@ public class AudioSessionTest extends ImsMediaTest {
     private static final char DTMF_DIGIT = '7';
     private AudioSession audioSession;
     private AudioSession.AudioSessionHandler handler;
+    private WakeLockManager mWakeLockManager;
     @Mock
     private AudioService audioService;
     private AudioListener audioListener;
@@ -80,12 +83,14 @@ public class AudioSessionTest extends ImsMediaTest {
         audioListener = audioSession.getAudioListener();
         handler = audioSession.getAudioSessionHandler();
         mTestClass = AudioSessionTest.this;
+        mWakeLockManager = WakeLockManager.getInstance();
         super.setUp();
     }
 
     @After
     public void tearDown() throws Exception {
         super.tearDown();
+        mWakeLockManager.cleanup();
     }
 
     private Parcel createParcel(int message, int result, AudioConfig config) {
@@ -119,6 +124,7 @@ public class AudioSessionTest extends ImsMediaTest {
         audioSession.openSession(params);
         processAllMessages();
         verify(audioService, times(1)).openSession(eq(SESSION_ID), eq(params));
+        assertThat(mWakeLockManager.mWakeLock.isHeld()).isEqualTo(false);
     }
 
     @Test
@@ -126,6 +132,7 @@ public class AudioSessionTest extends ImsMediaTest {
         audioSession.closeSession();
         processAllMessages();
         verify(audioService, times(1)).closeSession(eq(SESSION_ID));
+        assertThat(mWakeLockManager.mWakeLock.isHeld()).isEqualTo(false);
     }
 
     @Test
@@ -135,6 +142,7 @@ public class AudioSessionTest extends ImsMediaTest {
         audioSession.modifySession(config);
         processAllMessages();
         verify(audioLocalSession, times(1)).modifySession(eq(config));
+        assertThat(mWakeLockManager.mWakeLock.isHeld()).isEqualTo(true);
 
         // Modify Session Response - Success
         audioListener.onMessage(
@@ -335,6 +343,7 @@ public class AudioSessionTest extends ImsMediaTest {
         processAllMessages();
         try {
             verify(callback, times(1)).onOpenSessionSuccess(audioSession);
+            assertThat(mWakeLockManager.mWakeLock.isHeld()).isEqualTo(false);
         } catch (RemoteException e) {
             fail("Failed to notify onOpenSessionSuccess: " + e);
         }
@@ -346,6 +355,7 @@ public class AudioSessionTest extends ImsMediaTest {
         processAllMessages();
         try {
             verify(callback, times(1)).onOpenSessionFailure(ImsMediaSession.RESULT_INVALID_PARAM);
+            assertThat(mWakeLockManager.mWakeLock.isHeld()).isEqualTo(false);
         } catch (RemoteException e) {
             fail("Failed to notify onOpenSessionFailure: " + e);
         }
@@ -357,6 +367,7 @@ public class AudioSessionTest extends ImsMediaTest {
         processAllMessages();
         try {
             verify(callback, times(1)).onSessionClosed();
+            assertThat(mWakeLockManager.mWakeLock.isHeld()).isEqualTo(false);
         } catch (RemoteException e) {
             fail("Failed to notify onSessionClosed: " + e);
         }
