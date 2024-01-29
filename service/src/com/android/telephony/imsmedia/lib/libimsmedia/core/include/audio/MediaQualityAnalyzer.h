@@ -222,6 +222,18 @@ public:
     uint32_t getLostPacketSize();
 
     /**
+     * @brief Set the event handler time factor. This method is to adjust the event timing intervals
+     * only for the testing purpose to reduce the testing time. The normal case, the default time
+     * interval will be used.
+     *
+     * For example: if 100 is passed in, then the event processing period will be reduced from
+     * 20ms to 200us and the call quality processing period will be reduced from 1 second to 10ms.
+     *
+     * @param timeFactor Time intervals will be divided by this value.  The maximum value is 1000.
+     */
+    void setEventTimeFactor(const uint32_t timeFactor);
+
+    /**
      * @brief Send message event to event handler
      *
      * @param event The event type
@@ -338,6 +350,7 @@ protected:
     std::list<uint64_t> mListParamB;
     std::mutex mEventMutex;
     ImsMediaCondition mConditionExit;
+    uint32_t mTimeFactor;
 };
 
 #endif
