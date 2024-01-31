@@ -15,6 +15,7 @@
  */
 package com.android.telephony.imsmedia.config;
 
+import android.os.Build;
 import android.os.Bundle;
 import android.preference.CheckBoxPreference;
 import android.preference.ListPreference;
@@ -33,6 +34,7 @@ import com.android.telephony.imsmedia.R;
  */
 public class ConfigPreference extends PreferenceActivity {
     private static final String LOG_TAG = "ConfigPreference";
+    private static final String PREFERENCE_ACTION = "com.android.telephony.imsmedia.PREFERENCE";
     private static final String KEY_LOG_MODE = "list_log_level";
     private static final String KEY_DEBUG_LOG_MODE_SOCKET = "log_mode_socket";
     private static final String KEY_DEBUG_LOG_MODE_AUDIO = "log_mode_audio";
@@ -95,6 +97,17 @@ public class ConfigPreference extends PreferenceActivity {
         Log.d(LOG_TAG, "onCreate");
 
         super.onCreate(savedInstanceState);
+
+        String action = getIntent().getAction();
+
+        // The Configuration Menu is blocked for production builds
+        // and access in debug/eng builds is restricted to preference action
+        if (!Build.IS_DEBUGGABLE || !(action != null && action.equals(PREFERENCE_ACTION))) {
+            Log.e(LOG_TAG, "Configuration Menu cannot be launched");
+            finish(); // Close the current activity
+            return;
+        }
+
         Window wd = getWindow();
 
         if (wd != null) {
