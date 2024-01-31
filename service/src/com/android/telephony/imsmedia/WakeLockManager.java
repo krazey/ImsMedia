@@ -22,6 +22,7 @@ import android.util.Log;
 
 import androidx.annotation.VisibleForTesting;
 
+import java.io.PrintWriter;
 import java.util.HashSet;
 import java.util.Iterator;
 
@@ -168,5 +169,16 @@ public class WakeLockManager {
             Log.e(TAG, "Exception in manageWakeLockOnMediaDirectionUpdate:" + e.getMessage());
             e.printStackTrace();
         }
+    }
+
+    void dump(PrintWriter writer) {
+        writer.println("\n--- WakeLockManager ---\n");
+        writer.println(mWakeLock.toString());
+        writer.println("Sessions holding wakelock:\n\tCount: " + mWakeLockAcquiredSessions.size());
+        Iterator<Integer> iterator = mWakeLockAcquiredSessions.iterator();
+        while (iterator.hasNext()) {
+            writer.println("\tSession Id:" + iterator.next());
+        }
+        writer.println("\n--- END : WakeLockManager ---\n");
     }
 }

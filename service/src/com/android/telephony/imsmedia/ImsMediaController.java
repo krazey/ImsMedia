@@ -36,8 +36,11 @@ import android.telephony.imsmedia.VideoConfig;
 import android.util.Log;
 import android.util.SparseArray;
 
+import com.android.internal.util.DumpUtils;
 import com.android.telephony.imsmedia.Utils.OpenSessionParams;
 
+import java.io.FileDescriptor;
+import java.io.PrintWriter;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /** Controller that maintains all IMS Media sessions */
@@ -173,6 +176,28 @@ public class ImsMediaController extends Service {
         Log.d(TAG, "onDestroy");
         // Release all wakelocks (if leaked)
         WakeLockManager.getInstance().cleanup();
+    }
+
+    @Override
+    protected void dump(FileDescriptor fd, PrintWriter writer, String[] args) {
+        if (!DumpUtils.checkDumpAndUsageStatsPermission(this, TAG, writer)) return;
+
+        writer.println("===== ImsMedia Service dump =====");
+
+        writer.println("\n--- ImsMediaController ---\n");
+        synchronized (mSessions) {
+            writer.println("Session List: \n\tCount: " + mSessions.size());
+            for (int i = 0; i < mSessions.size(); i++) {
+                int sessionId = mSessions.keyAt(i);
+                writer.println("\tSession Id: " + sessionId
+                        + "\tObj:" + mSessions.get(sessionId));
+            }
+        }
+        writer.println("\n--- END: ImsMediaController ---\n");
+
+        WakeLockManager.getInstance().dump(writer);
+
+        writer.println("===== END : ImsMedia Service dump =====");
     }
 
     private IMediaSession getSession(int sessionId) {
