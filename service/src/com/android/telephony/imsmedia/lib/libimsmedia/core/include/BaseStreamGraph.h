@@ -125,7 +125,7 @@ protected:
     StreamState mGraphState;
     std::list<BaseNode*> mListNodeToStart;
     std::list<BaseNode*> mListNodeStarted;
-    std::unique_ptr<StreamScheduler> mScheduler;
+    std::shared_ptr<StreamScheduler> mScheduler;
 };
 
 #endif

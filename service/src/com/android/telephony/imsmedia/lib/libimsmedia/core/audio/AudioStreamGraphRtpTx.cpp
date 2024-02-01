@@ -206,22 +206,26 @@ bool AudioStreamGraphRtpTx::createDtmfGraph(RtpConfig* config, BaseNode* rtpEnco
         mConfig = new AudioConfig(*audioConfig);
     }
 
-    BaseNode* pDtmfEncoderNode = new DtmfEncoderNode(mCallback);
-    pDtmfEncoderNode->SetMediaType(IMS_MEDIA_AUDIO);
-    pDtmfEncoderNode->SetConfig(audioConfig);
-    AddNode(pDtmfEncoderNode);
-    mListDtmfNodes.push_back(pDtmfEncoderNode);
+    BaseNode* dtmfEncoderNode = new DtmfEncoderNode(mCallback);
+    dtmfEncoderNode->SetMediaType(IMS_MEDIA_AUDIO);
+    dtmfEncoderNode->SetConfig(audioConfig);
+    dtmfEncoderNode->SetSchedulerCallback(
+            std::static_pointer_cast<StreamSchedulerCallback>(mScheduler));
+    AddNode(dtmfEncoderNode);
+    mListDtmfNodes.push_back(dtmfEncoderNode);
 
-    BaseNode* pDtmfSenderNode = new DtmfSenderNode(mCallback);
-    pDtmfSenderNode->SetMediaType(IMS_MEDIA_AUDIO);
-    pDtmfSenderNode->SetConfig(audioConfig);
-    pDtmfEncoderNode->ConnectRearNode(pDtmfSenderNode);
-    AddNode(pDtmfSenderNode);
-    mListDtmfNodes.push_back(pDtmfSenderNode);
+    BaseNode* dtmfSenderNode = new DtmfSenderNode(mCallback);
+    dtmfSenderNode->SetMediaType(IMS_MEDIA_AUDIO);
+    dtmfSenderNode->SetConfig(audioConfig);
+    dtmfSenderNode->SetSchedulerCallback(
+            std::static_pointer_cast<StreamSchedulerCallback>(mScheduler));
+    dtmfEncoderNode->ConnectRearNode(dtmfSenderNode);
+    AddNode(dtmfSenderNode);
+    mListDtmfNodes.push_back(dtmfSenderNode);
 
     if (rtpEncoderNode != nullptr)
     {
-        pDtmfSenderNode->ConnectRearNode(rtpEncoderNode);
+        dtmfSenderNode->ConnectRearNode(rtpEncoderNode);
     }
 
     return true;

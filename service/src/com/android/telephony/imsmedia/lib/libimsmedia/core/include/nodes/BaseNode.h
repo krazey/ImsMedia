@@ -85,7 +85,7 @@ public:
      *
      * @param callback the instance of callback listener
      */
-    void SetSchedulerCallback(std::shared_ptr<StreamSchedulerCallback>& callback);
+    void SetSchedulerCallback(const std::shared_ptr<StreamSchedulerCallback>& callback);
 
     /**
      * @brief Connects a node to rear to this node. It makes to pass the processed data to next node
