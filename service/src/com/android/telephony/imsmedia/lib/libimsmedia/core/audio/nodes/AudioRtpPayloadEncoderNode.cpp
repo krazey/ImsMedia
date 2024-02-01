@@ -20,6 +20,8 @@
 #include <AudioConfig.h>
 #include <EvsParams.h>
 
+#define EVS_MODE_SID 12
+
 AudioRtpPayloadEncoderNode::AudioRtpPayloadEncoderNode(BaseSessionCallback* callback) :
         BaseNode(callback)
 {
@@ -449,7 +451,9 @@ void AudioRtpPayloadEncoderNode::EncodePayloadEvs(
 
         if (mEvsCodecMode == kEvsCodecModePrimary)
         {
-            if (nFrameType == kImsAudioEvsPrimaryModeSID || mSendCMR)  // CMR value
+            nFrameType = (uint32_t)ImsMediaAudioUtil::ConvertLenToEVSAudioMode(nDataSize);
+
+            if (nFrameType == EVS_MODE_SID || mSendCMR == 1)  // CMR value
             {
                 // Header Type identification bit(1bit) - always set to 1
                 cmr_h = 1;
@@ -473,7 +477,7 @@ void AudioRtpPayloadEncoderNode::EncodePayloadEvs(
             if (mCurrNumOfFrame == 1)
             {
                 // set CMR byte - it's optional field...
-                if (nFrameType == kImsAudioEvsPrimaryModeSID || mSendCMR)
+                if (nFrameType == EVS_MODE_SID || mSendCMR == 1)
                 {
                     // check writing CMR or not
                     // write CMR byte
