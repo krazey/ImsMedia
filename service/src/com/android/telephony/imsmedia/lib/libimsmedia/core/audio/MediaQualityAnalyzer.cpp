@@ -669,6 +669,8 @@ void MediaQualityAnalyzer::notifyCallQuality()
     if (mCallback != nullptr)
     {
         mCallQuality.setCallDuration(ImsMediaTimer::GetTimeInMilliSeconds() - mTimeStarted);
+        mCallQuality.setCodecType(convertAudioCodecType(
+                mCodecType, ImsMediaAudioUtil::FindMaxEvsBandwidthFromRange(mCodecAttribute)));
 
         IMLOGD1("[notifyCallQuality] duration[%d]", mCallQuality.getCallDuration());
         CallQuality* callQuality = new CallQuality(mCallQuality);
