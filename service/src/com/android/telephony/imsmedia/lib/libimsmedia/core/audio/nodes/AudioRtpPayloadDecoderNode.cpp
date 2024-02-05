@@ -161,10 +161,10 @@ void AudioRtpPayloadDecoderNode::DecodePayloadAmr(uint8_t* pData, uint32_t nData
     }
 
     uint32_t timestamp = nTimestamp;
-    uint32_t eRate;
-    uint32_t f;
+    uint32_t frameTypeIndex;
+    uint32_t hasNextFrame;
     uint32_t cmr;
-    uint32_t QbitPos;  // Q_Speech_Sid_Bad
+    uint32_t frameQualityIndicator;  // Q_Speech_Sid_Bad
 
     IMLOGD_PACKET5(IM_PACKET_LOG_PH,
             "[DecodePayloadAmr] codec type[%d], octetAligned[%d], size[%d], TS[%u], "
@@ -175,7 +175,7 @@ void AudioRtpPayloadDecoderNode::DecodePayloadAmr(uint8_t* pData, uint32_t nData
     // read cmr
     cmr = mBitReader.Read(4);
 
-    if (mOctetAligned == true)
+    if (mOctetAligned)
     {
         mBitReader.Read(4);
     }
@@ -211,62 +211,64 @@ void AudioRtpPayloadDecoderNode::DecodePayloadAmr(uint8_t* pData, uint32_t nData
         }
     }
 
-    // get num of frame
+    // get number of frames
     do
     {
-        f = mBitReader.Read(1);        // f(1)
-        eRate = mBitReader.Read(4);    // ft(4)
-        QbitPos = mBitReader.Read(1);  // q(2)
-        IMLOGD_PACKET3(
-                IM_PACKET_LOG_PH, "[DecodePayloadAmr] cmr[%d], f[%d], ft[%d]", cmr, f, eRate);
-        mListFrameType.push_back(eRate);
-        if (mOctetAligned == true)
+        hasNextFrame = mBitReader.Read(1);           // f(1)
+        frameTypeIndex = mBitReader.Read(4);         // ft(4)
+        frameQualityIndicator = mBitReader.Read(1);  // q(1)
+        IMLOGD_PACKET3(IM_PACKET_LOG_PH, "[DecodePayloadAmr] ToC F=%d, FT=%d, Q=%d", hasNextFrame,
+                frameTypeIndex, frameQualityIndicator);
+        mListFrameType.push_back(frameTypeIndex);
+        if (mOctetAligned)
         {
             mBitReader.Read(2);  // padding
         }
-    } while (f == 1);
-
-    IMLOGD_PACKET3(IM_PACKET_LOG_PH,
-            "[DecodePayloadAmr] Q_Speech_SID <Q_Speech_SID> f[%d] eRate[%d] QbitPos[%d]", f, eRate,
-            QbitPos);  // Q_Speech_SID
+    } while (hasNextFrame == 1);
 
     // read speech frames
     while (mListFrameType.size() > 0)
     {
-        uint32_t nDataBitSize;
-        uint32_t mode = mListFrameType.front();
+        uint32_t dataBitSize;
+        frameTypeIndex = mListFrameType.front();
         if (mCodecType == kAudioCodecAmr)
         {
-            nDataBitSize = ImsMediaAudioUtil::ConvertAmrModeToBitLen(mode);
+            dataBitSize = ImsMediaAudioUtil::ConvertAmrModeToBitLen(frameTypeIndex);
         }
         else
         {
-            nDataBitSize = ImsMediaAudioUtil::ConvertAmrWbModeToBitLen(mode);
+            dataBitSize = ImsMediaAudioUtil::ConvertAmrWbModeToBitLen(frameTypeIndex);
         }
 
         mListFrameType.pop_front();
         mBitWriter.SetBuffer(mPayload, MAX_AUDIO_PAYLOAD_SIZE);
-        uint32_t bufferSize = (nDataBitSize + 7) >> 3;
+        uint32_t bufferSize = (dataBitSize + 7) >> 3;
         // set TOC
-        mBitWriter.Write(f, 1);
-        mBitWriter.Write(eRate, 4);
-        mBitWriter.Write(QbitPos, 1);
+        mBitWriter.Write(hasNextFrame, 1);
+        mBitWriter.Write(frameTypeIndex, 4);
+        mBitWriter.Write(frameQualityIndicator, 1);
         mBitWriter.Write(0, 2);
-        mBitReader.ReadByteBuffer(mPayload + 1, nDataBitSize);
+        mBitReader.ReadByteBuffer(mPayload + 1, dataBitSize);
         bufferSize++;
 
+        if (mOctetAligned)
+        {
+            uint32_t paddingSize = (8 - (dataBitSize & 0x07)) & 0x07;
+            mBitReader.Read(paddingSize);
+        }
+
         IMLOGD_PACKET6(IM_PACKET_LOG_PH,
-                "[DecodePayloadAmr] result = %02X %02X %02X %02X, len[%d], eRate[%d]", mPayload[0],
-                mPayload[1], mPayload[2], mPayload[3], bufferSize, eRate);
+                "[DecodePayloadAmr] result = %02X %02X %02X %02X, len=%d, FT=%d", mPayload[0],
+                mPayload[1], mPayload[2], mPayload[3], bufferSize, frameTypeIndex);
 
         ImsMediaSubType subType = MEDIASUBTYPE_AUDIO_NORMAL;
 
-        if (bufferSize == 1 || eRate == 15)
+        if (bufferSize == 1 || frameTypeIndex == kImsAudioAmrModeNoData)
         {
             subType = MEDIASUBTYPE_AUDIO_NODATA;
         }
-        else if ((eRate == 8 && mCodecType == kAudioCodecAmr) ||
-                (eRate == 9 && mCodecType == kAudioCodecAmrWb))
+        else if ((frameTypeIndex == kImsAudioAmrModeSID && mCodecType == kAudioCodecAmr) ||
+                (frameTypeIndex == kImsAudioAmrWbModeSID && mCodecType == kAudioCodecAmrWb))
         {
             subType = MEDIASUBTYPE_AUDIO_SID;
         }
