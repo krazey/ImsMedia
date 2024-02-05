@@ -38,6 +38,7 @@ using namespace android::telephony::imsmedia;
 #define MEDIA_DIRECTION_CONTAINS_RECEIVE(a)            \
     ((a) == RtpConfig::MEDIA_DIRECTION_SEND_RECEIVE || \
             (a) == RtpConfig::MEDIA_DIRECTION_RECEIVE_ONLY)
+#define MAX_TIME_FACTOR (1000)
 
 MediaQualityAnalyzer::MediaQualityAnalyzer()
 {
@@ -62,6 +63,7 @@ MediaQualityAnalyzer::MediaQualityAnalyzer()
     mNumRtcpPacketReceived = 0;
     mReceptionInterval = 0;
     mLatestRoundTripDelayMs = 0;
+    mTimeFactor = 1;
     reset();
 }
 
@@ -183,7 +185,7 @@ void MediaQualityAnalyzer::collectInfo(const int32_t streamType, RtpPacket* pack
     {
         mListTxPacket.push_back(packet);
 
-        if (mListTxPacket.size() >= MAX_NUM_PACKET_STORED)
+        if (mListTxPacket.size() > MAX_NUM_PACKET_STORED)
         {
             RtpPacket* pPacket = mListTxPacket.front();
             mListTxPacket.pop_front();
@@ -234,7 +236,7 @@ void MediaQualityAnalyzer::collectInfo(const int32_t streamType, RtpPacket* pack
         mNumRxPacket++;
         mListRxPacket.push_back(packet);
 
-        if (mListRxPacket.size() >= MAX_NUM_PACKET_STORED)
+        if (mListRxPacket.size() > MAX_NUM_PACKET_STORED)
         {
             RtpPacket* pPacket = mListRxPacket.front();
             mListRxPacket.pop_front();
@@ -737,6 +739,19 @@ uint32_t MediaQualityAnalyzer::getLostPacketSize()
             });
 }
 
+void MediaQualityAnalyzer::setEventTimeFactor(const uint32_t timeFactor)
+{
+    if (timeFactor > MAX_TIME_FACTOR)
+    {
+        IMLOGW1("[setEventTimeFactor] event time factor is over the maximum[%d]", MAX_TIME_FACTOR);
+        mTimeFactor = MAX_TIME_FACTOR;
+    }
+    else
+    {
+        mTimeFactor = timeFactor == 0 ? 1 : timeFactor;
+    }
+}
+
 void MediaQualityAnalyzer::SendEvent(uint32_t event, uint64_t paramA, uint64_t paramB)
 {
     AddEvent(event, paramA, paramB);
@@ -823,7 +838,7 @@ void* MediaQualityAnalyzer::run()
             break;
         }
 
-        nextTime += MESSAGE_PROCESSING_INTERVAL;
+        nextTime += MESSAGE_PROCESSING_INTERVAL / mTimeFactor;
         uint64_t nCurrTime = ImsMediaTimer::GetTimeInMicroSeconds();
         int64_t nTime = nextTime - nCurrTime;
 
@@ -860,10 +875,10 @@ void* MediaQualityAnalyzer::run()
         uint32_t currTimeInMsec = ImsMediaTimer::GetTimeInMilliSeconds();
 
         // process every TIMER_INTERVAL
-        if (currTimeInMsec - prevTimeInMsec >= TIMER_INTERVAL)
+        if (currTimeInMsec - prevTimeInMsec >= TIMER_INTERVAL / mTimeFactor)
         {
             processData(++timeCount);
-            prevTimeInMsec += TIMER_INTERVAL;
+            prevTimeInMsec += TIMER_INTERVAL / mTimeFactor;
         }
     }
 
