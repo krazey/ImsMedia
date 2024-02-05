@@ -72,8 +72,9 @@ ImsMediaResult IAudioPlayerNode::Start()
         mAudioPlayer->SetSamplingRate(mSamplingRate * 1000);
         mAudioPlayer->SetDtxEnabled(mIsDtxEnabled);
         mAudioPlayer->SetOctetAligned(mIsOctetAligned);
-        int mode = (mCodecType == kAudioCodecEvs) ? ImsMediaAudioUtil::GetMaximumEvsMode(mMode)
-                                                  : ImsMediaAudioUtil::GetMaximumAmrMode(mMode);
+        int mode = (mCodecType == kAudioCodecEvs)
+                ? ImsMediaAudioUtil::GetMaximumEvsMode(mMode)
+                : ImsMediaAudioUtil::GetMaximumAmrMode(mCodecType, mMode);
 
         if (mCodecType == kAudioCodecEvs)
         {
