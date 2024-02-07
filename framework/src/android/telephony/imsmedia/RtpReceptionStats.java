@@ -34,10 +34,10 @@ import java.util.Objects;
 public final class RtpReceptionStats implements Parcelable {
     /* The timestamp reflects the sampling instant of the latest RTP packet received */
     private int mRtpTimestamp;
-    /* The sequence number of latest RTP packet received */
-    private int mRtpSequenceNumber;
-    /* The clock time in millisecond of latest RTP packet received */
-    private int mTimeDurationMs;
+    /* The timestamp reflects the sampling instant of the latest RTCP-SR packet received */
+    private int mRtcpSrTimestamp;
+    /* The NTP timestamp of latest RTCP-SR packet received */
+    private long mRtcpSrNtpTimestamp;
     /**
      * The mean jitter buffer delay of a media stream from received to playback, measured in
      * milliseconds, within the reporting interval
@@ -51,17 +51,17 @@ public final class RtpReceptionStats implements Parcelable {
     /** @hide **/
     public RtpReceptionStats(Parcel in) {
         mRtpTimestamp = in.readInt();
-        mRtpSequenceNumber = in.readInt();
-        mTimeDurationMs = in.readInt();
+        mRtcpSrTimestamp = in.readInt();
+        mRtcpSrNtpTimestamp = in.readLong();
         mJitterBufferMs = in.readInt();
         mRoundTripTimeMs = in.readInt();
     }
 
-    private RtpReceptionStats(int timestamp, int seq, int time, int size, int roundtrip) {
-        this.mRtpTimestamp = timestamp;
-        this.mRtpSequenceNumber = seq;
-        this.mTimeDurationMs = time;
-        this.mJitterBufferMs = size;
+    private RtpReceptionStats(int rtpTs, int rtcpTs, long ntp, int delay, int roundtrip) {
+        this.mRtpTimestamp = rtpTs;
+        this.mRtcpSrTimestamp = rtcpTs;
+        this.mRtcpSrNtpTimestamp = ntp;
+        this.mJitterBufferMs = delay;
         this.mRoundTripTimeMs = roundtrip;
     }
 
@@ -71,13 +71,13 @@ public final class RtpReceptionStats implements Parcelable {
     }
 
     /** @hide **/
-    public int getRtpSequenceNumber() {
-        return mRtpSequenceNumber;
+    public int getRtcpSrTimestamp() {
+        return mRtcpSrTimestamp;
     }
 
     /** @hide **/
-    public int getTimeDurationMs() {
-        return mTimeDurationMs;
+    public long getRtcpSrNtpTimestamp() {
+        return mRtcpSrNtpTimestamp;
     }
 
     /** @hide **/
@@ -96,8 +96,8 @@ public final class RtpReceptionStats implements Parcelable {
     public String toString() {
         return "RtpReceptionStats: {"
                 + "mRtpTimestamp=" + mRtpTimestamp
-                + ", mRtpSequenceNumber=" + mRtpSequenceNumber
-                + ", mTimeDurationMs=" + mTimeDurationMs
+                + ", mRtcpSrTimestamp=" + mRtcpSrTimestamp
+                + ", mRtcpSrNtpTimestamp=" + mRtcpSrNtpTimestamp
                 + ", mJitterBufferMs=" + mJitterBufferMs
                 + ", mRoundTripTimeMs=" + mRoundTripTimeMs
             + " }";
@@ -105,7 +105,7 @@ public final class RtpReceptionStats implements Parcelable {
 
     @Override
     public int hashCode() {
-        return Objects.hash(mRtpTimestamp, mRtpSequenceNumber, mTimeDurationMs,
+        return Objects.hash(mRtpTimestamp, mRtcpSrTimestamp, mRtcpSrNtpTimestamp,
             mJitterBufferMs, mRoundTripTimeMs);
     }
 
@@ -122,8 +122,8 @@ public final class RtpReceptionStats implements Parcelable {
         RtpReceptionStats s = (RtpReceptionStats) o;
 
         return (mRtpTimestamp == s.mRtpTimestamp
-                && mRtpSequenceNumber == s.mRtpSequenceNumber
-                && mTimeDurationMs == s.mTimeDurationMs
+                && mRtcpSrTimestamp == s.mRtcpSrTimestamp
+                && mRtcpSrNtpTimestamp == s.mRtcpSrNtpTimestamp
                 && mJitterBufferMs == s.mJitterBufferMs
                 && mRoundTripTimeMs == s.mRoundTripTimeMs);
     }
@@ -140,8 +140,8 @@ public final class RtpReceptionStats implements Parcelable {
      */
     public void writeToParcel(Parcel dest, int flags) {
         dest.writeInt(mRtpTimestamp);
-        dest.writeInt(mRtpSequenceNumber);
-        dest.writeInt(mTimeDurationMs);
+        dest.writeInt(mRtcpSrTimestamp);
+        dest.writeLong(mRtcpSrNtpTimestamp);
         dest.writeInt(mJitterBufferMs);
         dest.writeInt(mRoundTripTimeMs);
     }
@@ -164,8 +164,8 @@ public final class RtpReceptionStats implements Parcelable {
      */
     public static final class Builder {
         private int mRtpTimestamp;
-        private int mRtpSequenceNumber;
-        private int mTimeDurationMs;
+        private int mRtcpSrTimestamp;
+        private long mRtcpSrNtpTimestamp;
         private int mJitterBufferMs;
         private int mRoundTripTimeMs;
 
@@ -187,29 +187,24 @@ public final class RtpReceptionStats implements Parcelable {
         }
 
         /**
-         * Set the Sequence Number. It throws IllegalArgumentException if the sequence number is set
-         * greater than maximum 16bit value
+         * Set the timestamp reflects the sampling instant of the latest RTCP-SR packet received
          *
-         * @param seq The sequence number of last RTP packet sent
+         * @param timestamp The timestamp of the latest RTCP-SR packet received
          * @return The same instance of the builder.
          */
-        public @NonNull Builder setRtpSequenceNumber(final int seq) {
-            if (seq < 0 || seq > MAX_VALUE_16BIT) {
-                throw new IllegalArgumentException("Invalid sequenceNumber value: " + seq);
-            } else {
-                this.mRtpSequenceNumber = seq;
-            }
+        public @NonNull Builder setRtcpSrTimestamp(final int timestamp) {
+            this.mRtcpSrTimestamp = timestamp;
             return this;
         }
 
         /**
-         * Set the clock time duration in millisecond of latest RTP packet received.
+         * Set the NTP timestamp of latest RTCP-SR packet received
          *
-         * @param time The clock time duration in millisecond
+         * @param ntp The NTP timestamp of the latest RTCP-SR packet received
          * @return The same instance of the builder.
          */
-        public @NonNull Builder setTimeDurationMs(final int time) {
-            this.mTimeDurationMs = time;
+        public @NonNull Builder setRtcpSrNtpTimestamp(final long ntp) {
+            this.mRtcpSrNtpTimestamp = ntp;
             return this;
         }
 
@@ -242,7 +237,7 @@ public final class RtpReceptionStats implements Parcelable {
          * @return the RtpReceptionStats object.
          */
         public @NonNull RtpReceptionStats build() {
-            return new RtpReceptionStats(mRtpTimestamp, mRtpSequenceNumber, mTimeDurationMs,
+            return new RtpReceptionStats(mRtpTimestamp, mRtcpSrTimestamp, mRtcpSrNtpTimestamp,
                     mJitterBufferMs, mRoundTripTimeMs);
         }
     }

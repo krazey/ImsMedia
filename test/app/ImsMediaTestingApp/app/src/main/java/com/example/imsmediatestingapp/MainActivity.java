@@ -32,6 +32,7 @@ import android.telephony.imsmedia.MediaQualityStatus;
 import android.telephony.imsmedia.MediaQualityThreshold;
 import android.telephony.imsmedia.RtcpConfig;
 import android.telephony.imsmedia.RtpConfig;
+import android.telephony.imsmedia.RtpReceptionStats;
 import android.telephony.imsmedia.TextConfig;
 import android.telephony.imsmedia.TextSessionCallback;
 import android.telephony.imsmedia.VideoConfig;
@@ -763,6 +764,7 @@ public class MainActivity extends AppCompatActivity {
                     JITTER_THRESHOLD, NOTIFY_STATUS);
             mAudioSession.setMediaQualityThreshold(threshold);
             mAudioSession.modifySession(mAudioConfig);
+            mAudioSession.requestRtpReceptionStats(3000);
 
             AudioManager audioManager = getSystemService(AudioManager.class);
             audioManager.setMode(AudioManager.MODE_IN_CALL);
@@ -816,6 +818,11 @@ public class MainActivity extends AppCompatActivity {
                     / callQuality.getNumRtpPacketsReceived() * 100);
             Log.d(TAG, "onCallQualityChanged, maxPlayoutDelay="
                     + (double) callQuality.getMaxPlayoutDelayMillis());
+        }
+
+        @Override
+        public void notifyRtpReceptionStats(final RtpReceptionStats stats) {
+            Log.d(TAG, "notifyRtpReceptionStats, RtpReceptionStats=" + stats);
         }
     }
 
