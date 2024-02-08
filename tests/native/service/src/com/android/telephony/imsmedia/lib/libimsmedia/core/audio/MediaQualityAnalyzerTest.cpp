@@ -34,6 +34,9 @@ const int8_t kDscp = 0;
 const int8_t kRxPayload = 96;
 const int8_t kTxPayload = 96;
 const int8_t kSamplingRate = 16;
+// AnbrParam
+const int32_t kAnbrMUplinkMode = 1;
+const int32_t kAnbrMDownlinkMode = 2;
 
 // RtcpConfig
 const android::String8 kCanonicalName("name");
@@ -135,6 +138,7 @@ protected:
     MediaQualityAnalyzer* mAnalyzer;
     AudioConfig mConfig;
     RtcpConfig mRtcpConfig;
+    AnbrMode anbr;
     AmrParams mAmrParam;
     EvsParams mEvsParam;
     FakeMediaQualityCallback mFakeCallback;
@@ -162,6 +166,9 @@ protected:
         mEvsParam.setUseHeaderFullOnly(kUseHeaderFullOnly);
         mEvsParam.setCodecModeRequest(kcodecModeRequest);
 
+        anbr.setAnbrUplinkCodecMode(kAnbrMUplinkMode);
+        anbr.setAnbrDownlinkCodecMode(kAnbrMDownlinkMode);
+
         mConfig.setMediaDirection(kMediaDirection);
         mConfig.setRemoteAddress(kRemoteAddress);
         mConfig.setRemotePort(kRemotePort);
@@ -170,6 +177,7 @@ protected:
         mConfig.setRxPayloadTypeNumber(kRxPayload);
         mConfig.setTxPayloadTypeNumber(kTxPayload);
         mConfig.setSamplingRateKHz(kSamplingRate);
+        mConfig.setAnbrMode(anbr);
         mConfig.setPtimeMillis(kPTimeMillis);
         mConfig.setMaxPtimeMillis(kMaxPtimeMillis);
         mConfig.setDtxEnabled(kDtxEnabled);

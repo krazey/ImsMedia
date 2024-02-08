@@ -54,6 +54,7 @@ private:
     kEvsBandwidth mEvsBandwidth;
     int8_t mSamplingRate;
     int32_t mEvsPayloadHeaderMode;
+    int32_t mAnbrDownlinkMode;
     bool mIsDtxEnabled;
     bool mIsOctetAligned;
     uint32_t mRunningCodecMode;

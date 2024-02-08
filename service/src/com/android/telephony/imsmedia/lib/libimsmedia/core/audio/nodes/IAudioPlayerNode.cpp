@@ -35,6 +35,7 @@ IAudioPlayerNode::IAudioPlayerNode(BaseSessionCallback* callback) :
     std::unique_ptr<ImsMediaAudioPlayer> track(new ImsMediaAudioPlayer());
     mAudioPlayer = std::move(track);
     mConfig = nullptr;
+    mAnbrDownlinkMode = 0;
     mIsOctetAligned = false;
     mIsDtxEnabled = false;
 }
@@ -153,6 +154,13 @@ void IAudioPlayerNode::SetConfig(void* config)
         mEvsBandwidth = ImsMediaAudioUtil::FindMaxEvsBandwidthFromRange(
                 mConfig->getEvsParams().getEvsBandwidth());
         mEvsPayloadHeaderMode = mConfig->getEvsParams().getUseHeaderFullOnly();
+        mAnbrDownlinkMode = mConfig->getAnbrMode().getAnbrDownlinkCodecMode();
+
+        if (mAnbrDownlinkMode != 0)
+        {
+            // TODO: need to send cmr bit using HF only mode
+            IMLOGI1("[IAudioPlayerNode] DownlinkMode: %d", mAnbrDownlinkMode);
+        }
     }
 
     mSamplingRate = mConfig->getSamplingRateKHz();
@@ -198,7 +206,7 @@ bool IAudioPlayerNode::IsSameConfig(void* config)
 
 void IAudioPlayerNode::ProcessCmr(const uint32_t cmrType, const uint32_t cmrDefine)
 {
-    IMLOGD2("[ProcessCmr] cmr type[%d], define[%d]", cmrType, cmrDefine);
+    IMLOGD2("[ProcessCmr] cmr type[%d], cmrDefine[%d]", cmrType, cmrDefine);
 
     if (mAudioPlayer == nullptr)
     {
@@ -219,78 +227,89 @@ void IAudioPlayerNode::ProcessCmr(const uint32_t cmrType, const uint32_t cmrDefi
         }
         else
         {
-            int mode = MAX_CODEC_EVS_AMR_IO_MODE;
-            switch (cmrType)
-            {
-                case kEvsCmrCodeTypeNb:
-                    mEvsBandwidth = kEvsBandwidthNB;
-                    mode += cmrDefine;
-                    break;
-                case kEvsCmrCodeTypeWb:
-                    mEvsBandwidth = kEvsBandwidthWB;
-                    mode += cmrDefine;
-                    break;
-                case kEvsCmrCodeTypeSwb:
-                    mEvsBandwidth = kEvsBandwidthSWB;
-                    mode += cmrDefine;
-                    break;
-                case kEvsCmrCodeTypeFb:
-                    mEvsBandwidth = kEvsBandwidthFB;
-                    mode += cmrDefine;
-                    break;
-                case kEvsCmrCodeTypeWbCha:
-                    mEvsBandwidth = kEvsBandwidthWB;
-                    mode = kImsAudioEvsPrimaryMode13200;
-                    break;
-                case kEvsCmrCodeTypeSwbCha:
-                    mEvsBandwidth = kEvsBandwidthSWB;
-                    mode = kImsAudioEvsPrimaryMode13200;
-                    break;
-                case kEvsCmrCodeTypeAmrIO:
-                    mode = cmrDefine;
-                    break;
-                default:
-                    break;
-            }
+            int32_t mode = MAX_CODEC_EVS_AMR_IO_MODE;
 
-            if (cmrType == kEvsCmrCodeTypeWbCha || cmrType == kEvsCmrCodeTypeSwbCha)
+            IMLOGD1("[ProcessCmr] running codec mode[%d]", mRunningCodecMode);
+
+            if ((cmrDefine + mode) > mRunningCodecMode)
             {
-                switch (cmrDefine)
+                IMLOGD1("[ProcessCmr] Skip to change the bitrate for ANBR codec Mode : %d",
+                        (cmrDefine + mode));
+            }
+            else
+            {
+                switch (cmrType)
                 {
-                    case kEvsCmrCodeDefineChaOffset2:
-                    case kEvsCmrCodeDefineChaOffsetH2:
-                        mEvsChannelAwOffset = 2;
+                    case kEvsCmrCodeTypeNb:
+                        mEvsBandwidth = kEvsBandwidthNB;
+                        mode += cmrDefine;
                         break;
-                    case kEvsCmrCodeDefineChaOffset3:
-                    case kEvsCmrCodeDefineChaOffsetH3:
-                        mEvsChannelAwOffset = 3;
+                    case kEvsCmrCodeTypeWb:
+                        mEvsBandwidth = kEvsBandwidthWB;
+                        mode += cmrDefine;
                         break;
-                    case kEvsCmrCodeDefineChaOffset5:
-                    case kEvsCmrCodeDefineChaOffsetH5:
-                        mEvsChannelAwOffset = 5;
+                    case kEvsCmrCodeTypeSwb:
+                        mEvsBandwidth = kEvsBandwidthSWB;
+                        mode += cmrDefine;
                         break;
-                    case kEvsCmrCodeDefineChaOffset7:
-                    case kEvsCmrCodeDefineChaOffsetH7:
-                        mEvsChannelAwOffset = 7;
+                    case kEvsCmrCodeTypeFb:
+                        mEvsBandwidth = kEvsBandwidthFB;
+                        mode += cmrDefine;
+                        break;
+                    case kEvsCmrCodeTypeWbCha:
+                        mEvsBandwidth = kEvsBandwidthWB;
+                        mode = kImsAudioEvsPrimaryMode13200;
+                        break;
+                    case kEvsCmrCodeTypeSwbCha:
+                        mEvsBandwidth = kEvsBandwidthSWB;
+                        mode = kImsAudioEvsPrimaryMode13200;
+                        break;
+                    case kEvsCmrCodeTypeAmrIO:
+                        mode = cmrDefine;
                         break;
                     default:
-                        mEvsChannelAwOffset = 3;
                         break;
                 }
+
+                if (cmrType == kEvsCmrCodeTypeWbCha || cmrType == kEvsCmrCodeTypeSwbCha)
+                {
+                    switch (cmrDefine)
+                    {
+                        case kEvsCmrCodeDefineChaOffset2:
+                        case kEvsCmrCodeDefineChaOffsetH2:
+                            mEvsChannelAwOffset = 2;
+                            break;
+                        case kEvsCmrCodeDefineChaOffset3:
+                        case kEvsCmrCodeDefineChaOffsetH3:
+                            mEvsChannelAwOffset = 3;
+                            break;
+                        case kEvsCmrCodeDefineChaOffset5:
+                        case kEvsCmrCodeDefineChaOffsetH5:
+                            mEvsChannelAwOffset = 5;
+                            break;
+                        case kEvsCmrCodeDefineChaOffset7:
+                        case kEvsCmrCodeDefineChaOffsetH7:
+                            mEvsChannelAwOffset = 7;
+                            break;
+                        default:
+                            mEvsChannelAwOffset = 3;
+                            break;
+                    }
+                }
+
+                mAudioPlayer->SetEvsBandwidth((int32_t)mEvsBandwidth);
+                mAudioPlayer->SetEvsChAwOffset(mEvsChannelAwOffset);
+
+                if (mode != mRunningCodecMode)
+                {
+                    mRunningCodecMode = mode;
+                    mAudioPlayer->SetEvsBitRate(
+                            ImsMediaAudioUtil::ConvertEVSModeToBitRate(mRunningCodecMode));
+                    mAudioPlayer->SetCodecMode(mRunningCodecMode);
+                }
+
+                mAudioPlayer->ProcessCmr(mRunningCodecMode);
             }
-
-            mAudioPlayer->SetEvsBandwidth((int32_t)mEvsBandwidth);
-            mAudioPlayer->SetEvsChAwOffset(mEvsChannelAwOffset);
-
-            if (mode != mRunningCodecMode)
-            {
-                mRunningCodecMode = mode;
-                mAudioPlayer->SetEvsBitRate(
-                        ImsMediaAudioUtil::ConvertEVSModeToBitRate(mRunningCodecMode));
-                mAudioPlayer->SetCodecMode(mRunningCodecMode);
-            }
-
-            mAudioPlayer->ProcessCmr(mRunningCodecMode);
         }
     }
 }

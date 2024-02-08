@@ -66,6 +66,7 @@ void ImsMediaAudioPlayer::SetCodec(int32_t type)
 void ImsMediaAudioPlayer::SetEvsBitRate(int32_t bitRate)
 {
     mEvsBitRate = bitRate;
+    IMLOGD_PACKET1(IM_PACKET_LOG_AUDIO, "[SetEvsBitRate] mEvsBitRate[%d]", mEvsBitRate);
 }
 
 void ImsMediaAudioPlayer::SetEvsChAwOffset(int32_t offset)
