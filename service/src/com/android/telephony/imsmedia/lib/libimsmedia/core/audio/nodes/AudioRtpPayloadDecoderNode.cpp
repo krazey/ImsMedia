@@ -243,6 +243,10 @@ void AudioRtpPayloadDecoderNode::DecodePayloadAmr(uint8_t* pData, uint32_t nData
         mListFrameType.pop_front();
         mBitWriter.SetBuffer(mPayload, MAX_AUDIO_PAYLOAD_SIZE);
         uint32_t bufferSize = (dataBitSize + 7) >> 3;
+
+        ImsMediaSubType subType =
+                ImsMediaAudioUtil::GetAmrFrameType(mCodecType, frameTypeIndex, bufferSize);
+
         // set TOC
         mBitWriter.Write(hasNextFrame, 1);
         mBitWriter.Write(frameTypeIndex, 4);
@@ -260,18 +264,6 @@ void AudioRtpPayloadDecoderNode::DecodePayloadAmr(uint8_t* pData, uint32_t nData
         IMLOGD_PACKET6(IM_PACKET_LOG_PH,
                 "[DecodePayloadAmr] result = %02X %02X %02X %02X, len=%d, FT=%d", mPayload[0],
                 mPayload[1], mPayload[2], mPayload[3], bufferSize, frameTypeIndex);
-
-        ImsMediaSubType subType = MEDIASUBTYPE_AUDIO_NORMAL;
-
-        if (bufferSize == 1 || frameTypeIndex == kImsAudioAmrModeNoData)
-        {
-            subType = MEDIASUBTYPE_AUDIO_NODATA;
-        }
-        else if ((frameTypeIndex == kImsAudioAmrModeSID && mCodecType == kAudioCodecAmr) ||
-                (frameTypeIndex == kImsAudioAmrWbModeSID && mCodecType == kAudioCodecAmrWb))
-        {
-            subType = MEDIASUBTYPE_AUDIO_SID;
-        }
 
         // send remaining packet number in bundle as bMark value
         SendDataToRearNode(MEDIASUBTYPE_RTPPAYLOAD, mPayload, bufferSize, timestamp,

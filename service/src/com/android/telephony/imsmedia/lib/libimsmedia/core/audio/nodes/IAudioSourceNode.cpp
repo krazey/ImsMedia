@@ -55,7 +55,7 @@ ImsMediaResult IAudioSourceNode::ProcessStart()
     {
         mAudioSource->SetUplinkCallback(this);
         mAudioSource->SetCodec(mCodecType);
-        mRunningCodecMode = ImsMediaAudioUtil::GetMaximumAmrMode(mCodecMode);
+        mRunningCodecMode = ImsMediaAudioUtil::GetMaximumAmrMode(mCodecType, mCodecMode);
         mAudioSource->SetPtime(mPtime);
         mAudioSource->SetSamplingRate(mSamplingRate * 1000);
         mAudioSource->SetMediaDirection(mMediaDirection);
@@ -204,7 +204,7 @@ void IAudioSourceNode::ProcessCmr(const uint32_t cmrType, const uint32_t cmrDefi
     {
         if (cmrType == 15)  // change mode to original one
         {
-            int32_t mode = ImsMediaAudioUtil::GetMaximumAmrMode(mCodecMode);
+            int32_t mode = ImsMediaAudioUtil::GetMaximumAmrMode(mCodecType, mCodecMode);
 
             if (mRunningCodecMode != mode)
             {

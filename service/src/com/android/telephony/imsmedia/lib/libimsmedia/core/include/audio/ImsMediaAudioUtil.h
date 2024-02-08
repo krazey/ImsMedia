@@ -60,13 +60,6 @@ enum kImsAudioAmrMode
     /* 9~13: for future use */
     kImsAudioAmrModeSPL = 14,    /* Speech Lost frame  */
     kImsAudioAmrModeNoData = 15, /* No Data */
-    kImsAudioAmrModeEVRC0 = 0,   /* Indicates vocoder data was blanked. */
-    kImsAudioAmrModeEVRC8,       /* Indicates rate 1/8 vocoder data. */
-    kImsAudioAmrModeEVRC4,       /* Indicates rate 1/4 vocoder data. */
-    kImsAudioAmrModeEVRC2,       /* Indicates rate 1/2 vocoder data. */
-    kImsAudioAmrModeEVRC1,       /* Indicates rate 1 vocoder data. */
-    kImsAudioAmrModeEVRCERASURE, /* Indicates frame erasure */
-    kImsAudioAmrModeEVRCERR,     /* Indicates invalid vocoder data. */
     kImsAudioAmrModeMax
 };
 
@@ -154,7 +147,7 @@ public:
     static uint32_t ConvertEVSAMRIOAudioModeToBitLen(uint32_t mode);
     static uint32_t ConvertAmrModeToBitrate(uint32_t mode);
     static uint32_t ConvertAmrWbModeToBitrate(uint32_t mode);
-    static uint32_t GetMaximumAmrMode(int32_t bitmask);
+    static uint32_t GetMaximumAmrMode(int32_t codecType, int32_t bitmask);
     static uint32_t GetMaximumEvsMode(int32_t bitmask);
     static uint32_t GetBitrateEVS(int mode);
     static kRtpPayloadHeaderMode ConvertEVSPayloadMode(
@@ -163,6 +156,8 @@ public:
     static int32_t ConvertEVSModeToBitRate(const int32_t mode);
     static kEvsBandwidth FindMaxEvsBandwidthFromRange(const int32_t EvsBandwidthRange);
     static bool CheckEVSPrimaryHeaderFullModeFromSize(uint32_t size);
+    static ImsMediaSubType GetAmrFrameType(
+            const int32_t codecType, const uint32_t frameTypeIndex, const uint32_t size);
 };
 
 #endif  // AUDIO_AMRFMT_H_INCLUDED
