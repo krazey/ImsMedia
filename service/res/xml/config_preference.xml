@@ -71,5 +71,10 @@
                 android:title="@string/log_mode_rtpstack"
                 android:defaultValue="false"
                 android:summary="@string/log_mode_rtpstack_summary" />
+        <CheckBoxPreference
+                android:key="log_mode_video_jitter"
+                android:title="@string/log_mode_video_jitter"
+                android:defaultValue="false"
+                android:summary="@string/log_mode_video_jitter_summary" />
     </PreferenceScreen>
 </PreferenceScreen>

@@ -82,17 +82,6 @@ private:
     bool hasStartingCode(uint8_t* buffer, uint32_t bufferSize);
     FrameType GetFrameType(uint8_t* buffer, uint32_t bufferSize);
     void SaveConfigFrame(uint8_t* buffer, uint32_t bufferSize, uint32_t type);
-
-    /**
-     * @brief Remove Access Uint Delimiter Nal Unit.
-     *
-     * @param inBuffer
-     * @param ibufferSize
-     * @param outBuffer
-     * @param outBufferSize
-     * @return true
-     * @return false
-     */
     bool RemoveAUDNalUnit(
             uint8_t* inBuffer, uint32_t ibufferSize, uint8_t** outBuffer, uint32_t* outBufferSize);
     void CheckResolution(uint32_t nWidth, uint32_t nHeight);
@@ -119,6 +108,8 @@ private:
     uint32_t mFramerate;
     uint32_t mLossDuration;
     uint32_t mLossRateThreshold;
+    uint32_t mPrevTimestamp;
+    uint32_t mCurrentFramerate;
 };
 
 #endif

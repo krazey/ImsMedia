@@ -199,7 +199,7 @@ void VideoJitterBuffer::Add(ImsMediaSubType subtype, uint8_t* pbBuffer, uint32_t
         }
     }
 
-    IMLOGD_PACKET6(IM_PACKET_LOG_JITTER,
+    IMLOGD_PACKET6(IM_PACKET_LOG_VIDEO_JITTER,
             "[Add] eDataType[%u], Seq[%u], Mark[%u], Header[%u], TS[%u], Size[%u]",
             currEntry.eDataType, nSeqNum, bMark, currEntry.bHeader, nTimestamp, nBufferSize);
 
@@ -214,7 +214,7 @@ void VideoJitterBuffer::Add(ImsMediaSubType subtype, uint8_t* pbBuffer, uint32_t
         mDataQueue.Add(&currEntry);
         mNumAddedPacket++;
         mAccumulatedPacketSize += nBufferSize;
-        IMLOGD_PACKET4(IM_PACKET_LOG_JITTER,
+        IMLOGD_PACKET4(IM_PACKET_LOG_VIDEO_JITTER,
                 "[Add] queue[%u] Seq[%u], LastPlayedSeqNum[%u], LastAddedTimestamp[%u]",
                 mDataQueue.GetCount(), nSeqNum, mLastPlayedSeqNum, mLastAddedTimestamp);
         mLastAddedTimestamp = nTimestamp;
@@ -242,7 +242,7 @@ void VideoJitterBuffer::Add(ImsMediaSubType subtype, uint8_t* pbBuffer, uint32_t
             mDataQueue.Add(&currEntry);
             mNumAddedPacket++;
             mAccumulatedPacketSize += nBufferSize;
-            IMLOGD_PACKET4(IM_PACKET_LOG_JITTER,
+            IMLOGD_PACKET4(IM_PACKET_LOG_VIDEO_JITTER,
                     "[Add] queue[%u] Seq[%u], LastPlayedSeqNum[%u], LastAddedTimestamp[%u]",
                     mDataQueue.GetCount(), nSeqNum, mLastPlayedSeqNum, mLastAddedTimestamp);
         }
@@ -277,7 +277,7 @@ void VideoJitterBuffer::Add(ImsMediaSubType subtype, uint8_t* pbBuffer, uint32_t
                     pEntry->bMark == true && pEntry->eDataType != MEDIASUBTYPE_VIDEO_CONFIGSTRING &&
                     USHORT_SEQ_ROUND_COMPARE(nSeqNum, pEntry->nSeqNum))
             {
-                IMLOGD_PACKET6(IM_PACKET_LOG_JITTER,
+                IMLOGD_PACKET6(IM_PACKET_LOG_VIDEO_JITTER,
                         "[Add] Remove marker of Seq/TS/Mark[%u/%u/%u], pEntry "
                         "Seq/TS/Mark[%u/%u/%u]",
                         pEntry->nSeqNum, pEntry->nTimestamp, pEntry->bMark, currEntry.nSeqNum,
@@ -323,7 +323,7 @@ bool VideoJitterBuffer::Get(ImsMediaSubType* subtype, uint8_t** ppData, uint32_t
         uint32_t nSavedIdrFrame = 0;
         for (nIndex = 0; mDataQueue.GetNext(&pEntry); nIndex++)
         {
-            IMLOGD_PACKET8(IM_PACKET_LOG_JITTER,
+            IMLOGD_PACKET8(IM_PACKET_LOG_VIDEO_JITTER,
                     "[Get] queue[%u/%u] bValid[%u], Seq[%u], Mark[%u], Header[%u], TS[%u], "
                     "Size[%u]",
                     nIndex, mDataQueue.GetCount(), pEntry->bValid, pEntry->nSeqNum, pEntry->bMark,
@@ -361,7 +361,7 @@ bool VideoJitterBuffer::Get(ImsMediaSubType* subtype, uint8_t** ppData, uint32_t
                 CheckValidIDR(pEntry);
             }
 
-            IMLOGD_PACKET3(IM_PACKET_LOG_JITTER,
+            IMLOGD_PACKET3(IM_PACKET_LOG_VIDEO_JITTER,
                     "[Get] SavedFrameNum[%u], mMarkedFrameNum[%u], nLastTimeStamp[%u]",
                     mSavedFrameNum, mMarkedFrameNum, nLastTimeStamp);
 
@@ -388,7 +388,7 @@ bool VideoJitterBuffer::Get(ImsMediaSubType* subtype, uint8_t** ppData, uint32_t
                         nHeaderSeq = pEntry->nSeqNum;
                         bFoundHeader = true;
 
-                        IMLOGD_PACKET3(IM_PACKET_LOG_JITTER,
+                        IMLOGD_PACKET3(IM_PACKET_LOG_VIDEO_JITTER,
                                 "[Get] New Header Found at [%u] - Seq[%u], Timestamp[%u]",
                                 nHeaderIndex, nHeaderSeq, nHeaderTimestamp);
                     }
@@ -397,7 +397,7 @@ bool VideoJitterBuffer::Get(ImsMediaSubType* subtype, uint8_t** ppData, uint32_t
 
             if (bFoundHeader)
             {
-                IMLOGD_PACKET4(IM_PACKET_LOG_JITTER,
+                IMLOGD_PACKET4(IM_PACKET_LOG_VIDEO_JITTER,
                         "[Get] bFoundHeader[%u] - Check Valid of Seq[%u ~ %u], "
                         "nHeaderTimestamp[%u]",
                         bFoundHeader, nHeaderSeq, pEntry->nSeqNum, nHeaderTimestamp);
@@ -424,7 +424,7 @@ bool VideoJitterBuffer::Get(ImsMediaSubType* subtype, uint8_t** ppData, uint32_t
 
                             pValidEntry->bValid = true;
 
-                            IMLOGD_PACKET3(IM_PACKET_LOG_JITTER,
+                            IMLOGD_PACKET3(IM_PACKET_LOG_VIDEO_JITTER,
                                     "[Get] Validation Check for Seq[%u] true :: nHeaderIndex[%u] "
                                     "to nMarkIndex[%u]",
                                     pValidEntry->nSeqNum, nHeaderIndex, nMarkIndex);
@@ -438,7 +438,7 @@ bool VideoJitterBuffer::Get(ImsMediaSubType* subtype, uint8_t** ppData, uint32_t
 
         if (mSavedFrameNum > mMaxSaveFrameNum)
         {
-            IMLOGD_PACKET2(IM_PACKET_LOG_JITTER,
+            IMLOGD_PACKET2(IM_PACKET_LOG_VIDEO_JITTER,
                     "[Get] Delete - SavedFrameNum[%u], nMaxFrameNum[%u]", mSavedFrameNum,
                     mMaxSaveFrameNum);
 
@@ -454,7 +454,7 @@ bool VideoJitterBuffer::Get(ImsMediaSubType* subtype, uint8_t** ppData, uint32_t
 
                 while (nDeleteTimeStamp == pEntry->nTimestamp)
                 {
-                    IMLOGD_PACKET7(IM_PACKET_LOG_JITTER,
+                    IMLOGD_PACKET7(IM_PACKET_LOG_VIDEO_JITTER,
                             "[Get] Delete - Seq[%u], Count[%u], bValid[%u], eDataType[%u], "
                             "bHeader[%u], TimeStamp[%u], Size[%u]",
                             pEntry->nSeqNum, mDataQueue.GetCount(), pEntry->bValid,
@@ -499,7 +499,7 @@ bool VideoJitterBuffer::Get(ImsMediaSubType* subtype, uint8_t** ppData, uint32_t
     if (mSavedFrameNum >= (mMaxSaveFrameNum / 2) && mDataQueue.Get(&pEntry) == true &&
             pEntry->bValid && (mLastPlayedSeqNum == 0 || pEntry->nSeqNum <= mLastPlayedSeqNum + 1))
     {
-        IMLOGD_PACKET4(IM_PACKET_LOG_JITTER,
+        IMLOGD_PACKET4(IM_PACKET_LOG_VIDEO_JITTER,
                 "[Get] bValid[%u], LastPlayedTS[%u], Seq[%u], LastPlayedSeq[%u]", pEntry->bValid,
                 mLastPlayedTimestamp, pEntry->nSeqNum, mLastPlayedSeqNum);
 
@@ -541,7 +541,7 @@ bool VideoJitterBuffer::Get(ImsMediaSubType* subtype, uint8_t** ppData, uint32_t
             }
             else
             {
-                IMLOGD_PACKET3(IM_PACKET_LOG_JITTER,
+                IMLOGD_PACKET3(IM_PACKET_LOG_VIDEO_JITTER,
                         "[Get] bValidPacket[%u], nTimeDiff[%u], nThreshold[%u]", bValidPacket,
                         nTimeDiff, nThreshold);
 
@@ -579,11 +579,10 @@ bool VideoJitterBuffer::Get(ImsMediaSubType* subtype, uint8_t** ppData, uint32_t
 
         mLastPlayedSeqNum = pEntry->nSeqNum;
 
-        IMLOGD_PACKET7(IM_PACKET_LOG_JITTER,
-                "[Get] Seq[%u], Mark[%u], TS[%u], Size[%u], SavedFrame[%u], MarkedFrame[%u], "
-                "queue[%u]",
-                pEntry->nSeqNum, pEntry->bMark, pEntry->nTimestamp, pEntry->nBufferSize,
-                mSavedFrameNum, mMarkedFrameNum, mDataQueue.GetCount());
+        IMLOGD_PACKET5(IM_PACKET_LOG_VIDEO_JITTER,
+                "[Get] OK - seq=%u, TS=%u, size=%u, dataType=%d, delay=%d", pEntry->nSeqNum,
+                pEntry->nTimestamp, pEntry->nBufferSize, pEntry->eDataType,
+                currentTime - pEntry->arrivalTime);
         return true;
     }
     else
@@ -600,8 +599,8 @@ bool VideoJitterBuffer::Get(ImsMediaSubType* subtype, uint8_t** ppData, uint32_t
             *pbMark = false;
         if (pnSeqNum)
             *pnSeqNum = 0;
-        IMLOGD_PACKET3(IM_PACKET_LOG_JITTER,
-                "[Get] false - SavedFrame[%u], MarkedFrame[%u], queue[%u]", mSavedFrameNum,
+        IMLOGD_PACKET3(IM_PACKET_LOG_VIDEO_JITTER,
+                "[Get] fail - saved frames=%u, marked frames=%u, queue=%u", mSavedFrameNum,
                 mMarkedFrameNum, mDataQueue.GetCount());
         return false;
     }
@@ -641,8 +640,8 @@ void VideoJitterBuffer::Delete()
         return;
     }
 
-    IMLOGD_PACKET2(IM_PACKET_LOG_JITTER, "[Delete] Seq[%u] / BufferCount[%u]", pEntry->nSeqNum,
-            mDataQueue.GetCount());
+    IMLOGD_PACKET2(IM_PACKET_LOG_VIDEO_JITTER, "[Delete] Seq[%u] / BufferCount[%u]",
+            pEntry->nSeqNum, mDataQueue.GetCount());
     mLastPlayedSeqNum = pEntry->nSeqNum;
     mDataQueue.Delete();
     mNewInputData = true;
@@ -694,7 +693,7 @@ void VideoJitterBuffer::RemovePacketFromLostList(uint16_t seqNum, bool bRemoveOl
 
         if (bRemoveOldPacket && pEntry->seqNum < seqNum)
         {
-            IMLOGD_PACKET3(IM_PACKET_LOG_JITTER,
+            IMLOGD_PACKET3(IM_PACKET_LOG_VIDEO_JITTER,
                     "[RemovePacketFromLostList] delete lost seq[%u], target seq[%u], "
                     "bRemoveOldPacket[%u]",
                     pEntry->seqNum, seqNum, bRemoveOldPacket);
@@ -704,8 +703,8 @@ void VideoJitterBuffer::RemovePacketFromLostList(uint16_t seqNum, bool bRemoveOl
         }
         else if (pEntry->seqNum == seqNum)
         {
-            IMLOGD_PACKET1(IM_PACKET_LOG_JITTER, "[RemovePacketFromLostList] remove lost seq[%u]",
-                    pEntry->seqNum);
+            IMLOGD_PACKET1(IM_PACKET_LOG_VIDEO_JITTER,
+                    "[RemovePacketFromLostList] remove lost seq[%u]", pEntry->seqNum);
 
             it = mLostPktList.erase(it);
             delete pEntry;
@@ -804,8 +803,9 @@ bool VideoJitterBuffer::UpdateLostPacketList(
         return UpdateNackStatus(foundLostPacket, lostSeq, countSecondNack, nPLIPkt, bPLIPkt);
     }
 
-    IMLOGD_PACKET2(IM_PACKET_LOG_JITTER, "[UpdateLostPacketList] add lost seq[%u], queue size[%d]",
-            lostSeq, mLostPktList.size());
+    IMLOGD_PACKET2(IM_PACKET_LOG_VIDEO_JITTER,
+            "[UpdateLostPacketList] add lost seq[%u], queue size[%d]", lostSeq,
+            mLostPktList.size());
 
     LostPacket* entry =
             new LostPacket(lostSeq, ImsMediaTimer::GetTimeInMilliSeconds(), kRequestSendNackNone);
@@ -829,7 +829,8 @@ bool VideoJitterBuffer::UpdateNackStatus(LostPacket* pEntry, uint16_t lostSeq,
 
         pEntry->markedTime = ImsMediaTimer::GetTimeInMilliSeconds();
         pEntry->option = kRequestInitialNack;
-        IMLOGD_PACKET1(IM_PACKET_LOG_JITTER, "[UpdateNackStatus] initial NACK, seq[%u]", lostSeq);
+        IMLOGD_PACKET1(
+                IM_PACKET_LOG_VIDEO_JITTER, "[UpdateNackStatus] initial NACK, seq[%u]", lostSeq);
         return true;
     }
 
@@ -846,7 +847,8 @@ bool VideoJitterBuffer::UpdateNackStatus(LostPacket* pEntry, uint16_t lostSeq,
         (*countSecondNack)++;
         pEntry->markedTime = ImsMediaTimer::GetTimeInMilliSeconds();
         pEntry->option = kRequestSecondNack;
-        IMLOGD_PACKET1(IM_PACKET_LOG_JITTER, "[UpdateNackStatus] second NACK, seq[%u]", lostSeq);
+        IMLOGD_PACKET1(
+                IM_PACKET_LOG_VIDEO_JITTER, "[UpdateNackStatus] second NACK, seq[%u]", lostSeq);
         return true;
     }
     else if (pEntry->option == kRequestSecondNack)
@@ -858,7 +860,8 @@ bool VideoJitterBuffer::UpdateNackStatus(LostPacket* pEntry, uint16_t lostSeq,
         *bPLIPkt = true;
         pEntry->markedTime = ImsMediaTimer::GetTimeInMilliSeconds();
         pEntry->option = kRequestPli;
-        IMLOGD_PACKET1(IM_PACKET_LOG_JITTER, "[UpdateNackStatus] request PLI seq[%u]", lostSeq);
+        IMLOGD_PACKET1(
+                IM_PACKET_LOG_VIDEO_JITTER, "[UpdateNackStatus] request PLI seq[%u]", lostSeq);
     }
     else if (pEntry->option == kRequestPli)
     {
@@ -929,7 +932,7 @@ void VideoJitterBuffer::ProcessTimer()
         mMaxBitrate = mIncomingBitrate;
     }
 
-    IMLOGD_PACKET2(IM_PACKET_LOG_JITTER, "[ProcessTimer] bitrate[%d] maxBitrate[%d]",
+    IMLOGD_PACKET2(IM_PACKET_LOG_VIDEO_JITTER, "[ProcessTimer] bitrate[%d] maxBitrate[%d]",
             mIncomingBitrate, mMaxBitrate);
 
     mAccumulatedPacketSize = 0;

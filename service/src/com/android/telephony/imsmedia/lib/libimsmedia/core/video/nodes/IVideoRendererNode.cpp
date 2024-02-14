@@ -317,6 +317,20 @@ void IVideoRendererNode::ProcessData()
         QueueConfigFrame(timestamp);
     }
 
+    uint32_t currentTime = ImsMediaTimer::GetTimeInMilliSeconds();
+
+    if (mPrevTimestamp == 0)
+    {
+        mPrevTimestamp = currentTime;
+    }
+    else if (currentTime - mPrevTimestamp > 1000)
+    {
+        IMLOGD1("[ProcessData] current fps=%u", mCurrentFramerate);
+        mPrevTimestamp = currentTime;
+        mCurrentFramerate = 0;
+    }
+
+    mCurrentFramerate++;
     mVideoRenderer->OnDataFrame(buffer, size, timestamp, false);
 }
 
