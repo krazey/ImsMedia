@@ -15,9 +15,9 @@
  */
 
 #include <ImsMediaTrace.h>
+#include <log/log_properties.h>
 #include <string.h>
 #include <utils/Log.h>
-#include <sys/time.h>
 
 #ifdef IM_FILE_LOG
 #include <stdio.h>
@@ -66,12 +66,14 @@ static uint IM_remove_log = 1;
     } while (0)
 #endif
 
+#define IM_IS_DEBUGGABLE() (gLogMode <= kLogEnableDebug && __android_log_is_debuggable())
+
 static uint gLogMode = kLogEnableDebug;
 static uint gDebugLogMode = 0;
 
 void ImsMediaTrace::IMLOGD_PACKET_ARG(IM_PACKET_LOG_TYPE type, const char* format, ...)
 {
-    if (gDebugLogMode & type && gLogMode <= kLogEnableDebug)
+    if (gDebugLogMode & type && IM_IS_DEBUGGABLE())
     {
         __IMLOG__(ANDROID_LOG_DEBUG, IM_DEBUG_TAG);
     }
@@ -94,7 +96,7 @@ uint ImsMediaTrace::IMGetDebugLog()
 
 void ImsMediaTrace::IMLOGD_ARG(const char* format, ...)
 {
-    if (gLogMode <= kLogEnableDebug)
+    if (IM_IS_DEBUGGABLE())
     {
         __IMLOG__(ANDROID_LOG_DEBUG, IM_TAG);
     }
