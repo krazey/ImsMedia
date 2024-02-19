@@ -21,13 +21,13 @@ import android.preference.CheckBoxPreference;
 import android.preference.ListPreference;
 import android.preference.Preference;
 import android.preference.PreferenceActivity;
-import android.util.Log;
 import android.util.SparseArray;
 import android.view.Window;
 import android.view.WindowManager.LayoutParams;
 
 import com.android.telephony.imsmedia.JNIImsMediaService;
 import com.android.telephony.imsmedia.R;
+import com.android.telephony.imsmedia.util.Log;
 
 /**
  * The configuration of logging and test options for the libimsmedia
@@ -98,7 +98,7 @@ public class ConfigPreference extends PreferenceActivity {
     @SuppressWarnings("deprecation")
     @Override
     public void onCreate(Bundle savedInstanceState) {
-        Log.d(LOG_TAG, "onCreate");
+        Log.dc(LOG_TAG, "onCreate");
 
         super.onCreate(savedInstanceState);
 
@@ -133,7 +133,7 @@ public class ConfigPreference extends PreferenceActivity {
     @Override
     public void onResume() {
         super.onResume();
-        Log.d(LOG_TAG, "onResume");
+        Log.dc(LOG_TAG, "onResume");
         initPreferences();
     }
 
@@ -147,9 +147,9 @@ public class ConfigPreference extends PreferenceActivity {
     }
 
     private void initPreferences() {
-        Log.d(LOG_TAG, "initPreferences");
+        Log.dc(LOG_TAG, "initPreferences");
         for (int i = 0; i < KEY_LIST_PREFERENCES.length; ++i) {
-            Log.d(LOG_TAG, "initPreferences, key=" + KEY_LIST_PREFERENCES[i]);
+            Log.dc(LOG_TAG, "initPreferences, key=" + KEY_LIST_PREFERENCES[i]);
             ListPreference itemList = (ListPreference) findPreference(KEY_LIST_PREFERENCES[i]);
             mListPrefs.put(i, itemList);
             if (itemList != null) {
@@ -161,7 +161,7 @@ public class ConfigPreference extends PreferenceActivity {
         }
 
         for (int i = 0; i < KEY_CHECKBOX_PREFERENCES.length; ++i) {
-            Log.d(LOG_TAG, "initPreferences, key=" + KEY_CHECKBOX_PREFERENCES[i]);
+            Log.dc(LOG_TAG, "initPreferences, key=" + KEY_CHECKBOX_PREFERENCES[i]);
             CheckBoxPreference check =
                     (CheckBoxPreference) findPreference(KEY_CHECKBOX_PREFERENCES[i]);
             mCheckboxPrefs.put(i, check);
@@ -175,8 +175,9 @@ public class ConfigPreference extends PreferenceActivity {
             }
         }
 
-        Log.d(LOG_TAG, "initPreferences, LogMode=" + mLogMode + ", DebugLogMode=" + mDebugLogMode);
+        Log.dc(LOG_TAG, "initPreferences, LogMode=" + mLogMode + ", DebugLogMode=" + mDebugLogMode);
         JNIImsMediaService.setLogMode(mLogMode, mDebugLogMode);
+        Log.init(mLogMode);
     }
 
     private final class ConfigListItemChangeListener
@@ -189,12 +190,13 @@ public class ConfigPreference extends PreferenceActivity {
         @Override
         public boolean onPreferenceChange(Preference preference, Object newValue) {
             String value = newValue.toString();
-            Log.d(LOG_TAG, "onPreferenceChange: key=" + preference.getKey() + ",value=" + value);
+            Log.dc(LOG_TAG, "onPreferenceChange: key=" + preference.getKey() + ",value=" + value);
             ListPreference itemList = mListPrefs.valueAt(mPrefIndex);
             if (itemList != null) {
                 mLogMode = parseInt(value, 0);
                 itemList.setSummary(value);
                 JNIImsMediaService.setLogMode(mLogMode, mDebugLogMode);
+                Log.setLogLevel(mLogMode);
             }
             return true;
         }
@@ -210,7 +212,7 @@ public class ConfigPreference extends PreferenceActivity {
         @Override
         public boolean onPreferenceChange(Preference preference, Object newValue) {
             String value = newValue.toString();
-            Log.d(LOG_TAG, "onPreferenceChange: key=" + preference.getKey() + ", value=" + value);
+            Log.dc(LOG_TAG, "onPreferenceChange: key=" + preference.getKey() + ", value=" + value);
             boolean boolValue = Boolean.valueOf(value);
             if (boolValue) {
                 mDebugLogMode |= DEBUG_MODE_ARRAY[mPrefIndex];
@@ -218,6 +220,7 @@ public class ConfigPreference extends PreferenceActivity {
                 mDebugLogMode &= ~DEBUG_MODE_ARRAY[mPrefIndex];
             }
             JNIImsMediaService.setLogMode(mLogMode, mDebugLogMode);
+            Log.setLogLevel(mLogMode);
             return true;
         }
     }
