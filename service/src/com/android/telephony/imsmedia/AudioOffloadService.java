@@ -24,9 +24,9 @@ import android.hardware.radio.ims.media.RtpConfig;
 import android.os.RemoteException;
 import android.os.ServiceManager;
 import android.telephony.imsmedia.AudioConfig;
-import android.util.Log;
 
 import com.android.telephony.imsmedia.Utils.OpenSessionParams;
+import com.android.telephony.imsmedia.util.Log;
 
 /**
  * This connects to IImsMedia HAL and invokes all the HAL APIs

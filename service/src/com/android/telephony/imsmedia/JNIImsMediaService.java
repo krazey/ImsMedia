@@ -20,10 +20,11 @@ import android.content.res.AssetManager;
 import android.os.Parcel;
 import android.os.Process;
 import android.util.ArrayMap;
-import android.util.Log;
 import android.view.Surface;
 
 import androidx.annotation.VisibleForTesting;
+
+import com.android.telephony.imsmedia.util.Log;
 
 /** JNI interface class to send message to libimsmediajni */
 public class JNIImsMediaService {
@@ -163,7 +164,7 @@ public class JNIImsMediaService {
      * @return 1 if it is success to send data, -1 when it fails
      */
     public static int sendData2Java(final int sessionId, final byte[] baData) {
-        Log.d(TAG, "sendData2Java() - sessionId=" + sessionId);
+        Log.dc(TAG, "sendData2Java() - sessionId=" + sessionId);
         JNIImsMediaListener listener = getListener(sessionId);
         if (listener == null) {
             Log.e(TAG, "No listener :: sessionId=" + sessionId);

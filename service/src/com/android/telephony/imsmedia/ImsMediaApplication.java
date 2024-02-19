@@ -17,7 +17,8 @@ package com.android.telephony.imsmedia;
 
 import android.app.Application;
 import android.content.Context;
-import android.util.Log;
+
+import com.android.telephony.imsmedia.util.Log;
 
 /**
  * Extension of Application class to catch unhandled exception and release wake lock.

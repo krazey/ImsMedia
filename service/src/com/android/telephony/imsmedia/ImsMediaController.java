@@ -33,11 +33,11 @@ import android.telephony.imsmedia.IImsVideoSessionCallback;
 import android.telephony.imsmedia.ImsMediaSession;
 import android.telephony.imsmedia.RtpConfig;
 import android.telephony.imsmedia.VideoConfig;
-import android.util.Log;
 import android.util.SparseArray;
 
 import com.android.internal.util.DumpUtils;
 import com.android.telephony.imsmedia.Utils.OpenSessionParams;
+import com.android.telephony.imsmedia.util.Log;
 
 import java.io.FileDescriptor;
 import java.io.PrintWriter;
@@ -63,7 +63,7 @@ public class ImsMediaController extends Service {
 
             IMediaSession session;
             Log.d(TAG, "openSession: sessionId = " + sessionId
-                    + ", type=" + sessionType + "," + rtpConfig);
+                    + ", type=" + sessionType + "," + Log.hidePii(String.valueOf(rtpConfig)));
             synchronized (mSessions) {
                 switch (sessionType) {
                     case ImsMediaSession.SESSION_TYPE_AUDIO:
@@ -116,7 +116,7 @@ public class ImsMediaController extends Service {
         public void generateVideoSprop(VideoConfig[] videoConfigList, IBinder callback) {
 
             if (videoConfigList == null || callback == null) {
-                Log.d(TAG, "[SPROP] Invalid params");
+                Log.w(TAG, "[SPROP] Invalid params");
                 return;
             }
 
@@ -161,7 +161,7 @@ public class ImsMediaController extends Service {
                 mSessions.clear();
             }
         } catch (Exception e) {
-            Log.d(TAG, "onUnbind: e=" + e);
+            Log.e(TAG, "onUnbind: e = " + e);
         }
         return true;
     }
@@ -208,11 +208,13 @@ public class ImsMediaController extends Service {
 
     public class OpenSessionCallback {
         public void onOpenSessionSuccess(int sessionId, Object session) {
+            Log.d(TAG, "onOpenSessionSuccess: sessionId = " + sessionId);
             getSession(sessionId).onOpenSessionSuccess(session);
         }
 
         public void onOpenSessionFailure(int sessionId, int error) {
             synchronized (mSessions) {
+                Log.e(TAG, "onOpenSessionFailure: sessionId = " + sessionId + " error = " + error);
                 getSession(sessionId).onOpenSessionFailure(error);
                 mSessions.remove(sessionId);
             }
@@ -225,8 +227,8 @@ public class ImsMediaController extends Service {
          */
         public void onSessionClosed(int sessionId) {
             synchronized (mSessions) {
-                getSession(sessionId).onSessionClosed();
                 Log.d(TAG, "onSessionClosed: sessionId = " + sessionId);
+                getSession(sessionId).onSessionClosed();
                 mSessions.remove(sessionId);
 
                 if (mSessions.size() <= 0) {

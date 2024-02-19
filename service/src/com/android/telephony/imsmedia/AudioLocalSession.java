@@ -20,7 +20,8 @@ import android.os.Parcel;
 import android.telephony.ims.RtpHeaderExtension;
 import android.telephony.imsmedia.AudioConfig;
 import android.telephony.imsmedia.MediaQualityThreshold;
-import android.util.Log;
+
+import com.android.telephony.imsmedia.util.Log;
 
 import java.util.List;
 
@@ -46,7 +47,7 @@ public class AudioLocalSession {
 
     /** Returns the unique session identifier */
     public int getSessionId() {
-        Log.d(TAG, "getSessionId");
+        Log.dc(TAG, "getSessionId");
         return mSessionId;
     }
 
@@ -74,7 +75,6 @@ public class AudioLocalSession {
      * @param config provides remote end point info and codec details
      */
     public void modifySession(final AudioConfig config) {
-        Log.d(TAG, "modifySession: " + config);
         Parcel parcel = Parcel.obtain();
         parcel.writeInt(AudioSession.CMD_MODIFY_SESSION);
         if (config != null) {
@@ -90,7 +90,6 @@ public class AudioLocalSession {
      * @param config provides remote end point info and codec details
      */
     public void addConfig(final AudioConfig config) {
-        Log.d(TAG, "addConfig: " + config);
         Parcel parcel = Parcel.obtain();
         parcel.writeInt(AudioSession.CMD_ADD_CONFIG);
         if (config != null) {
@@ -106,7 +105,6 @@ public class AudioLocalSession {
      * @param config remote config to be deleted
      */
     public void deleteConfig(final AudioConfig config) {
-        Log.d(TAG, "deleteConfig: " + config);
         Parcel parcel = Parcel.obtain();
         parcel.writeInt(AudioSession.CMD_DELETE_CONFIG);
         if (config != null) {
@@ -125,7 +123,6 @@ public class AudioLocalSession {
      * @param config remote config to be confirmed
      */
     public void confirmConfig(final AudioConfig config) {
-        Log.d(TAG, "confirmConfig: " + config);
         Parcel parcel = Parcel.obtain();
         parcel.writeInt(AudioSession.CMD_CONFIRM_CONFIG);
         if (config != null) {
@@ -141,7 +138,6 @@ public class AudioLocalSession {
      * @param duration of the key press in milliseconds.
      */
     public void sendDtmf(final char dtmfDigit, final int duration) {
-        Log.d(TAG, "sendDtmf: digit= " + dtmfDigit + ", duration=" + duration);
         Parcel parcel = Parcel.obtain();
         parcel.writeInt(AudioSession.CMD_SEND_DTMF);
         parcel.writeByte((byte)dtmfDigit);
@@ -155,7 +151,6 @@ public class AudioLocalSession {
      * @param extensions List of RTP header extensions to be transmitted
      */
     public void sendHeaderExtension(final List<RtpHeaderExtension> extensions) {
-        Log.d(TAG, "sendHeaderExtension, extension=" + extensions);
         Parcel parcel = Parcel.obtain();
         parcel.writeInt(AudioSession.CMD_SEND_RTP_HDR_EXTN);
         parcel.writeInt(extensions.size());
@@ -172,7 +167,6 @@ public class AudioLocalSession {
      * @param threshold media quality thresholds for various quality parameters
      */
     public void setMediaQualityThreshold(final MediaQualityThreshold threshold) {
-        Log.d(TAG, "setMediaQualityThreshold: " + threshold);
         Parcel parcel = Parcel.obtain();
         parcel.writeInt(AudioSession.CMD_SET_MEDIA_QUALITY_THRESHOLD);
         if (threshold != null) {
@@ -188,7 +182,6 @@ public class AudioLocalSession {
      * @param intervalMs The interval of the time in milliseconds of the rtp reception notification
      */
     public void requestRtpReceptionStats(final int intervalMs) {
-        Log.d(TAG, "requestRtpReceptionStats: interval=" + intervalMs);
         Parcel parcel = Parcel.obtain();
         parcel.writeInt(AudioSession.CMD_REQUEST_RECEPTION_STATS);
         parcel.writeInt(intervalMs);
@@ -202,7 +195,6 @@ public class AudioLocalSession {
      * always positive.
      */
     public void adjustDelay(final int delayMs) {
-        Log.d(TAG, "adjustDelay: delay=" + delayMs);
         Parcel parcel = Parcel.obtain();
         parcel.writeInt(AudioSession.CMD_ADJUST_DELAY);
         parcel.writeInt(delayMs);
