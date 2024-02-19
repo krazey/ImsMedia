@@ -17,6 +17,7 @@ package com.android.telephony.imsmedia.util;
 
 import android.annotation.IntDef;
 import android.os.Build;
+import android.support.annotation.VisibleForTesting;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -125,13 +126,26 @@ public final class Log {
         return android.util.Log.isLoggable(TAG, level);
     }
 
+    /** Sets the debug mode from the specified flag. */
+    @VisibleForTesting
+    static void setDebuggable(boolean enableDebug) {
+        sDebug = enableDebug ? 1 : 0;
+    }
+
+    /** Returns the log Level. */
+    @VisibleForTesting
+    static int getLogLevel() {
+        return sLogLevel;
+    }
+
     /** Sets the log Level. */
     public static void setLogLevel(@LogLevel int logLevel) {
         sLogLevel = logLevel;
     }
 
     /** Checks whether ImsMedia logging is enabled or not for given level. */
-    private static boolean isLogEnabled(@LogLevel int level) {
+    @VisibleForTesting
+    static boolean isLogEnabled(@LogLevel int level) {
         if (sLogLevel == LOG_LEVEL_ALL) {
             // All logs are available as default.
             return true;
