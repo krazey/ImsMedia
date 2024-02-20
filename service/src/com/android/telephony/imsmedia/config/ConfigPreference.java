@@ -45,6 +45,7 @@ public class ConfigPreference extends PreferenceActivity {
     private static final String KEY_DEBUG_LOG_MODE_JITTER = "log_mode_jitterbuffer";
     private static final String KEY_DEBUG_LOG_MODE_RTCP = "log_mode_rtcp";
     private static final String KEY_DEBUG_LOG_MODE_RTPSTACK = "log_mode_rtpstack";
+    private static final String KEY_DEBUG_LOG_MODE_VIDEO_JITTER = "log_mode_video_jitter";
 
     private static final int DEBUG_LOG_MODE_SOCKET = 1 << 0;
     private static final int DEBUG_LOG_MODE_AUDIO = 1 << 1;
@@ -55,6 +56,7 @@ public class ConfigPreference extends PreferenceActivity {
     private static final int DEBUG_LOG_MODE_JITTER = 1 << 6;
     private static final int DEBUG_LOG_MODE_RTCP = 1 << 7;
     private static final int DEBUG_LOG_MODE_RTPSTACK = 1 << 8;
+    private static final int DEBUG_LOG_MODE_VIDEO_JITTER = 1 << 9;
 
     private static final String[] KEY_LIST_PREFERENCES = {
         KEY_LOG_MODE
@@ -69,7 +71,8 @@ public class ConfigPreference extends PreferenceActivity {
         KEY_DEBUG_LOG_MODE_PAYLOAD,
         KEY_DEBUG_LOG_MODE_JITTER,
         KEY_DEBUG_LOG_MODE_RTCP,
-        KEY_DEBUG_LOG_MODE_RTPSTACK
+        KEY_DEBUG_LOG_MODE_RTPSTACK,
+        KEY_DEBUG_LOG_MODE_VIDEO_JITTER
     };
 
     private static final int[] DEBUG_MODE_ARRAY = {
@@ -81,7 +84,8 @@ public class ConfigPreference extends PreferenceActivity {
         DEBUG_LOG_MODE_PAYLOAD,
         DEBUG_LOG_MODE_JITTER,
         DEBUG_LOG_MODE_RTCP,
-        DEBUG_LOG_MODE_RTPSTACK
+        DEBUG_LOG_MODE_RTPSTACK,
+        DEBUG_LOG_MODE_VIDEO_JITTER
     };
 
     private final SparseArray<ListPreference> mListPrefs =

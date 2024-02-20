@@ -23,6 +23,7 @@
     <string name="log_mode_jitterbuffer">Jitter Buffer</string>
     <string name="log_mode_rtcp">Rtcp</string>
     <string name="log_mode_rtpstack">RtpStack</string>
+    <string name="log_mode_video_jitter">Video Jitter Buffer</string>
     <string name="log_mode_socket_summary">Socket operation</string>
     <string name="log_mode_audio_summary">Audio encoding/decoding</string>
     <string name="log_mode_video_summary">Video encoding/decoding</string>
@@ -32,4 +33,5 @@
     <string name="log_mode_jitterbuffer_summary">De-jitter buffer operation</string>
     <string name="log_mode_rtcp_summary">Rtcp packetization</string>
     <string name="log_mode_rtpstack_summary">RtpStack operation</string>
+    <string name="log_mode_video_jitter_summary">De-jitter buffer operation for video</string>
 </resources>
