@@ -83,7 +83,7 @@ IRtpSession::IRtpSession(
     mRtpDecoderListener = nullptr;
     mRtcpEncoderListener = nullptr;
     mRtcpDecoderListener = nullptr;
-    std::memset(mPayloadParam, 0, sizeof(tRtpSvc_SetPayloadParam) * MAX_NUM_PAYLOAD_PARAM);
+    std::memset(mPayloadParam, 0, sizeof(tRtpSvc_SetPayloadParam) * RTP_MAX_PAYLOAD_TYPE);
     mNumPayloadParam = 0;
     mLocalRtpSsrc = 0;
     mPeerRtpSsrc = 0;
@@ -167,26 +167,34 @@ void IRtpSession::SetRtcpDecoderListener(IRtcpDecoderListener* pRtcpDecoderListe
     mRtcpDecoderListener = pRtcpDecoderListener;
 }
 
+void IRtpSession::addPayloadType(RtpDt_UInt32 payloadType, RtpDt_UInt32 samplingRate)
+{
+    if (mNumPayloadParam >= RTP_MAX_PAYLOAD_TYPE)
+    {
+        IMLOGE1("[SetRtpPayloadParam] overflow[%d]", mNumPayloadParam);
+        return;
+    }
+
+    mPayloadParam[mNumPayloadParam].payloadType = payloadType;
+    mPayloadParam[mNumPayloadParam].samplingRate = samplingRate;
+    mNumPayloadParam++;
+}
+
 void IRtpSession::SetRtpPayloadParam(int32_t payloadNumTx, int32_t payloadNumRx,
         int32_t samplingRate, int32_t subTxPayloadTypeNum, int32_t subRxPayloadTypeNum,
         int32_t subSamplingRate)
 {
     mNumPayloadParam = 0;
-    std::memset(mPayloadParam, 0, sizeof(tRtpSvc_SetPayloadParam) * MAX_NUM_PAYLOAD_PARAM);
+    std::memset(mPayloadParam, 0, sizeof(tRtpSvc_SetPayloadParam) * RTP_MAX_PAYLOAD_TYPE);
     IMLOGD3("[SetRtpPayloadParam] localPayload[%d], peerPayload[%d], sampling[%d]", payloadNumTx,
             payloadNumRx, samplingRate);
 
-    mPayloadParam[mNumPayloadParam].frameInterval = 100;  // not used in stack
-    mPayloadParam[mNumPayloadParam].payloadType = payloadNumTx;
-    mPayloadParam[mNumPayloadParam].samplingRate = samplingRate;
-    mNumPayloadParam++;
+    addPayloadType(payloadNumTx, samplingRate);
 
     if (payloadNumTx != payloadNumRx)
     {
-        mPayloadParam[mNumPayloadParam].frameInterval = 100;  // not used in stack
-        mPayloadParam[mNumPayloadParam].payloadType = payloadNumRx;
-        mPayloadParam[mNumPayloadParam].samplingRate = samplingRate;
-        mNumPayloadParam++;
+        // rx parameter
+        addPayloadType(payloadNumRx, samplingRate);
     }
 
     if (mMediaType == IMS_MEDIA_AUDIO || mMediaType == IMS_MEDIA_TEXT)
@@ -198,29 +206,16 @@ void IRtpSession::SetRtpPayloadParam(int32_t payloadNumTx, int32_t payloadNumRx,
             IMLOGD3("[SetRtpPayloadParam] sub Txpayload[%d],sub Rxpayload[%d],sub samplingRate[%d]",
                     subTxPayloadTypeNum, subRxPayloadTypeNum, subSamplingRate);
 
-            if (mNumPayloadParam >= MAX_NUM_PAYLOAD_PARAM)
+            if (mMediaType == IMS_MEDIA_AUDIO)
             {
-                IMLOGE1("[SetRtpPayloadParam] overflow[%d]", mNumPayloadParam);
+                mEnableDTMF = true;
             }
-            else
+
+            addPayloadType(subTxPayloadTypeNum, subSamplingRate);
+
+            if (subTxPayloadTypeNum != subRxPayloadTypeNum)
             {
-                if (mMediaType == IMS_MEDIA_AUDIO)
-                {
-                    mEnableDTMF = true;
-                }
-
-                mPayloadParam[mNumPayloadParam].frameInterval = 100;  // not used in stack
-                mPayloadParam[mNumPayloadParam].payloadType = subTxPayloadTypeNum;
-                mPayloadParam[mNumPayloadParam].samplingRate = subSamplingRate;
-                mNumPayloadParam++;
-
-                if (subTxPayloadTypeNum != subRxPayloadTypeNum)
-                {
-                    mPayloadParam[mNumPayloadParam].frameInterval = 100;  // not used in stack
-                    mPayloadParam[mNumPayloadParam].payloadType = subRxPayloadTypeNum;
-                    mPayloadParam[mNumPayloadParam].samplingRate = subSamplingRate;
-                    mNumPayloadParam++;
-                }
+                addPayloadType(subRxPayloadTypeNum, subSamplingRate);
             }
         }
     }
@@ -475,10 +470,10 @@ void IRtpSession::OnPeerRtcpComponents(void* nMsg)
     }
 }
 
-void IRtpSession::OnTimer()
+void IRtpSession::OnRtpStatsTimerExpired()
 {
-    IMLOGI8("[OnTimer] media[%d], RXRtp[%03d/%03d], RXRtcp[%02d/%02d], TXRtp[%03d/%03d],"
-            " TXRtcp[%02d]",
+    IMLOGI8("[OnRtpStatsTimerExpired] media[%d], RXRtp[%03d/%03d], RXRtcp[%02d/%02d], "
+            "TXRtp[%03d/%03d], TXRtcp[%02d]",
             mMediaType, mNumRtpProcPacket, mNumRtpPacket, mNumRtcpProcPacket,
             mNumSRPacket + mNumRRPacket, mNumRtpDataToSend, mNumRtpPacketSent, mNumRtcpPacketSent);
 

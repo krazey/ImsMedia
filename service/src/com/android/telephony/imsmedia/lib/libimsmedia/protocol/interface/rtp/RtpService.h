@@ -25,6 +25,7 @@
 #ifndef __RTP_SERVICE_H_
 #define __RTP_SERVICE_H_
 
+#include <RtpGlobal.h>
 #include <RtpServiceTypes.h>
 #include <stdint.h>
 
