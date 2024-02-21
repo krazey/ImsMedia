@@ -18,9 +18,10 @@ package com.android.telephony.imsmedia;
 import android.content.Context;
 import android.os.PowerManager;
 import android.telephony.imsmedia.RtpConfig;
-import android.util.Log;
 
 import androidx.annotation.VisibleForTesting;
+
+import com.android.telephony.imsmedia.util.Log;
 
 import java.io.PrintWriter;
 import java.util.HashSet;
@@ -133,7 +134,7 @@ public class WakeLockManager {
             int sessionId, final @RtpConfig.MediaDirection int mediaDirection) {
         try {
             boolean wakeLockAcquired = mWakeLockAcquiredSessions.contains(sessionId);
-            Log.d(TAG, "manageWakeLockOnMediaDirectionUpdate - SessionId:" + sessionId
+            Log.dc(TAG, "manageWakeLockOnMediaDirectionUpdate - SessionId:" + sessionId
                     + ", mediaDirection:" + mediaDirection);
 
             if (wakeLockAcquired && mediaDirection == RtpConfig.MEDIA_DIRECTION_NO_FLOW) {

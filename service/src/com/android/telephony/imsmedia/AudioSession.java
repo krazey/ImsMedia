@@ -30,14 +30,14 @@ import android.telephony.imsmedia.IImsAudioSessionCallback;
 import android.telephony.imsmedia.ImsMediaSession;
 import android.telephony.imsmedia.MediaQualityStatus;
 import android.telephony.imsmedia.MediaQualityThreshold;
-import android.telephony.imsmedia.RtpReceptionStats;
-import android.util.Log;
 import android.telephony.imsmedia.RtpConfig;
+import android.telephony.imsmedia.RtpReceptionStats;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.android.telephony.imsmedia.Utils.OpenSessionParams;
+import com.android.telephony.imsmedia.util.Log;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -167,7 +167,7 @@ public final class AudioSession extends IImsAudioSession.Stub implements IMediaS
 
     @Override
     public void modifySession(AudioConfig config) {
-        Log.d(TAG, "modifySession: " + config);
+        Log.d(TAG, "modifySession: " + Log.hidePii(String.valueOf(config)));
         Utils.sendMessage(mHandler, CMD_MODIFY_SESSION, config);
         WakeLockManager.getInstance().manageWakeLockOnMediaDirectionUpdate(
                 mSessionId, config.getMediaDirection());
@@ -175,48 +175,48 @@ public final class AudioSession extends IImsAudioSession.Stub implements IMediaS
 
     @Override
     public void addConfig(AudioConfig config) {
-        Log.d(TAG, "addConfig: " + config);
+        Log.d(TAG, "addConfig: " + Log.hidePii(String.valueOf(config)));
         Utils.sendMessage(mHandler, CMD_ADD_CONFIG, config);
     }
 
     @Override
     public void deleteConfig(AudioConfig config) {
-        Log.d(TAG, "deleteConfig: " + config);
+        Log.d(TAG, "deleteConfig: " + Log.hidePii(String.valueOf(config)));
         Utils.sendMessage(mHandler, CMD_DELETE_CONFIG, config);
     }
 
     @Override
     public void confirmConfig(AudioConfig config) {
-        Log.d(TAG, "confirmConfig: " + config);
+        Log.d(TAG, "confirmConfig: " + Log.hidePii(String.valueOf(config)));
         Utils.sendMessage(mHandler, CMD_CONFIRM_CONFIG, config);
     }
 
     @Override
     public void sendDtmf(char digit, int duration) {
-        Log.d(TAG, "sendDtmf: digit=" + digit + ",duration=" + duration);
+        Log.dc(TAG, "sendDtmf: digit=" + digit + ",duration=" + duration);
         Utils.sendMessage(mHandler, CMD_SEND_DTMF, duration, Utils.UNUSED, digit);
     }
 
     @Override
     public void startDtmf(char digit) {
-        Log.d(TAG, "startDtmf: digit=" + digit);
+        Log.dc(TAG, "startDtmf: digit=" + digit);
         Utils.sendMessage(mHandler, CMD_START_DTMF, digit);
     }
 
     @Override
     public void stopDtmf() {
-        Log.d(TAG, "stopDtmf");
+        Log.dc(TAG, "stopDtmf");
         Utils.sendMessage(mHandler, CMD_STOP_DTMF);
     }
     @Override
     public void sendHeaderExtension(List<RtpHeaderExtension> extensions) {
-        Log.d(TAG, "sendHeaderExtension");
+        Log.d(TAG, "sendHeaderExtension" + Log.hidePii(String.valueOf(extensions)));
         Utils.sendMessage(mHandler, CMD_SEND_RTP_HDR_EXTN, extensions);
     }
 
     @Override
     public void setMediaQualityThreshold(MediaQualityThreshold threshold) {
-        Log.d(TAG, "setMediaQualityThreshold: " + threshold);
+        Log.d(TAG, "setMediaQualityThreshold: " + Log.hidePii(String.valueOf(threshold)));
         Utils.sendMessage(mHandler, CMD_SET_MEDIA_QUALITY_THRESHOLD, threshold);
     }
 
@@ -234,19 +234,16 @@ public final class AudioSession extends IImsAudioSession.Stub implements IMediaS
 
     @Override
     public void onOpenSessionSuccess(Object session) {
-        Log.d(TAG, "onOpenSessionSuccess");
         Utils.sendMessage(mHandler, EVENT_OPEN_SESSION_SUCCESS, session);
     }
 
     @Override
     public void onOpenSessionFailure(int error) {
-        Log.d(TAG, "onOpenSessionFailure: error=" + error);
         Utils.sendMessage(mHandler, EVENT_OPEN_SESSION_FAILURE, error);
     }
 
     @Override
     public void onSessionClosed() {
-        Log.d(TAG, "onSessionClosed");
         Utils.sendMessage(mHandler, EVENT_SESSION_CLOSED);
     }
 
@@ -264,7 +261,7 @@ public final class AudioSession extends IImsAudioSession.Stub implements IMediaS
 
         @Override
         public void handleMessage (Message msg) {
-            Log.d(TAG, "handleMessage() -" + AudioSessionHandler.this + ", " + msg.what);
+            Log.dc(TAG, "handleMessage() -" + AudioSessionHandler.this + ", " + msg.what);
             switch(msg.what) {
                 case CMD_OPEN_SESSION:
                     handleOpenSession((OpenSessionParams)msg.obj);
@@ -362,7 +359,6 @@ public final class AudioSession extends IImsAudioSession.Stub implements IMediaS
     }
 
     private void handleCloseSession() {
-        Log.d(TAG, "handleCloseSession");
         if (isAudioOffload()) {
             mOffloadService.closeSession(mSessionId);
         } else {

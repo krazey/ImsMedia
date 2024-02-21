@@ -23,7 +23,8 @@ import android.telephony.ims.RtpHeaderExtension;
 import android.telephony.imsmedia.AudioConfig;
 import android.telephony.imsmedia.MediaQualityStatus;
 import android.telephony.imsmedia.RtpReceptionStats;
-import android.util.Log;
+
+import com.android.telephony.imsmedia.util.Log;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -69,7 +70,7 @@ public class AudioListener implements JNIImsMediaListener {
     @Override
     public void onMessage(final Parcel parcel) {
         final int event = parcel.readInt();
-        Log.d(TAG, "onMessage() -" + AudioListener.this + ", event=" + event);
+        Log.dc(TAG, "onMessage() -" + AudioListener.this + ", event=" + event);
         switch (event) {
             case AudioSession.EVENT_OPEN_SESSION_SUCCESS:
                 final int sessionId = parcel.readInt();
