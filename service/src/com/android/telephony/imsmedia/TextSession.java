@@ -247,6 +247,9 @@ public final class TextSession extends IImsTextSession.Stub implements IMediaSes
 
     private void handleModifySessionRespose(TextConfig config, int error) {
         try {
+            if (error != ImsMediaSession.RESULT_SUCCESS) {
+                Log.e(TAG, "modifySession failed with error: " + error);
+            }
             mCallback.onModifySessionResponse(config, error);
         } catch (RemoteException e) {
             Log.e(TAG, "Failed to notify modifySessionResponse: " + e);

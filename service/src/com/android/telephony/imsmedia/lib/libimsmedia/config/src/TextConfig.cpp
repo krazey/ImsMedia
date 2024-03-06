@@ -64,6 +64,7 @@ TextConfig& TextConfig::operator=(const TextConfig& config)
 {
     if (this != &config)
     {
+        RtpConfig::operator=(config);
         this->mCodecType = config.mCodecType;
         this->mBitrate = config.mBitrate;
         this->mRedundantPayload = config.mRedundantPayload;

@@ -32,7 +32,7 @@ void ImsMediaEventHandler::Init(const char* strName)
     mbTerminate = false;
     gListEventHandler.push_back(this);
     IMLOGD1("[Init] %s", mName);
-    StartThread();
+    StartThread("ImsMediaEventHandler");
 }
 
 void ImsMediaEventHandler::Deinit()

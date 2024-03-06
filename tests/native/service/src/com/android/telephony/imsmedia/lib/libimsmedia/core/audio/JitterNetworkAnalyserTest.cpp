@@ -64,7 +64,8 @@ TEST_F(JitterNetworkAnalyserTest, TestLowJitter)
     for (int32_t i = 0; i < kNumFrames; i++)
     {
         timestamp += TEST_FRAME_INTERVAL;
-        arrivalTime += (TEST_FRAME_INTERVAL + kJitter);
+        int32_t jitter = i % 2 == 0 ? kJitter : -kJitter;
+        arrivalTime += (TEST_FRAME_INTERVAL + jitter);
 
         if (i == 0)
         {
@@ -72,7 +73,7 @@ TEST_F(JitterNetworkAnalyserTest, TestLowJitter)
         }
         else
         {
-            EXPECT_EQ(mAnalyzer->CalculateTransitTimeDifference(timestamp, arrivalTime), kJitter);
+            EXPECT_EQ(mAnalyzer->CalculateTransitTimeDifference(timestamp, arrivalTime), jitter);
         }
 
         currentJitterBufferSize =
@@ -128,7 +129,8 @@ TEST_F(JitterNetworkAnalyserTest, TestJitterBufferDecrease)
     for (int32_t i = 0; i < kNumFrames; i++)
     {
         timestamp += TEST_FRAME_INTERVAL;
-        arrivalTime += (TEST_FRAME_INTERVAL + kJitter);
+        int32_t jitter = i % 2 == 0 ? kJitter : -kJitter;
+        arrivalTime += (TEST_FRAME_INTERVAL + jitter);
 
         if (i == 0)
         {
@@ -136,7 +138,7 @@ TEST_F(JitterNetworkAnalyserTest, TestJitterBufferDecrease)
         }
         else
         {
-            EXPECT_EQ(mAnalyzer->CalculateTransitTimeDifference(timestamp, arrivalTime), kJitter);
+            EXPECT_EQ(mAnalyzer->CalculateTransitTimeDifference(timestamp, arrivalTime), jitter);
         }
 
         currentJitterBufferSize =

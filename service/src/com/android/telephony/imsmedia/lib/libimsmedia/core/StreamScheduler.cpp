@@ -72,7 +72,7 @@ void StreamScheduler::Start()
     if (!mlistRegisteredNode.empty())
     {
         IMLOGD1("[Start] [%p] Start thread", this);
-        StartThread();
+        StartThread("StreamScheduler");
     }
 
     IMLOGD1("[Start] [%p] exit", this);

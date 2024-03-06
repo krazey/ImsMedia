@@ -111,6 +111,13 @@ public:
      */
     void sendRtpHeaderExtension(std::list<RtpHeaderExtension>* listExtension);
 
+    /**
+     * @brief Move session to inactive. i.e., Rtp Tx and Rtp Rx graphs are stopped
+     *
+     * @return bool false if failed to move session to inactive
+     */
+    bool deactivate();
+
 private:
     std::list<AudioStreamGraphRtpTx*> mListGraphRtpTx;
     std::list<AudioStreamGraphRtpRx*> mListGraphRtpRx;

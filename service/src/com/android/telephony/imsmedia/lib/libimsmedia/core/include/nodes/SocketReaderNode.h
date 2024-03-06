@@ -30,7 +30,6 @@ public:
     virtual bool Prepare();
     virtual ImsMediaResult Start();
     virtual void Stop();
-    virtual void ProcessData();
     virtual bool IsRunTime();
     virtual bool IsSourceNode();
     void SetConfig(void* config);

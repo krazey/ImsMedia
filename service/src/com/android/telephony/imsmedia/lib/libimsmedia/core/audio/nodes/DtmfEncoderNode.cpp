@@ -51,7 +51,7 @@ ImsMediaResult DtmfEncoderNode::Start()
 {
     mAudioFrameDuration = mSamplingRate * mPtime;
     IMLOGD1("[Start] interval[%d]", mAudioFrameDuration);
-    StartThread();
+    StartThread("DtmfEncoderNode");
     mNodeState = kNodeStateRunning;
     return RESULT_SUCCESS;
 }

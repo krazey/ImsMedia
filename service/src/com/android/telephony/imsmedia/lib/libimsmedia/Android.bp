@@ -57,6 +57,9 @@ cc_defaults {
     cflags: [
         "-Wall",
     ],
+    shared_libs: [
+        "libmediautils",
+    ],
     sanitize: {
         cfi: true,
         scs: true,
@@ -91,5 +94,6 @@ cc_library_shared {
         "libmediandk",
         "libnativewindow",
         "libutils",
+        "libmediautils",
     ],
 }

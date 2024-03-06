@@ -130,7 +130,8 @@ TEST_F(AudioConfigTest, TestParcel)
 
 TEST_F(AudioConfigTest, TestAssign)
 {
-    AudioConfig testConfig = config1;
+    AudioConfig testConfig;
+    testConfig = config1;
     EXPECT_EQ(config1, testConfig);
 
     AudioConfig* testConfig2 = new AudioConfig(config1);

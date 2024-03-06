@@ -30,6 +30,7 @@
 #include <ImsMediaSocket.h>
 #include <ImsMediaTrace.h>
 #include <ImsMediaNetworkUtil.h>
+#include <IImsMediaThread.h>
 
 // static valuable
 std::list<ImsMediaSocket*> ImsMediaSocket::slistRxSocket;
@@ -542,6 +543,7 @@ void ImsMediaSocket::SocketMonitorThread()
     static fd_set TmpExcepfds;
     int nMaxSD;
     IMLOGD0("[SocketMonitorThread] enter");
+    IImsMediaThread::SetThreadPriority(getpid(), gettid(), THREAD_PRIORITY_REALTIME);
     nMaxSD = SetSocketFD(&ReadFds, &WriteFds, &ExceptFds);
 
     for (;;)

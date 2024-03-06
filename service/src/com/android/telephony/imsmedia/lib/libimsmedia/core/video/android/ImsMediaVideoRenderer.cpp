@@ -80,13 +80,13 @@ void ImsMediaVideoRenderer::SetSurface(ANativeWindow* window)
 bool ImsMediaVideoRenderer::Start()
 {
     IMLOGD0("[Start]");
-    mMutex.lock();
     mFormat = AMediaFormat_new();
     AMediaFormat_setInt32(mFormat, AMEDIAFORMAT_KEY_WIDTH, mWidth);
     AMediaFormat_setInt32(mFormat, AMEDIAFORMAT_KEY_HEIGHT, mHeight);
 
     char kMimeType[128] = {'\0'};
     sprintf(kMimeType, "video/avc");
+
     if (mCodecType == kVideoCodecHevc)
     {
         sprintf(kMimeType, "video/hevc");
@@ -99,6 +99,7 @@ bool ImsMediaVideoRenderer::Start()
     AMediaFormat_setInt32(mFormat, AMEDIAFORMAT_KEY_ROTATION, mFarOrientationDegree);
 
     mCodec = AMediaCodec_createDecoderByType(kMimeType);
+
     if (mCodec == nullptr)
     {
         IMLOGE0("[Start] Unable to create decoder");
@@ -111,6 +112,7 @@ bool ImsMediaVideoRenderer::Start()
     }
 
     media_status_t err = AMediaCodec_configure(mCodec, mFormat, mWindow, nullptr, 0);
+
     if (err != AMEDIA_OK)
     {
         IMLOGE1("[Start] configure error[%d]", err);
@@ -122,6 +124,7 @@ bool ImsMediaVideoRenderer::Start()
     }
 
     err = AMediaCodec_start(mCodec);
+
     if (err != AMEDIA_OK)
     {
         IMLOGE1("[Start] codec start[%d]", err);
@@ -133,7 +136,6 @@ bool ImsMediaVideoRenderer::Start()
     }
 
     mStopped = false;
-    mMutex.unlock();
     std::thread t1(&ImsMediaVideoRenderer::processBuffers, this);
     t1.detach();
     return true;
@@ -178,11 +180,16 @@ void ImsMediaVideoRenderer::OnDataFrame(
 
     IMLOGD_PACKET2(IM_PACKET_LOG_VIDEO, "[OnDataFrame] frame size[%u], list[%d]", size,
             mFrameDatas.size());
-    std::lock_guard<std::mutex> guard(mMutex);
-    if (mCodec == nullptr)
+
+    mMutex.lock();
+
+    if (mStopped)
     {
+        mMutex.unlock();
         return;
     }
+
+    mMutex.unlock();
 
     mFrameDatas.push_back(new FrameData(buffer, size, timestamp, isConfigFrame));
 }
@@ -197,11 +204,13 @@ void ImsMediaVideoRenderer::processBuffers()
     while (true)
     {
         mMutex.lock();
+
         if (mStopped)
         {
             mMutex.unlock();
             break;
         }
+
         mMutex.unlock();
 
         if (mFrameDatas.size() == 0)

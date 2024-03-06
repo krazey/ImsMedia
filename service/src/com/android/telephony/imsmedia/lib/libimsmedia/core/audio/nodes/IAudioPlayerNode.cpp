@@ -27,7 +27,7 @@
 #define MAX_CODEC_EVS_AMR_IO_MODE 9
 #define JITTER_BUFFER_SIZE_INIT   3
 #define JITTER_BUFFER_SIZE_MIN    3
-#define JITTER_BUFFER_SIZE_MAX    13
+#define JITTER_BUFFER_SIZE_MAX    11
 
 IAudioPlayerNode::IAudioPlayerNode(BaseSessionCallback* callback) :
         JitterBufferControlNode(callback, IMS_MEDIA_AUDIO)
@@ -95,7 +95,7 @@ ImsMediaResult IAudioPlayerNode::Start()
     }
 
     mNodeState = kNodeStateRunning;
-    StartThread();
+    StartThread("IAudioPlayerNode");
     return RESULT_SUCCESS;
 }
 
@@ -297,7 +297,7 @@ void IAudioPlayerNode::ProcessCmr(const uint32_t cmrType, const uint32_t cmrDefi
 void* IAudioPlayerNode::run()
 {
     IMLOGD0("[run] enter");
-    SetAudioThreadPriority(gettid());
+    SetThreadPriority(getpid(), gettid(), THREAD_PRIORITY_REALTIME);
     ImsMediaSubType subtype = MEDIASUBTYPE_UNDEFINED;
     ImsMediaSubType datatype = MEDIASUBTYPE_UNDEFINED;
     uint8_t* data = nullptr;
