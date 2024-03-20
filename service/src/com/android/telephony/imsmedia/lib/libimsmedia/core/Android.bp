@@ -18,30 +18,6 @@ package {
     default_applicable_licenses: ["Android-Apache-2.0"],
 }
 
-soong_config_module_type_import {
-    from: "packages/modules/ImsMedia/service/src/com/android/telephony/imsmedia/lib/libimsmedia/Android.bp",
-    module_types: ["audio_cc_defaults"],
-}
-
-audio_cc_defaults {
-    name: "libimsmedia_audio_header_cc_defaults",
-    soong_config_variables: {
-        audio_type: {
-            oem_audio: {
-                header_libs: [
-                    "libimsmedia_oem_audio_codec_headers",
-                ],
-            },
-            conditions_default: {
-                header_libs: [
-                    "libimsmedia_aosp_audio_codec_headers",
-                ],
-            },
-        },
-    },
-}
-
-
 cc_library_headers {
     name: "libimsmedia_headers",
     export_include_dirs: [
@@ -147,11 +123,10 @@ cc_library_static {
         "libimsmedia_audio_defaults",
         "libimsmedia_video_defaults",
         "libimsmedia_text_defaults",
-        "libimsmedia_audio_header_cc_defaults",
     ],
     srcs: [
         "**/*.cpp",
-        ":libimsmedia_jni_srcs"
+        ":libimsmedia_jni_srcs",
     ],
     exclude_srcs: [
         "audio/android/*.cpp",
@@ -163,6 +138,7 @@ cc_library_static {
         "frameworks/av/media/utils/include",
     ],
     header_libs: [
+        "libimsmedia_android_audio_headers",
         "libimsmedia_jni_headers",
         "libimsmedia_protocol_interface_headers",
     ],
