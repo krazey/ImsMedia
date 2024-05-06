@@ -19,9 +19,9 @@ package com.android.telephony.imsmedia;
 import android.os.Parcel;
 import android.os.ParcelFileDescriptor;
 import android.telephony.imsmedia.ImsMediaSession;
-import android.util.Log;
 
 import com.android.telephony.imsmedia.Utils.OpenSessionParams;
+import com.android.telephony.imsmedia.util.Log;
 
 /**
  * Audio service for internal AP based RTP stack. This interacts with native library
@@ -90,9 +90,6 @@ public class AudioService {
             return ImsMediaSession.RESULT_INVALID_PARAM;
         }
 
-        Log.d(LOG_TAG, "openSession: sessionId = " + sessionId
-                + "," + sessionParams.getRtpConfig());
-
         JNIImsMediaService.setListener(sessionId, mListener);
 
         final int socketFdRtp = rtpSockFd.detachFd();
@@ -118,7 +115,7 @@ public class AudioService {
      * @param sessionId RTP session to be closed.
      */
     public void closeSession(final int sessionId) {
-        Log.d(LOG_TAG, "closeSession");
+        Log.dc(LOG_TAG, "closeSession");
         Parcel parcel = Parcel.obtain();
         parcel.writeInt(AudioSession.CMD_CLOSE_SESSION);
         sendRequest(sessionId, parcel);

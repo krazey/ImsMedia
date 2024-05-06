@@ -32,6 +32,7 @@ import android.telephony.imsmedia.MediaQualityStatus;
 import android.telephony.imsmedia.MediaQualityThreshold;
 import android.telephony.imsmedia.RtcpConfig;
 import android.telephony.imsmedia.RtpConfig;
+import android.telephony.imsmedia.RtpReceptionStats;
 import android.telephony.imsmedia.TextConfig;
 import android.telephony.imsmedia.TextSessionCallback;
 import android.telephony.imsmedia.VideoConfig;
@@ -205,6 +206,7 @@ public class MainActivity extends AppCompatActivity {
     private TextureView mTextureDisplay;
     private Surface mPreviewSurface;
     private Surface mDisplaySurface;
+    private int mDelay;
 
     /**
      * Enum of the CodecType from android.hardware.radio.ims.media.CodecType with
@@ -652,6 +654,7 @@ public class MainActivity extends AppCompatActivity {
         mAudioSession = null;
         mVideoSession = null;
         mTextSession = null;
+        mDelay = 100;
     }
 
     @Override
@@ -761,6 +764,7 @@ public class MainActivity extends AppCompatActivity {
                     JITTER_THRESHOLD, NOTIFY_STATUS);
             mAudioSession.setMediaQualityThreshold(threshold);
             mAudioSession.modifySession(mAudioConfig);
+            mAudioSession.requestRtpReceptionStats(3000);
 
             AudioManager audioManager = getSystemService(AudioManager.class);
             audioManager.setMode(AudioManager.MODE_IN_CALL);
@@ -814,6 +818,11 @@ public class MainActivity extends AppCompatActivity {
                     / callQuality.getNumRtpPacketsReceived() * 100);
             Log.d(TAG, "onCallQualityChanged, maxPlayoutDelay="
                     + (double) callQuality.getMaxPlayoutDelayMillis());
+        }
+
+        @Override
+        public void notifyRtpReceptionStats(final RtpReceptionStats stats) {
+            Log.d(TAG, "notifyRtpReceptionStats, RtpReceptionStats=" + stats);
         }
     }
 
@@ -2734,6 +2743,19 @@ public class MainActivity extends AppCompatActivity {
             extensions.add(extension2);
             Log.d(TAG, "[sendHeaderExtension] extension size=" + extensions.size());
             mAudioSession.sendHeaderExtension(extensions);
+        }
+    }
+
+    /**
+     * Send the parameter to adjust the audio delay
+     */
+    public void adjustDelay(View btn) {
+        if (mAudioSession != null) {
+            mDelay = (mDelay + 20) % 240;
+            if (mDelay < 60) {
+                mDelay = 60;
+            }
+            mAudioSession.adjustDelay(mDelay);
         }
     }
 }

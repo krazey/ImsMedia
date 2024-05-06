@@ -38,7 +38,8 @@ enum IM_PACKET_LOG_TYPE
     IM_PACKET_LOG_PH = 1 << 5,
     IM_PACKET_LOG_JITTER = 1 << 6,
     IM_PACKET_LOG_RTCP = 1 << 7,
-    IM_PACKET_LOG_RTPSTACK = 1 << 8
+    IM_PACKET_LOG_RTPSTACK = 1 << 8,
+    IM_PACKET_LOG_VIDEO_JITTER = 1 << 9
 };
 
 #define IMLOGD_PACKET0(type, format)  \

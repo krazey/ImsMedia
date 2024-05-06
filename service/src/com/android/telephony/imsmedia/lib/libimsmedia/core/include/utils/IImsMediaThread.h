@@ -35,16 +35,45 @@ class IImsMediaThread
 public:
     IImsMediaThread();
     virtual ~IImsMediaThread();
-    bool StartThread(const char* name = nullptr);
-    static void SetThreadPriority(pid_t pid, pid_t tid, int priority);
-    void StopThread();
-    bool IsThreadStopped();
-    void* runBase();
 
-protected:
+    /**
+     * @brief Starts the new thread execution and detaches from the calling thread.
+     *
+     * @param name Optional param. If passed, used to set name for the thread.
+     *               Helpful for debugging.
+     */
+    bool StartThread(const char* name = nullptr);
+
+    /**
+     * @brief Sets given thread priority for a given thread. Used to set realtime thread priority
+     * for time critical thread in the audio graph.
+     *
+     * @param pid Id of the current process
+     * @param tid Id of the thread whose priority should be modified.
+     * @param priority Thread priority value used with SCH_FIFO scheduling policy.
+     *                 THREAD_PRIORITY_REALTIME can be used to set realtime priority.
+     */
+    static void SetThreadPriority(pid_t pid, pid_t tid, int priority);
+
+    /**
+     * @brief Sets the stopped flag and the thread's run method should read and return.
+     * Method is asynchronous and returns immediately without waiting for the thread's run
+     * method to return.
+     */
+    void StopThread();
+
+    /**
+     * @brief Used to check if the thread is running.
+     */
+    bool IsThreadStopped();
+
+    /**
+     * @brief Should be implemented by the derived call. Called by new thread when StartThread is
+     * invoked.
+     */
     virtual void* run() = 0;
 
-protected:
+private:
     std::mutex mThreadMutex;
     bool mThreadStopped;
 };

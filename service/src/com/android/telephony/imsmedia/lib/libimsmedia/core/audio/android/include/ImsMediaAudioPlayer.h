@@ -85,7 +85,7 @@ public:
     /**
      * @brief Sets the payload header mode of the EVS codec.
      *
-     * @param EvsPayloadHeaderMode kRtpPyaloadHeaderMode defined in ImsMediaDefine.h
+     * @param EvsPayloadHeaderMode kRtpPayloadHeaderMode defined in ImsMediaDefine.h
      */
     void SetEvsPayloadHeaderMode(int32_t EvsPayloadHeaderMode);
 
@@ -169,7 +169,7 @@ private:
     uint16_t mBuffer[PCM_BUFFER_SIZE];
     std::mutex mMutex;
     int32_t mEvsBitRate;
-    kRtpPyaloadHeaderMode mEvsCodecHeaderMode;
+    kRtpPayloadHeaderMode mEvsCodecHeaderMode;
     bool mIsFirstFrame;
     bool mIsEvsInitialized;
     bool mIsDtxEnabled;

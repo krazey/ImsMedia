@@ -33,10 +33,9 @@ public:
     static hTimerHandler TimerStart(
             uint32_t nDuration, bool bRepeat, fn_TimerCb pTimerCb, void* pUserData);
     static bool TimerStop(hTimerHandler hTimer, void** ppUserData);
-    static void GetNtpTime(IMNtpTime* pNtpTime);
-    static uint32_t GetRtpTsFromNtpTs(IMNtpTime* initNtpTimestamp, uint32_t samplingRate);
-    static uint32_t GetTimeInMilliSeconds(void);
+    static void SetStartTimeInMicroSeconds(uint64_t time);
     static uint64_t GetTimeInMicroSeconds(void);
+    static uint32_t GetTimeInMilliSeconds(void);
     static uint32_t GenerateRandom(uint32_t nRange);
     static int32_t Atomic_Inc(int32_t* v);
     static int32_t Atomic_Dec(int32_t* v);

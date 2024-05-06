@@ -116,9 +116,9 @@ ImsMediaResult AudioSession::startGraph(RtpConfig* config)
         return RESULT_INVALID_PARAM;
     }
 
-    AudioConfig* pConfig = reinterpret_cast<AudioConfig*>(config);
+    AudioConfig* audioConfig = reinterpret_cast<AudioConfig*>(config);
 
-    if (std::strcmp(pConfig->getRemoteAddress().c_str(), "") == 0)
+    if (std::strcmp(audioConfig->getRemoteAddress().c_str(), "") == 0)
     {
         return RESULT_INVALID_PARAM;
     }
@@ -127,8 +127,15 @@ ImsMediaResult AudioSession::startGraph(RtpConfig* config)
 
     if (mMediaQualityAnalyzer != nullptr)
     {
-        mMediaQualityAnalyzer->setConfig(reinterpret_cast<AudioConfig*>(config));
-        mMediaQualityAnalyzer->start();
+        if (audioConfig->getMediaDirection() == RtpConfig::MEDIA_DIRECTION_NO_FLOW)
+        {
+            mMediaQualityAnalyzer->stop();
+        }
+        else
+        {
+            mMediaQualityAnalyzer->setConfig(audioConfig);
+            mMediaQualityAnalyzer->start();
+        }
     }
 
     ImsMediaResult ret = RESULT_NOT_READY;
@@ -483,7 +490,8 @@ void AudioSession::onEvent(int32_t type, uint64_t param1, uint64_t param2)
                     mSessionId, param1, param2);
             break;
         case kAudioTriggerAnbrQueryInd:
-            /** TODO: add implementation */
+            ImsMediaEventHandler::SendEvent(
+                    "AUDIO_RESPONSE_EVENT", kAudioTriggerAnbrQueryInd, mSessionId, param1);
             break;
         case kAudioDtmfReceivedInd:
             ImsMediaEventHandler::SendEvent(
@@ -492,6 +500,10 @@ void AudioSession::onEvent(int32_t type, uint64_t param1, uint64_t param2)
         case kAudioCallQualityChangedInd:
             ImsMediaEventHandler::SendEvent(
                     "AUDIO_RESPONSE_EVENT", kAudioCallQualityChangedInd, mSessionId, param1);
+            break;
+        case kAudioNotifyRtpReceptionStats:
+            ImsMediaEventHandler::SendEvent(
+                    "AUDIO_RESPONSE_EVENT", kAudioNotifyRtpReceptionStats, mSessionId, param1);
             break;
         case kRequestAudioCmr:
         case kRequestAudioCmrEvs:
@@ -523,7 +535,14 @@ void AudioSession::onEvent(int32_t type, uint64_t param1, uint64_t param2)
                         break;
 
                     case kCollectPacketInfo:
-                        if (param2)
+                        if (param1 == kStreamRtcp)
+                        {
+                            if (param2)
+                            {
+                                delete reinterpret_cast<RtcpSr*>(param2);
+                            }
+                        }
+                        else if (param2)
                         {
                             delete reinterpret_cast<RtpPacket*>(param2);
                         }
@@ -562,6 +581,33 @@ void AudioSession::sendDtmf(char digit, int duration)
         if (graph != nullptr && graph->getState() == kStreamStateRunning)
         {
             graph->sendDtmf(digit, duration);
+        }
+    }
+}
+
+void AudioSession::requestRtpReceptionStats(int32_t intervalMs)
+{
+    if (mMediaQualityAnalyzer != nullptr)
+    {
+        mMediaQualityAnalyzer->setNotifyRtpReceptionStatsInterval(intervalMs);
+    }
+}
+
+void AudioSession::adjustDelay(const int32_t delayMs)
+{
+    if (mListGraphRtpRx.empty())
+    {
+        return;
+    }
+
+    for (std::list<AudioStreamGraphRtpRx*>::iterator iter = mListGraphRtpRx.begin();
+            iter != mListGraphRtpRx.end(); iter++)
+    {
+        AudioStreamGraphRtpRx* graph = *iter;
+
+        if (graph != nullptr && graph->getState() == kStreamStateRunning)
+        {
+            graph->adjustDelay(delayMs);
         }
     }
 }

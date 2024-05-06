@@ -203,6 +203,18 @@ public class AudioSessionCallback extends ImsMediaManager.SessionCallback {
             }
         }
 
+        @Override
+        public void notifyRtpReceptionStats(final RtpReceptionStats stats) {
+            if (mLocalCallback == null) return;
+
+            final long callingIdentity = Binder.clearCallingIdentity();
+            try {
+                mExecutor.execute(() -> mLocalCallback.notifyRtpReceptionStats(stats));
+            } finally {
+                restoreCallingIdentity(callingIdentity);
+            }
+        }
+
         private void setExecutor(final Executor executor) {
             mExecutor = executor;
         }
@@ -288,21 +300,32 @@ public class AudioSessionCallback extends ImsMediaManager.SessionCallback {
     }
 
     /**
-    * Notifies when ImsMedia want to query the desired bitrate to NW
-    *
-    * @param config The config containing desired bitrate and direction
-    */
+     * Notifies when ImsMedia want to query the desired bitrate to NW
+     *
+     * @param config The config containing desired bitrate and direction
+     */
     public void triggerAnbrQuery(final AudioConfig config) {
         // Base Implementation
     }
 
     /**
-    * Notifies received DTMF digit to play the tone
-    *
-    * @param dtmfDigit single char having one of 12 values: 0-9, *, #
-    * @param durationMs The duration to play the tone in milliseconds unit
-    */
+     * Notifies received DTMF digit to play the tone
+     *
+     * @param dtmfDigit single char having one of 12 values: 0-9, *, #
+     * @param durationMs The duration to play the tone in milliseconds unit
+     */
     public void onDtmfReceived(final char dtmfDigit, final int durationMs) {
         // Base Implementation
     }
+
+    /**
+     * Notifies the rtp reception parameters periodically when the requestRtpReceptionStats() is
+     * triggered with the period
+     *
+     * @param stats The rtp reception parameters
+     */
+    public void notifyRtpReceptionStats(RtpReceptionStats stats) {
+        // Base Implementation
+    }
+
 }

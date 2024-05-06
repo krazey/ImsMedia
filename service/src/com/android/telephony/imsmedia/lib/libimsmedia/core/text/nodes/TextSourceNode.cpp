@@ -19,6 +19,8 @@
 #include <ImsMediaTimer.h>
 #include <ImsMediaTrace.h>
 
+#define RTT_MAX_CHAR_PER_BUFFERING (RTT_MAX_CHAR_PER_SEC / 3)
+
 TextSourceNode::TextSourceNode(BaseSessionCallback* callback) :
         BaseNode(callback)
 {
@@ -104,13 +106,14 @@ void TextSourceNode::ProcessData()
         return;
     }
 
-    if (!mSentBOM)
+    std::lock_guard<std::mutex> guard(mMutex);
+
+    if (GetDataCount() > 0 && !mSentBOM)
     {
         SendBom();
         mSentBOM = true;
+        return;
     }
-
-    std::lock_guard<std::mutex> guard(mMutex);
 
     ImsMediaSubType subtype = MEDIASUBTYPE_UNDEFINED;
     ImsMediaSubType datatype = MEDIASUBTYPE_UNDEFINED;
@@ -120,20 +123,33 @@ void TextSourceNode::ProcessData()
     bool mark = false;
     uint32_t seq = 0;
 
-    if (GetData(&subtype, &data, &size, &timestamp, &mark, &seq, &datatype))
+    if (GetDataCount() > 0)
     {
-        mTimeLastSent = ImsMediaTimer::GetTimeInMilliSeconds();
-        SendDataToRearNode(MEDIASUBTYPE_BITSTREAM_T140, data, size, mTimeLastSent, false, 0);
-        DeleteData();
+        uint32_t stackedSize = 0;
+        uint32_t numCharacter = 0;
+        memset(mPayload, 0, sizeof(mPayload));
 
+        while (GetData(&subtype, &data, &size, &timestamp, &mark, &seq, &datatype) &&
+                (numCharacter < RTT_MAX_CHAR_PER_BUFFERING) &&
+                (stackedSize + size < sizeof(mPayload)))
+        {
+            memcpy(mPayload + stackedSize, data, size);
+            stackedSize += size;
+            numCharacter++;
+            DeleteData();
+        }
+
+        mTimeLastSent = ImsMediaTimer::GetTimeInMilliSeconds();
+        IMLOGD_PACKET3(IM_PACKET_LOG_TEXT, "[ProcessData] sent length[%u], queue[%d], TS[%d]",
+                stackedSize, mDataQueue.GetCount(), mTimeLastSent);
+        SendDataToRearNode(
+                MEDIASUBTYPE_BITSTREAM_T140, mPayload, stackedSize, mTimeLastSent, false, 0);
         mRedundantCount = mRedundantLevel + 1;
     }
     else if (mRedundantCount > 0)
     {
-        /** RFC 4103. 5.2
-         * When valid T.140 data has been sent and no new T.140 data is available for transmission
-         * after the selected buffering time, an empty T140block SHOULD be transmitted.  This
-         * situation is regarded as the beginning of an idle period.
+        /** RFC 4103. 5.2 : In the absence of new T.140 data for transmission, an empty T140block
+         * should be sent after the selected buffering time, marking the start of an idle period
          */
         IMLOGD1("[ProcessData] send empty, redundant count[%d]", mRedundantCount);
         mTimeLastSent = ImsMediaTimer::GetTimeInMilliSeconds();
@@ -145,19 +161,45 @@ void TextSourceNode::ProcessData()
 
 void TextSourceNode::SendRtt(const android::String8* text)
 {
-    if (text == NULL || text->length() == 0 || text->length() > MAX_RTT_LEN)
+    if (text == NULL || text->length() == 0)
     {
         IMLOGE0("[SendRtt] invalid data");
         return;
     }
 
-    IMLOGD2("[SendRtt] size[%u], listSize[%d]", text->length(), mDataQueue.GetCount());
+    uint8_t* data = (uint8_t*)text->c_str();
+    uint32_t size = text->length();
+    uint32_t chunkSize = 0;
 
-    uint8_t tempBuffer[MAX_RTT_LEN] = {'\0'};
-    memcpy(tempBuffer, text->c_str(), text->length());
+    while (size > 0)
+    {
+        // split with UTF-8
+        if (data[0] >= 0xC2 && data[0] <= 0xDF && size >= 2)
+        {
+            chunkSize = 2;
+        }
+        else if (data[0] >= 0xE0 && data[0] <= 0xEF && size >= 3)
+        {
+            chunkSize = 3;
+        }
+        else if (data[0] >= 0xF0 && data[0] <= 0xFF && size >= 4)
+        {
+            chunkSize = 4;
+        }
+        else  // 1byte
+        {
+            chunkSize = 1;
+        }
 
-    std::lock_guard<std::mutex> guard(mMutex);
-    AddData(tempBuffer, text->length(), 0, false, 0);
+        {
+            std::lock_guard<std::mutex> guard(mMutex);
+            AddData(data, chunkSize, 0, false, 0);
+            data += chunkSize;
+            size -= chunkSize;
+        }
+    }
+
+    IMLOGD2("[SendRtt] size[%u], queue[%d]", text->length(), mDataQueue.GetCount());
 }
 
 void TextSourceNode::SendBom()
@@ -165,6 +207,7 @@ void TextSourceNode::SendBom()
     IMLOGD0("[ProcessData] send BOM");
     uint8_t bom[3] = {0xEF, 0xBB, 0xBF};
 
-    std::lock_guard<std::mutex> guard(mMutex);
-    AddData(bom, sizeof(bom), 0, false, 0, MEDIASUBTYPE_UNDEFINED, MEDIASUBTYPE_UNDEFINED, 0, 0);
+    mTimeLastSent = ImsMediaTimer::GetTimeInMilliSeconds();
+    SendDataToRearNode(MEDIASUBTYPE_BITSTREAM_T140, bom, sizeof(bom), mTimeLastSent, false, 0);
+    mRedundantCount = mRedundantLevel + 1;
 }

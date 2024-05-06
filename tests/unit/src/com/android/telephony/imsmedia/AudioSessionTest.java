@@ -16,6 +16,8 @@
 
 package com.android.telephony.imsmedia;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.times;
@@ -32,6 +34,7 @@ import android.telephony.imsmedia.IImsAudioSessionCallback;
 import android.telephony.imsmedia.ImsMediaSession;
 import android.telephony.imsmedia.MediaQualityStatus;
 import android.telephony.imsmedia.MediaQualityThreshold;
+import android.telephony.imsmedia.RtpReceptionStats;
 import android.testing.AndroidTestingRunner;
 import android.testing.TestableLooper;
 
@@ -39,6 +42,7 @@ import com.android.telephony.imsmedia.AudioService;
 import com.android.telephony.imsmedia.AudioSession;
 import com.android.telephony.imsmedia.Utils;
 import com.android.telephony.imsmedia.Utils.OpenSessionParams;
+import com.android.telephony.imsmedia.tests.RtpReceptionStatsTest;
 
 import org.junit.After;
 import org.junit.Before;
@@ -62,8 +66,11 @@ public class AudioSessionTest extends ImsMediaTest {
     private static final int PACKET_LOSS = 15;
     private static final int JITTER = 200;
     private static final char DTMF_DIGIT = '7';
+    private static final int RECEPTION_DURATION = 10000;
+    private static final int DELAY_ADJUSTMENT = 100;
     private AudioSession audioSession;
     private AudioSession.AudioSessionHandler handler;
+    private WakeLockManager mWakeLockManager;
     @Mock
     private AudioService audioService;
     private AudioListener audioListener;
@@ -80,12 +87,14 @@ public class AudioSessionTest extends ImsMediaTest {
         audioListener = audioSession.getAudioListener();
         handler = audioSession.getAudioSessionHandler();
         mTestClass = AudioSessionTest.this;
+        mWakeLockManager = WakeLockManager.getInstance();
         super.setUp();
     }
 
     @After
     public void tearDown() throws Exception {
         super.tearDown();
+        mWakeLockManager.cleanup();
     }
 
     private Parcel createParcel(int message, int result, AudioConfig config) {
@@ -119,6 +128,7 @@ public class AudioSessionTest extends ImsMediaTest {
         audioSession.openSession(params);
         processAllMessages();
         verify(audioService, times(1)).openSession(eq(SESSION_ID), eq(params));
+        assertThat(mWakeLockManager.mWakeLock.isHeld()).isEqualTo(false);
     }
 
     @Test
@@ -126,6 +136,7 @@ public class AudioSessionTest extends ImsMediaTest {
         audioSession.closeSession();
         processAllMessages();
         verify(audioService, times(1)).closeSession(eq(SESSION_ID));
+        assertThat(mWakeLockManager.mWakeLock.isHeld()).isEqualTo(false);
     }
 
     @Test
@@ -135,6 +146,7 @@ public class AudioSessionTest extends ImsMediaTest {
         audioSession.modifySession(config);
         processAllMessages();
         verify(audioLocalSession, times(1)).modifySession(eq(config));
+        assertThat(mWakeLockManager.mWakeLock.isHeld()).isEqualTo(true);
 
         // Modify Session Response - Success
         audioListener.onMessage(
@@ -248,6 +260,22 @@ public class AudioSessionTest extends ImsMediaTest {
     }
 
     @Test
+    public void testRequestRtpReceptionStats() {
+        // Query rtp reception stats
+        audioSession.requestRtpReceptionStats(RECEPTION_DURATION);
+        processAllMessages();
+        verify(audioLocalSession, times(1)).requestRtpReceptionStats(eq(RECEPTION_DURATION));
+    }
+
+    @Test
+    public void testAdjustDelay() {
+        // Apply delay
+        audioSession.adjustDelay(DELAY_ADJUSTMENT);
+        processAllMessages();
+        verify(audioLocalSession, times(1)).adjustDelay(eq(DELAY_ADJUSTMENT));
+    }
+
+    @Test
     public void testFirstMediaPacketReceivedInd() {
         // Receive First MediaPacket Received Indication
         AudioConfig config = AudioConfigTest.createAudioConfig();
@@ -330,11 +358,25 @@ public class AudioSessionTest extends ImsMediaTest {
     }
 
     @Test
+    public void testNotifyRtpReceptionStats() {
+        // Receive Rtp reception statistics notification
+        RtpReceptionStats stats = RtpReceptionStatsTest.createRtpReceptionStats();
+        Utils.sendMessage(handler, AudioSession.EVENT_NOTIFY_RECEPTION_STATS, stats);
+        processAllMessages();
+        try {
+            verify(callback, times(1)).notifyRtpReceptionStats(eq(stats));
+        } catch (RemoteException e) {
+            fail("Failed to notify RtpReceptionStats: " + e);
+        }
+    }
+
+    @Test
     public void testOpenSessionSuccess() {
         audioSession.onOpenSessionSuccess(audioLocalSession);
         processAllMessages();
         try {
             verify(callback, times(1)).onOpenSessionSuccess(audioSession);
+            assertThat(mWakeLockManager.mWakeLock.isHeld()).isEqualTo(false);
         } catch (RemoteException e) {
             fail("Failed to notify onOpenSessionSuccess: " + e);
         }
@@ -346,6 +388,7 @@ public class AudioSessionTest extends ImsMediaTest {
         processAllMessages();
         try {
             verify(callback, times(1)).onOpenSessionFailure(ImsMediaSession.RESULT_INVALID_PARAM);
+            assertThat(mWakeLockManager.mWakeLock.isHeld()).isEqualTo(false);
         } catch (RemoteException e) {
             fail("Failed to notify onOpenSessionFailure: " + e);
         }
@@ -357,6 +400,7 @@ public class AudioSessionTest extends ImsMediaTest {
         processAllMessages();
         try {
             verify(callback, times(1)).onSessionClosed();
+            assertThat(mWakeLockManager.mWakeLock.isHeld()).isEqualTo(false);
         } catch (RemoteException e) {
             fail("Failed to notify onSessionClosed: " + e);
         }

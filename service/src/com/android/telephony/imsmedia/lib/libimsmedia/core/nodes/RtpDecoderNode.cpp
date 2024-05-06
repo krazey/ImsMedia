@@ -20,6 +20,7 @@
 #include <AudioConfig.h>
 #include <VideoConfig.h>
 #include <TextConfig.h>
+#include <ImsMediaTimer.h>
 
 #if defined(SIMULATION_DELAY) || defined(SIMULATION_REORDER) || defined(SIMULATION_LOSS)
 #include <ImsMediaTimer.h>
@@ -39,6 +40,7 @@
 #ifdef SIMULATION_DUPLICATE
 #define DEBUG_JITTER_DUPLICATE_PACKET_INTERVAL 30
 #endif
+#define MAX_INTER_ARRIVAL_DELAY 350  // Log if inter-arrival delay is greater than 350msec.
 
 RtpDecoderNode::RtpDecoderNode(BaseSessionCallback* callback) :
         BaseNode(callback)
@@ -134,6 +136,7 @@ ImsMediaResult RtpDecoderNode::Start()
     mNoRtpTime = 0;
     mSubtype = MEDIASUBTYPE_UNDEFINED;
     mNodeState = kNodeStateRunning;
+    mPacketTimestamp = ImsMediaTimer::GetTimeInMilliSeconds();
 #if defined(SIMULATION_LOSS) || defined(SIMULATION_DUPLICATE) || defined(SIMULATION_SSRC_CHANGE)
     mPacketCounter = 1;
 #endif
@@ -164,6 +167,14 @@ void RtpDecoderNode::OnDataFromFrontNode(ImsMediaSubType subtype, uint8_t* data,
             mMediaType, subtype, datasize, timestamp, mark, seq, nDataType, arrivalTime);
 
     mArrivalTime = arrivalTime;
+    // Check if the inter-arrival delay is large. It will be followed by burst.
+    uint64_t interArrivalDelay = arrivalTime - mPacketTimestamp;
+    mPacketTimestamp = arrivalTime;
+    if (interArrivalDelay > MAX_INTER_ARRIVAL_DELAY)
+    {
+        IMLOGD1("[RtpDecoderNode] Inter-arrival delay=%u msec", interArrivalDelay);
+    }
+
 #ifdef SIMULATION_DELAY
     {
         ImsMediaCondition condition;

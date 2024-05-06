@@ -31,8 +31,11 @@ import android.telephony.imsmedia.AudioConfig;
 import android.telephony.imsmedia.IImsAudioSessionCallback;
 import android.telephony.imsmedia.ImsMediaSession;
 import android.telephony.imsmedia.MediaQualityStatus;
+import android.telephony.imsmedia.RtpReceptionStats;
 import android.testing.AndroidTestingRunner;
 import android.testing.TestableLooper;
+
+import com.android.telephony.imsmedia.tests.RtpReceptionStatsTest;
 
 import org.junit.After;
 import org.junit.Before;
@@ -232,5 +235,18 @@ public class AudioListenerTest extends ImsMediaTest {
                 mAudioConfig));
         doNothing().when(mMockCallback).onSessionClosed(eq(SESSION_ID));
         verify(mMockCallback, times(1)).onSessionClosed(eq(SESSION_ID));
+    }
+
+    @Test
+    public void testEventNotifyReceptionStats() throws RemoteException {
+        Parcel parcel = Parcel.obtain();
+        parcel.writeInt(AudioSession.EVENT_NOTIFY_RECEPTION_STATS);
+        RtpReceptionStats stats = RtpReceptionStatsTest.createRtpReceptionStats();
+        stats.writeToParcel(parcel, 0);
+        parcel.setDataPosition(0);
+        mAudioListener.onMessage(parcel);
+        processAllMessages();
+        verify(mMockIImsAudioSessionCallback,
+                times(1)).notifyRtpReceptionStats(eq(stats));
     }
 }

@@ -39,11 +39,12 @@ void* runThread(void* arg)
     }
 
     IImsMediaThread* thread = reinterpret_cast<IImsMediaThread*>(arg);
-    return thread->runBase();
+    return thread->run();
 }
 
 bool IImsMediaThread::StartThread(const char* name)
 {
+    IMLOGD1("[StartThread] name:%s", name);
     std::lock_guard<std::mutex> guard(mThreadMutex);
     mThreadStopped = false;
 
@@ -82,9 +83,4 @@ bool IImsMediaThread::IsThreadStopped()
 {
     std::lock_guard<std::mutex> guard(mThreadMutex);
     return mThreadStopped;
-}
-
-void* IImsMediaThread::runBase()
-{
-    return run();
 }

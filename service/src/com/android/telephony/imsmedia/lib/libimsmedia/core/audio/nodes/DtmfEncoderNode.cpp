@@ -101,21 +101,16 @@ bool DtmfEncoderNode::IsSameConfig(void* config)
             mPtime == pConfig->getPtimeMillis());
 }
 
-void DtmfEncoderNode::OnDataFromFrontNode(ImsMediaSubType subtype, uint8_t* pData,
-        uint32_t nDataSize, uint32_t volume, bool bMark, uint32_t duration,
-        ImsMediaSubType nDataType, uint32_t arrivalTime)
+void DtmfEncoderNode::OnDataFromFrontNode(ImsMediaSubType subtype, uint8_t* pData, uint32_t size,
+        uint32_t /*volume*/, bool /*mark*/, uint32_t duration, ImsMediaSubType /*dataType*/,
+        uint32_t /*arrivalTime*/)
 {
-    (void)bMark;
-    (void)nDataType;
-    (void)volume;
-    (void)arrivalTime;
-
     if (duration != 0 && subtype == MEDIASUBTYPE_DTMF_PAYLOAD)
     {
         mStopDtmf = true;
         IMLOGD1("[OnDataFromFrontNode] Send DTMF string %c", *pData);
         uint8_t nSignal;
-        if (nDataSize == 0 || convertSignal(*pData, nSignal) == false)
+        if (size == 0 || convertSignal(*pData, nSignal) == false)
         {
             return;
         }
@@ -172,7 +167,7 @@ void* DtmfEncoderNode::run()
             continue;
         }
 
-        bool bMarker = true;
+        bool marker = true;
         nPayloadSize = MakeDTMFPayload(pbPayload, mListDtmfDigit.front(), false, mVolume, nPeriod);
         SendDataToRearNode(MEDIASUBTYPE_DTMFSTART, nullptr, 0, 0, 0, 0);  // set dtmf mode true
 
@@ -211,7 +206,7 @@ void* DtmfEncoderNode::run()
 
             mMutex.unlock();
             SendDataToRearNode(
-                    MEDIASUBTYPE_DTMF_PAYLOAD, pbPayload, nPayloadSize, nTimestamp, bMarker, 0);
+                    MEDIASUBTYPE_DTMF_PAYLOAD, pbPayload, nPayloadSize, nTimestamp, marker, 0);
             nTimestamp += mPtime;
             uint32_t nCurrTime = ImsMediaTimer::GetTimeInMilliSeconds();
 
@@ -220,7 +215,7 @@ void* DtmfEncoderNode::run()
                 ImsMediaTimer::Sleep(nTimestamp - nCurrTime);
             }
 
-            bMarker = false;
+            marker = false;
 
             if (IsThreadStopped())
             {
@@ -249,7 +244,7 @@ bool DtmfEncoderNode::SendDTMFEvent(uint8_t digit, uint32_t duration)
     uint8_t pbPayload[BUNDLE_DTMF_DATA_MAX];
     uint32_t nPayloadSize;
     uint32_t nTimestamp = 0;
-    bool bMarker = true;
+    bool marker = true;
     uint32_t nDTMFDuration = calculateDtmfDuration(duration);
     uint32_t nDTMFRetransmitDuration = mRetransmitDuration * (mAudioFrameDuration / mPtime);
 
@@ -258,9 +253,9 @@ bool DtmfEncoderNode::SendDTMFEvent(uint8_t digit, uint32_t duration)
     {
         nPayloadSize = MakeDTMFPayload(pbPayload, digit, false, mVolume, nPeriod);
         SendDataToRearNode(
-                MEDIASUBTYPE_DTMF_PAYLOAD, pbPayload, nPayloadSize, nTimestamp, bMarker, 0);
+                MEDIASUBTYPE_DTMF_PAYLOAD, pbPayload, nPayloadSize, nTimestamp, marker, 0);
         nTimestamp += mPtime;
-        bMarker = false;
+        marker = false;
     }
 
     // make and send DTMF last packet and retransmit it

@@ -20,8 +20,9 @@ import android.os.Parcel;
 import android.telephony.ims.RtpHeaderExtension;
 import android.telephony.imsmedia.MediaQualityThreshold;
 import android.telephony.imsmedia.VideoConfig;
-import android.util.Log;
 import android.view.Surface;
+
+import com.android.telephony.imsmedia.util.Log;
 
 import java.util.List;
 
@@ -45,7 +46,7 @@ public class VideoLocalSession {
 
     /** Returns the unique session identifier */
     public int getSessionId() {
-        Log.d(TAG, "getSessionId");
+        Log.dc(TAG, "getSessionId");
         return mSessionId;
     }
 
@@ -74,7 +75,6 @@ public class VideoLocalSession {
      * @param config provides remote end point info and codec details
      */
     public void modifySession(final VideoConfig config) {
-        Log.d(TAG, "modifySession: " + config);
         Parcel parcel = Parcel.obtain();
         parcel.writeInt(VideoSession.CMD_MODIFY_SESSION);
         if (config != null) {
@@ -115,7 +115,6 @@ public class VideoLocalSession {
      *        parameters
      */
     public void setMediaQualityThreshold(final MediaQualityThreshold threshold) {
-        Log.d(TAG, "setMediaQualityThreshold: " + threshold);
         Parcel parcel = Parcel.obtain();
         parcel.writeInt(VideoSession.CMD_SET_MEDIA_QUALITY_THRESHOLD);
         if (threshold != null) {
@@ -130,7 +129,7 @@ public class VideoLocalSession {
      * @param extensions List of RTP header extensions to be transmitted
      */
     public void sendHeaderExtension(final List<RtpHeaderExtension> extensions) {
-        Log.d(TAG, "sendHeaderExtension");
+        Log.dc(TAG, "sendHeaderExtension");
         // TODO: add implementation
     }
 

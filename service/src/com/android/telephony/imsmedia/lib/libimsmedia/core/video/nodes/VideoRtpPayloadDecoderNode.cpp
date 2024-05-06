@@ -107,17 +107,18 @@ void VideoRtpPayloadDecoderNode::OnDataFromFrontNode(ImsMediaSubType subtype, ui
 {
     if (subtype == MEDIASUBTYPE_REFRESHED)
     {
-        SendDataToRearNode(subtype, nullptr, nDataSize, 0, 0, 0, MEDIASUBTYPE_UNDEFINED);
+        SendDataToRearNode(
+                subtype, nullptr, nDataSize, 0, 0, 0, MEDIASUBTYPE_UNDEFINED, arrivalTime);
         return;
     }
 
     switch (mCodecType)
     {
         case VideoConfig::CODEC_AVC:
-            DecodeAvc(subtype, pData, nDataSize, nTimeStamp, bMark, nSeqNum);
+            DecodeAvc(subtype, pData, nDataSize, nTimeStamp, bMark, nSeqNum, arrivalTime);
             break;
         case VideoConfig::CODEC_HEVC:
-            DecodeHevc(subtype, pData, nDataSize, nTimeStamp, bMark, nSeqNum);
+            DecodeHevc(subtype, pData, nDataSize, nTimeStamp, bMark, nSeqNum, arrivalTime);
             break;
         default:
             IMLOGE1("[OnDataFromFrontNode] invalid codec type[%d]", mCodecType);
@@ -128,7 +129,7 @@ void VideoRtpPayloadDecoderNode::OnDataFromFrontNode(ImsMediaSubType subtype, ui
 }
 
 void VideoRtpPayloadDecoderNode::DecodeAvc(ImsMediaSubType subtype, uint8_t* pData,
-        uint32_t nDataSize, uint32_t nTimeStamp, bool bMark, uint32_t nSeqNum)
+        uint32_t nDataSize, uint32_t nTimeStamp, bool bMark, uint32_t nSeqNum, uint32_t arrivalTime)
 {
     if (pData == nullptr || nDataSize == 0 || mBuffer == nullptr)
     {
@@ -168,14 +169,15 @@ void VideoRtpPayloadDecoderNode::DecodeAvc(ImsMediaSubType subtype, uint8_t* pDa
             eDataType = MEDIASUBTYPE_VIDEO_NON_IDR_FRAME;
         }
 
-        SendDataToRearNode(subtype, mBuffer, nDataSize + 4, nTimeStamp, bMark, nSeqNum, eDataType);
+        SendDataToRearNode(subtype, mBuffer, nDataSize + 4, nTimeStamp, bMark, nSeqNum, eDataType,
+                arrivalTime);
     }
     else if (bPacketType == 24)
     {  // STAP-A
         uint8_t* pCurrData = pData + 1;
         int32_t nRemainSize = (int32_t)(nDataSize - 1);
 
-        if (mPayloadMode == kRtpPyaloadHeaderModeSingleNalUnit)
+        if (mPayloadMode == kRtpPayloadHeaderModeSingleNalUnit)
         {
             IMLOGD_PACKET0(IM_PACKET_LOG_PH, "[DecodeAvc] Warning - single nal unit mode");
         }
@@ -211,8 +213,8 @@ void VideoRtpPayloadDecoderNode::DecodeAvc(ImsMediaSubType subtype, uint8_t* pDa
                 IMLOGD_PACKET1(IM_PACKET_LOG_PH, "[DecodeAvc] STAP-A [%02X] nNALUnitsize[%d]",
                         nNALUnitsize);
                 memcpy(mBuffer + 4, pCurrData, nNALUnitsize);
-                SendDataToRearNode(
-                        subtype, mBuffer, nNALUnitsize + 4, nTimeStamp, bMark, nSeqNum, eDataType);
+                SendDataToRearNode(subtype, mBuffer, nNALUnitsize + 4, nTimeStamp, bMark, nSeqNum,
+                        eDataType, arrivalTime);
             }
             pCurrData += nNALUnitsize;
             nRemainSize -= nNALUnitsize;
@@ -226,7 +228,7 @@ void VideoRtpPayloadDecoderNode::DecodeAvc(ImsMediaSubType subtype, uint8_t* pDa
         uint8_t bStartBit;
         uint8_t bEndBit;
 
-        if (mPayloadMode == kRtpPyaloadHeaderModeSingleNalUnit)
+        if (mPayloadMode == kRtpPayloadHeaderModeSingleNalUnit)
         {
             IMLOGW0("[DecodeAvc] Warning - (FU-A, 28) for single nal unit mode");
         }
@@ -257,19 +259,19 @@ void VideoRtpPayloadDecoderNode::DecodeAvc(ImsMediaSubType subtype, uint8_t* pDa
 
             if (bEndBit)
             {
-                SendDataToRearNode(
-                        subtype, mBuffer, nDataSize + 3, nTimeStamp, bMark, nSeqNum, eDataType);
+                SendDataToRearNode(subtype, mBuffer, nDataSize + 3, nTimeStamp, bMark, nSeqNum,
+                        eDataType, arrivalTime);
             }
             else
             {
-                SendDataToRearNode(
-                        subtype, mBuffer, nDataSize + 3, nTimeStamp, bEndBit, nSeqNum, eDataType);
+                SendDataToRearNode(subtype, mBuffer, nDataSize + 3, nTimeStamp, bEndBit, nSeqNum,
+                        eDataType, arrivalTime);
             }
         }
         else
         {
-            SendDataToRearNode(
-                    subtype, pData + 2, nDataSize - 2, nTimeStamp, bEndBit, nSeqNum, eDataType);
+            SendDataToRearNode(subtype, pData + 2, nDataSize - 2, nTimeStamp, bEndBit, nSeqNum,
+                    eDataType, arrivalTime);
         }
     }
     else
@@ -279,15 +281,8 @@ void VideoRtpPayloadDecoderNode::DecodeAvc(ImsMediaSubType subtype, uint8_t* pDa
 }
 
 void VideoRtpPayloadDecoderNode::DecodeHevc(ImsMediaSubType subtype, uint8_t* pData,
-        uint32_t nDataSize, uint32_t nTimeStamp, bool bMark, uint32_t nSeqNum)
+        uint32_t nDataSize, uint32_t nTimeStamp, bool bMark, uint32_t nSeqNum, uint32_t arrivalTime)
 {
-    if (subtype == MEDIASUBTYPE_REFRESHED)
-    {
-        IMLOGD0("[DecodeHevc] REFRESHED");
-        SendDataToRearNode(subtype, 0, 0, 0, 0, 0, MEDIASUBTYPE_UNDEFINED);
-        return;
-    }
-
     if (pData == nullptr || nDataSize == 0)
     {
         IMLOGE1("[DecodeHevc] INVALID Data, Size[%d]", nDataSize);
@@ -330,7 +325,8 @@ void VideoRtpPayloadDecoderNode::DecodeHevc(ImsMediaSubType subtype, uint8_t* pD
             eDataType = MEDIASUBTYPE_VIDEO_NON_IDR_FRAME;
         }
 
-        SendDataToRearNode(subtype, mBuffer, nDataSize + 4, nTimeStamp, bMark, nSeqNum, eDataType);
+        SendDataToRearNode(subtype, mBuffer, nDataSize + 4, nTimeStamp, bMark, nSeqNum, eDataType,
+                arrivalTime);
     }
     else if (bPacketType == 48)
     {  // Aggregation packet(AP)
@@ -345,7 +341,7 @@ void VideoRtpPayloadDecoderNode::DecodeHevc(ImsMediaSubType subtype, uint8_t* pD
         uint8_t bStartBit;
         uint8_t bEndBit;
 
-        if (mPayloadMode == kRtpPyaloadHeaderModeSingleNalUnit)
+        if (mPayloadMode == kRtpPayloadHeaderModeSingleNalUnit)
         {
             IMLOGW0("[DecodeHevc] Warning - invalid packet type(FU, 49) for single nal unit mode");
         }
@@ -378,13 +374,13 @@ void VideoRtpPayloadDecoderNode::DecodeHevc(ImsMediaSubType subtype, uint8_t* pD
             mBuffer[5] = bFUIndicator2;
             memcpy(mBuffer + 6, pData + 3, nDataSize - 3);
             // exclude FU header
-            SendDataToRearNode(
-                    subtype, mBuffer, nDataSize + 3, nTimeStamp, bEndBit, nSeqNum, eDataType);
+            SendDataToRearNode(subtype, mBuffer, nDataSize + 3, nTimeStamp, bEndBit, nSeqNum,
+                    eDataType, arrivalTime);
         }
         else
         {  // exclude start code
-            SendDataToRearNode(
-                    subtype, pData + 3, nDataSize - 3, nTimeStamp, bEndBit, nSeqNum, eDataType);
+            SendDataToRearNode(subtype, pData + 3, nDataSize - 3, nTimeStamp, bEndBit, nSeqNum,
+                    eDataType, arrivalTime);
         }
     }
     else

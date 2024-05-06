@@ -108,6 +108,16 @@ enum ImsMediaType
     IMS_MEDIA_TEXT,
 };
 
+enum AccessNetworkType
+{
+    ACCESS_NETWORK_UNKNOWN = 0,
+    ACCESS_NETWORK_GERAN = 1,
+    ACCESS_NETWORK_UTRAN = 2,
+    ACCESS_NETWORK_EUTRAN = 3,
+    ACCESS_NETWORK_IWLAN = 5,
+    ACCESS_NETWORK_NGRAN = 6,
+};
+
 enum kProtocolType
 {
     kProtocolRtp = 0,
@@ -297,6 +307,8 @@ enum ImsMediaAudioMsgRequest
     kAudioSendDtmf,
     kAudioSendRtpHeaderExtension,
     kAudioSetMediaQualityThreshold,
+    kAudioRequestRtpReceptionStats = 112,
+    kAudioAdjustDelay,
 };
 
 enum ImsMediaAudioMsgResponse
@@ -313,6 +325,7 @@ enum ImsMediaAudioMsgResponse
     kAudioDtmfReceivedInd,
     kAudioCallQualityChangedInd,
     kAudioSessionClosed,
+    kAudioNotifyRtpReceptionStats,
 };
 
 enum ImsMediaVideoMsgRequest
@@ -412,18 +425,18 @@ enum kVideoCodecType
     kVideoCodecHevc,
 };
 
-enum kRtpPyaloadHeaderMode
+enum kRtpPayloadHeaderMode
 {
     // Amr mode
-    kRtpPyaloadHeaderModeAmrOctetAligned = 0,  // octet aligned mode
-    kRtpPyaloadHeaderModeAmrEfficient = 1,     // efficient mode
+    kRtpPayloadHeaderModeAmrOctetAligned = 0,  // octet aligned mode
+    kRtpPayloadHeaderModeAmrEfficient = 1,     // efficient mode
                                                // Video packetization mode
-    kRtpPyaloadHeaderModeSingleNalUnit = 0,    // packet mode 0
-    kRtpPyaloadHeaderModeNonInterleaved = 1,   // packet mode 1
+    kRtpPayloadHeaderModeSingleNalUnit = 0,    // packet mode 0
+    kRtpPayloadHeaderModeNonInterleaved = 1,   // packet mode 1
                                                // Evs mode
-    kRtpPyaloadHeaderModeEvsCompact = 0,       // EVS compact format 0
-    kRtpPyaloadHeaderModeEvsHeaderFull = 1,    // EVS header-full format 1
-    kRtpPyaloadHeaderModeMax
+    kRtpPayloadHeaderModeEvsCompact = 0,       // EVS compact format 0
+    kRtpPayloadHeaderModeEvsHeaderFull = 1,    // EVS header-full format 1
+    kRtpPayloadHeaderModeMax
 };
 
 enum kIpVersion
@@ -490,7 +503,7 @@ enum kAudioPlayingStatus
     kAudioTypeVoice,
 };
 
-enum kRtpOptionalType
+enum kOptionalReportType
 {
     kTimeToLive,
     kRoundTripDelay,
@@ -502,14 +515,18 @@ enum kRtpOptionalType
 struct RtpPacket
 {
 public:
-    RtpPacket() :
-            ssrc(0),
-            seqNum(0),
-            TTL(0),
-            jitter(0),
-            arrival(0),
-            rtpDataType(kRtpDataTypeNoData),
-            status(kRtpStatusNotDefined)
+    RtpPacket(const uint32_t s = 0, const uint32_t seq = 0, const uint32_t t = 0,
+            const int32_t j = 0, const int32_t ts = 0, const int32_t a = 0,
+            const kRtpDataType type = kRtpDataTypeNoData,
+            const kRtpPacketStatus st = kRtpStatusNotDefined) :
+            ssrc(s),
+            seqNum(seq),
+            TTL(t),
+            jitter(j),
+            timestamp(ts),
+            arrival(a),
+            rtpDataType(type),
+            status(st)
     {
     }
     RtpPacket(const RtpPacket& p)
@@ -518,6 +535,7 @@ public:
         seqNum = p.seqNum;
         TTL = p.TTL;
         jitter = p.jitter;
+        timestamp = p.timestamp;
         arrival = p.arrival;
         rtpDataType = p.rtpDataType;
         status = p.status;
@@ -528,6 +546,7 @@ public:
     uint32_t TTL;
     /** transit time difference */
     int32_t jitter;
+    int32_t timestamp;
     /** arrival time */
     int32_t arrival;
     kRtpDataType rtpDataType;
@@ -674,6 +693,93 @@ public:
     }
     char ipAddress[MAX_IP_LEN];
     uint32_t port;
+};
+
+struct RtcpRecvReport
+{
+public:
+    RtcpRecvReport(const uint32_t s = 0, const uint32_t f = 0, const uint32_t c = 0,
+            const uint32_t e = 0, const uint32_t j = 0, const uint32_t l = 0,
+            const uint32_t d = 0) :
+            ssrc(s),
+            fractionLost(f),
+            cumPktsLost(c),
+            extHighSeqNum(e),
+            jitter(j),
+            lsr(l),
+            delayLsr(d)
+    {
+    }
+
+    RtcpRecvReport(const RtcpRecvReport& report) :
+            ssrc(report.ssrc),
+            fractionLost(report.fractionLost),
+            cumPktsLost(report.cumPktsLost),
+            extHighSeqNum(report.extHighSeqNum),
+            jitter(report.jitter),
+            lsr(report.lsr),
+            delayLsr(report.delayLsr)
+
+    {
+    }
+
+    RtcpRecvReport& operator=(const RtcpRecvReport& report)
+    {
+        if (this != &report)
+        {
+            ssrc = report.ssrc;
+            fractionLost = report.fractionLost;
+            cumPktsLost = report.cumPktsLost;
+            extHighSeqNum = report.extHighSeqNum;
+            jitter = report.jitter;
+            lsr = report.lsr;
+            delayLsr = report.delayLsr;
+        }
+
+        return *this;
+    }
+
+    uint32_t ssrc;
+    uint32_t fractionLost;
+    uint32_t cumPktsLost;
+    uint32_t extHighSeqNum;
+    uint32_t jitter;
+    uint32_t lsr;
+    uint32_t delayLsr;
+};
+
+struct RtcpSr
+{
+public:
+    RtcpSr(const uint32_t ntpTsMsw = 0, const uint32_t ntpTsLsw = 0, const uint32_t rtpTs = 0,
+            const uint32_t count = 0, const uint32_t octCount = 0,
+            const RtcpRecvReport& report = RtcpRecvReport()) :
+            ntpTimestampMsw(ntpTsMsw),
+            ntpTimestampLsw(ntpTsLsw),
+            rtpTimestamp(rtpTs),
+            sendPktCount(count),
+            sendOctCount(octCount),
+            recvReport(report)
+    {
+    }
+
+    uint32_t ntpTimestampMsw;
+    uint32_t ntpTimestampLsw;
+    uint32_t rtpTimestamp;
+    uint32_t sendPktCount;
+    uint32_t sendOctCount;
+    RtcpRecvReport recvReport;  // only one RR block is supported.
+};
+
+struct RtcpRr
+{
+public:
+    RtcpRr(const RtcpRecvReport& report) :
+            recvReport(report)
+    {
+    }
+
+    RtcpRecvReport recvReport;  // only one RR block is supported.
 };
 
 #endif
