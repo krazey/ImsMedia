@@ -45,7 +45,7 @@ void* runThread(void* arg)
 bool IImsMediaThread::StartThread(const char* name)
 {
     IMLOGD1("[StartThread] name:%s", name);
-    std::lock_guard<std::mutex> guard(mThreadMutex);
+    ImsMediaMutex::Autolock lock(mThreadMutex);
     mThreadStopped = false;
 
     std::thread t1(&runThread, this);
@@ -75,12 +75,12 @@ void IImsMediaThread::SetThreadPriority(pid_t pid, pid_t tid, int priority)
 
 void IImsMediaThread::StopThread()
 {
-    std::lock_guard<std::mutex> guard(mThreadMutex);
+    ImsMediaMutex::Autolock lock(mThreadMutex);
     mThreadStopped = true;
 }
 
 bool IImsMediaThread::IsThreadStopped()
 {
-    std::lock_guard<std::mutex> guard(mThreadMutex);
+    ImsMediaMutex::Autolock lock(mThreadMutex);
     return mThreadStopped;
 }

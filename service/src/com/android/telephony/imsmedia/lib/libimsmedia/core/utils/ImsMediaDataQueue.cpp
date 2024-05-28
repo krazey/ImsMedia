@@ -28,7 +28,7 @@ void ImsMediaDataQueue::Add(DataEntry* pEntry)
 {
     if (pEntry != nullptr)
     {
-        std::lock_guard<std::mutex> guard(mMutex);
+        ImsMediaMutex::Autolock lock(mMutex);
         DataEntry* pbData = new DataEntry(*pEntry);
         mList.push_back(pbData);
     }
@@ -38,7 +38,7 @@ void ImsMediaDataQueue::InsertAt(uint32_t index, DataEntry* pEntry)
 {
     if (pEntry != nullptr)
     {
-        std::lock_guard<std::mutex> guard(mMutex);
+        ImsMediaMutex::Autolock lock(mMutex);
         DataEntry* pbData = new DataEntry(*pEntry);
 
         if (mList.empty() || index == 0)
@@ -60,7 +60,7 @@ void ImsMediaDataQueue::InsertAt(uint32_t index, DataEntry* pEntry)
 
 void ImsMediaDataQueue::Delete()
 {
-    std::lock_guard<std::mutex> guard(mMutex);
+    ImsMediaMutex::Autolock lock(mMutex);
 
     if (!mList.empty())
     {
@@ -86,7 +86,7 @@ bool ImsMediaDataQueue::Get(DataEntry** ppEntry)
         return false;
     }
 
-    std::lock_guard<std::mutex> guard(mMutex);
+    ImsMediaMutex::Autolock lock(mMutex);
 
     if (!mList.empty())
     {
@@ -108,7 +108,7 @@ bool ImsMediaDataQueue::GetLast(DataEntry** ppEntry)
         return false;
     }
 
-    std::lock_guard<std::mutex> guard(mMutex);
+    ImsMediaMutex::Autolock lock(mMutex);
     // get last data in the queue
     if (!mList.empty())
     {
@@ -129,7 +129,7 @@ bool ImsMediaDataQueue::GetAt(uint32_t index, DataEntry** ppEntry)
         return false;
     }
 
-    std::lock_guard<std::mutex> guard(mMutex);
+    ImsMediaMutex::Autolock lock(mMutex);
 
     if (mList.size() > index)
     {
@@ -147,13 +147,13 @@ bool ImsMediaDataQueue::GetAt(uint32_t index, DataEntry** ppEntry)
 
 uint32_t ImsMediaDataQueue::GetCount()
 {
-    std::lock_guard<std::mutex> guard(mMutex);
+    ImsMediaMutex::Autolock lock(mMutex);
     return mList.size();
 }
 
 void ImsMediaDataQueue::SetReadPosFirst()
 {
-    std::lock_guard<std::mutex> guard(mMutex);
+    ImsMediaMutex::Autolock lock(mMutex);
     mListIter = mList.begin();
 }
 
@@ -164,7 +164,7 @@ bool ImsMediaDataQueue::GetNext(DataEntry** ppEntry)
         return false;
     }
 
-    std::lock_guard<std::mutex> guard(mMutex);
+    ImsMediaMutex::Autolock lock(mMutex);
 
     if (mListIter != mList.end())
     {

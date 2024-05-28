@@ -233,7 +233,7 @@ bool ImsMediaAudioPlayer::Start()
 void ImsMediaAudioPlayer::Stop()
 {
     IMLOGD0("[Stop] enter");
-    std::lock_guard<std::mutex> guard(mMutex);
+    ImsMediaMutex::Autolock lock(mMutex);
     if ((mCodecType == kAudioCodecAmr || mCodecType == kAudioCodecAmrWb) && (mCodec != nullptr))
     {
         AMediaCodec_stop(mCodec);
@@ -279,7 +279,7 @@ void ImsMediaAudioPlayer::Stop()
 bool ImsMediaAudioPlayer::onDataFrame(uint8_t* buffer, uint32_t size, FrameType /*frameType*/,
         bool /*hasNextFrame*/, uint8_t /*nextFrameByte*/)
 {
-    std::lock_guard<std::mutex> guard(mMutex);
+    ImsMediaMutex::Autolock lock(mMutex);
 
     if (size == 0 || buffer == nullptr || mAudioStream == nullptr ||
             AAudioStream_getState(mAudioStream) != AAUDIO_STREAM_STATE_STARTED)
@@ -457,7 +457,7 @@ void ImsMediaAudioPlayer::openAudioStream()
 
 void ImsMediaAudioPlayer::restartAudioStream()
 {
-    std::lock_guard<std::mutex> guard(mMutex);
+    ImsMediaMutex::Autolock lock(mMutex);
 
     if (mAudioStream == nullptr)
     {

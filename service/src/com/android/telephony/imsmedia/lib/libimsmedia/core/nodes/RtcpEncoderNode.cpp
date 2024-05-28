@@ -55,7 +55,7 @@ kBaseNodeId RtcpEncoderNode::GetNodeId()
 
 ImsMediaResult RtcpEncoderNode::Start()
 {
-    std::lock_guard<std::mutex> guard(mMutexTimer);
+    ImsMediaMutex::Autolock lock(mMutexTimer);
 
     if (mRtpSession == nullptr)
     {
@@ -100,7 +100,7 @@ void RtcpEncoderNode::Stop()
     }
 
     {
-        std::lock_guard<std::mutex> guard(mMutexTimer);
+        ImsMediaMutex::Autolock lock(mMutexTimer);
         IMLOGD0("[Stop] mutex taken");
 
         if (mRtpSession != nullptr)
@@ -217,7 +217,7 @@ void RtcpEncoderNode::OnTimer(hTimerHandler hTimer, void* pUserData)
 
 void RtcpEncoderNode::ProcessTimer()
 {
-    std::lock_guard<std::mutex> guard(mMutexTimer);
+    ImsMediaMutex::Autolock lock(mMutexTimer);
 
     if (mTimer == nullptr || mRtpSession == nullptr)
     {

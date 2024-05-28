@@ -58,7 +58,7 @@ ImsMediaAudioSource::~ImsMediaAudioSource() {}
 
 void ImsMediaAudioSource::SetUplinkCallback(IFrameCallback* callback)
 {
-    std::lock_guard<std::mutex> guard(mMutexUplink);
+    ImsMediaMutex::Autolock lock(mMutexUplink);
     mCallback = callback;
 }
 
@@ -182,7 +182,7 @@ void ImsMediaAudioSource::Stop()
         mConditionExit.wait_timeout(AUDIO_STOP_TIMEOUT);
     }
 
-    std::lock_guard<std::mutex> guard(mMutexUplink);
+    ImsMediaMutex::Autolock lock(mMutexUplink);
 
     if (mAudioStream != nullptr)
     {
@@ -222,7 +222,7 @@ void ImsMediaAudioSource::ProcessCmr(const uint32_t cmr)
         return;
     }
 
-    std::lock_guard<std::mutex> guard(mMutexUplink);
+    ImsMediaMutex::Autolock lock(mMutexUplink);
     mMode = cmr;
     stopCodec();
     startCodec();
@@ -384,7 +384,7 @@ void ImsMediaAudioSource::openAudioStream()
 
 void ImsMediaAudioSource::restartAudioStream()
 {
-    std::lock_guard<std::mutex> guard(mMutexUplink);
+    ImsMediaMutex::Autolock lock(mMutexUplink);
 
     if (mAudioStream == nullptr)
     {

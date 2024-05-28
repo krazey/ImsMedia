@@ -101,7 +101,7 @@ RtpSession::RtpSession(IN RtpStack* pobjStack) :
 
 RtpSession::~RtpSession()
 {
-    std::lock_guard<std::mutex> guard(m_objRtpSessionLock);
+    ImsMediaMutex::Autolock lock(m_objRtpSessionLock);
 
     if (m_pobjTransAddr != nullptr)
     {
@@ -645,7 +645,7 @@ eRTP_STATUS_CODE RtpSession::rtpSendRtcpPacket(IN_OUT RtcpPacket* objRtcpPkt)
 RtpDt_Void RtpSession::rtcpTimerExpiry(IN RtpDt_Void* pvTimerId)
 {
     // RtpDt_UInt32 uiSamplingRate = RTP_ZERO;
-    std::lock_guard<std::mutex> guard(m_objRtpSessionLock);
+    ImsMediaMutex::Autolock lock(m_objRtpSessionLock);
 
     eRtp_Bool bSessAlive = eRTP_FALSE;
 
@@ -1291,7 +1291,7 @@ eRTP_STATUS_CODE RtpSession::deleteRtpSession()
 {
     RtpDt_Void* pvData = nullptr;
 
-    std::lock_guard<std::mutex> guard(m_objRtpSessionLock);
+    ImsMediaMutex::Autolock lock(m_objRtpSessionLock);
 
     RtpSessionManager* pobjActSesDb = RtpSessionManager::getInstance();
     pobjActSesDb->removeRtpSession(this);
@@ -1455,7 +1455,7 @@ eRTP_STATUS_CODE RtpSession::processCsrcList(
 eRTP_STATUS_CODE RtpSession::processRcvdRtpPkt(IN RtpBuffer* pobjRtpAddr, IN RtpDt_UInt16 usPort,
         IN RtpBuffer* pobjRTPPacket, OUT RtpPacket* pobjRtpPkt)
 {
-    std::lock_guard<std::mutex> guard(m_objRtpSessionLock);
+    ImsMediaMutex::Autolock lock(m_objRtpSessionLock);
 
     // validation
     if ((pobjRTPPacket == nullptr) || (pobjRtpPkt == nullptr) || (pobjRtpAddr == nullptr))
@@ -2061,7 +2061,7 @@ eRTP_STATUS_CODE RtpSession::processRcvdRtcpPkt(IN RtpBuffer* pobjRtcpAddr, IN R
 eRtp_Bool RtpSession::sendRtcpByePacket()
 {
     RtcpPacket objRtcpPkt;
-    std::lock_guard<std::mutex> guard(m_objRtpSessionLock);
+    ImsMediaMutex::Autolock lock(m_objRtpSessionLock);
 
     if (m_bEnableRTCP == eRTP_TRUE && m_bEnableRTCPBye == eRTP_TRUE)
     {
@@ -2101,7 +2101,7 @@ eRtp_Bool RtpSession::sendRtcpRtpFbPacket(IN RtpDt_UInt32 uiFbType, IN RtpDt_Cha
 {
     RtcpPacket objRtcpPkt;
 
-    std::lock_guard<std::mutex> guard(m_objRtpSessionLock);
+    ImsMediaMutex::Autolock lock(m_objRtpSessionLock);
     // set timestamp
     rtpSetTimestamp();
 
@@ -2124,7 +2124,7 @@ eRtp_Bool RtpSession::sendRtcpPayloadFbPacket(IN RtpDt_UInt32 uiFbType, IN RtpDt
 {
     RtcpPacket objRtcpPkt;
 
-    std::lock_guard<std::mutex> guard(m_objRtpSessionLock);
+    ImsMediaMutex::Autolock lock(m_objRtpSessionLock);
     // set timestamp
     rtpSetTimestamp();
 

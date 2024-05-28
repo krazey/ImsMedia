@@ -17,7 +17,7 @@
 #ifndef IIMS_MEDIA_THREAD
 #define IIMS_MEDIA_THREAD
 
-#include <mutex>
+#include <ImsMediaMutex.h>
 
 #define MAX_EVENTHANDLER_NAME 256
 
@@ -74,7 +74,7 @@ public:
     virtual void* run() = 0;
 
 private:
-    std::mutex mThreadMutex;
+    ImsMediaMutex mThreadMutex;
     bool mThreadStopped;
 };
 

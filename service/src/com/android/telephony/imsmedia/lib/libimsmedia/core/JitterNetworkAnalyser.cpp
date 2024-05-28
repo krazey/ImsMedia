@@ -55,7 +55,7 @@ void JitterNetworkAnalyser::Reset()
     mBadStatusChangedTime = 0;
 
     {
-        std::lock_guard<std::mutex> guard(mMutex);
+        ImsMediaMutex::Autolock lock(mMutex);
         mListAccumDeltas.clear();
         mPrevTimestamp = 0;
         mPrevArrivalTime = 0;
@@ -98,7 +98,7 @@ typename Map::const_iterator getGreatestLess(Map const& m, typename Map::key_typ
 int32_t JitterNetworkAnalyser::CalculateTransitTimeDifference(
         uint32_t timestamp, uint32_t arrivalTime)
 {
-    std::lock_guard<std::mutex> guard(mMutex);
+    ImsMediaMutex::Autolock lock(mMutex);
 
     if (mPrevTimestamp == 0)
     {
@@ -142,7 +142,7 @@ void JitterNetworkAnalyser::SetLateArrivals(uint32_t time)
 
 double JitterNetworkAnalyser::CalculateDeviation(double* pMean)
 {
-    std::lock_guard<std::mutex> guard(mMutex);
+    ImsMediaMutex::Autolock lock(mMutex);
 
     if (mListAccumDeltas.empty())
     {
@@ -167,7 +167,7 @@ double JitterNetworkAnalyser::CalculateDeviation(double* pMean)
 
 int32_t JitterNetworkAnalyser::GetMaxJitterValue()
 {
-    std::lock_guard<std::mutex> guard(mMutex);
+    ImsMediaMutex::Autolock lock(mMutex);
 
     if (mListAccumDeltas.empty())
     {

@@ -44,7 +44,7 @@ private:
     std::list<BaseNode*> mListRegisteredNode;
     ImsMediaCondition mConditionMain;
     ImsMediaCondition mConditionExit;
-    std::mutex mMutex;
+    ImsMediaMutex mMutex;
     std::atomic<bool> mIsRunning;
 };
 

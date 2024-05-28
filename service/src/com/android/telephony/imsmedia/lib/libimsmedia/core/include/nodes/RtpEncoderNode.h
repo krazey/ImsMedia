@@ -21,7 +21,7 @@
 #include <IRtpSession.h>
 #include <RtpContextParams.h>
 #include <RtpHeaderExtension.h>
-#include <mutex>
+#include <ImsMediaMutex.h>
 
 class RtpEncoderNode : public BaseNode, public IRtpEncoderListener
 {
@@ -86,7 +86,7 @@ private:
             ImsMediaSubType subtype, uint8_t* data, uint32_t size, uint32_t timestamp, bool mark);
 
     IRtpSession* mRtpSession;
-    std::mutex mMutex;
+    ImsMediaMutex mMutex;
     RtpAddress mLocalAddress;
     RtpAddress mPeerAddress;
     bool mDtmfMode;

@@ -145,25 +145,25 @@ bool IRtpSession::isSameInstance(
 
 void IRtpSession::SetRtpEncoderListener(IRtpEncoderListener* pRtpEncoderListener)
 {
-    std::lock_guard<std::mutex> guard(mutexEncoder);
+    ImsMediaMutex::Autolock lock(mMutexEncoder);
     mRtpEncoderListener = pRtpEncoderListener;
 }
 
 void IRtpSession::SetRtpDecoderListener(IRtpDecoderListener* pRtpDecoderListener)
 {
-    std::lock_guard<std::mutex> guard(mutexDecoder);
+    ImsMediaMutex::Autolock lock(mMutexDecoder);
     mRtpDecoderListener = pRtpDecoderListener;
 }
 
 void IRtpSession::SetRtcpEncoderListener(IRtcpEncoderListener* pRtcpEncoderListener)
 {
-    std::lock_guard<std::mutex> guard(mutexEncoder);
+    ImsMediaMutex::Autolock lock(mMutexEncoder);
     mRtcpEncoderListener = pRtcpEncoderListener;
 }
 
 void IRtpSession::SetRtcpDecoderListener(IRtcpDecoderListener* pRtcpDecoderListener)
 {
-    std::lock_guard<std::mutex> guard(mutexDecoder);
+    ImsMediaMutex::Autolock lock(mMutexDecoder);
     mRtcpDecoderListener = pRtcpDecoderListener;
 }
 
@@ -363,7 +363,7 @@ bool IRtpSession::ProcRtcpPacket(uint8_t* pData, uint32_t nDataSize)
 int IRtpSession::OnRtpPacket(unsigned char* pData, RtpSvc_Length wLen)
 {
     IMLOGD_PACKET1(IM_PACKET_LOG_RTP, "[OnRtpPacket] size[%d]", wLen);
-    std::lock_guard<std::mutex> guard(mutexEncoder);
+    ImsMediaMutex::Autolock lock(mMutexEncoder);
 
     if (mRtpEncoderListener)
     {
@@ -383,7 +383,7 @@ int IRtpSession::OnRtcpPacket(unsigned char* pData, RtpSvc_Length wLen)
         return wLen;
     }
 
-    std::lock_guard<std::mutex> guard(mutexEncoder);
+    ImsMediaMutex::Autolock lock(mMutexEncoder);
     if (mRtcpEncoderListener)
     {
         if (pData != nullptr)
@@ -405,7 +405,7 @@ int IRtpSession::OnRtcpPacket(unsigned char* pData, RtpSvc_Length wLen)
 void IRtpSession::OnPeerInd(tRtpSvc_IndicationFromStack type, void* pMsg)
 {
     IMLOGD_PACKET2(IM_PACKET_LOG_RTP, "[OnPeerInd] media[%d], type[%d]", mMediaType, type);
-    std::lock_guard<std::mutex> guard(mutexDecoder);
+    ImsMediaMutex::Autolock lock(mMutexDecoder);
 
     switch (type)
     {
@@ -477,7 +477,7 @@ void IRtpSession::OnRtpStatsTimerExpired()
             mMediaType, mNumRtpProcPacket, mNumRtpPacket, mNumRtcpProcPacket,
             mNumSRPacket + mNumRRPacket, mNumRtpDataToSend, mNumRtpPacketSent, mNumRtcpPacketSent);
 
-    std::lock_guard<std::mutex> guard(mutexDecoder);
+    ImsMediaMutex::Autolock lock(mMutexDecoder);
 
     if (mRtpDecoderListener)
     {

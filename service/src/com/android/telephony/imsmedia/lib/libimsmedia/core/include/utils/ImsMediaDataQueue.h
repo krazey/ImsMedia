@@ -18,8 +18,8 @@
 #define IMS_MEDIA_DATA_QUEUE_H
 
 #include <ImsMediaDefine.h>
+#include <ImsMediaMutex.h>
 #include <list>
-#include <mutex>
 
 using namespace std;
 
@@ -121,7 +121,7 @@ public:
 private:
     list<DataEntry*> mList;  // data list
     list<DataEntry*>::iterator mListIter;
-    std::mutex mMutex;
+    ImsMediaMutex mMutex;
 };
 
 #endif

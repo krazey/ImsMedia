@@ -24,9 +24,9 @@
 #include <media/NdkMediaCodec.h>
 #include <media/NdkMediaFormat.h>
 #include <media/NdkImageReader.h>
+#include <ImsMediaMutex.h>
 #include <ImsMediaCondition.h>
 #include "ImsMediaPauseImageSource.h"
-#include <mutex>
 
 class IVideoSourceCallback
 {
@@ -156,7 +156,7 @@ private:
     AMediaFormat* mFormat;
     ANativeWindow* mImageReaderSurface;
     AImageReader* mImageReader;
-    std::mutex mMutex;
+    ImsMediaMutex mMutex;
     ImsMediaCondition mConditionExit;
     IVideoSourceCallback* mListener;
     ImsMediaPauseImageSource mPauseImageSource;

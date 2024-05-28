@@ -28,7 +28,7 @@
 #include <MediaQualityStatus.h>
 #include <list>
 #include <vector>
-#include <mutex>
+#include <ImsMediaMutex.h>
 #include <algorithm>
 
 class HysteresisTimeChecker
@@ -36,20 +36,20 @@ class HysteresisTimeChecker
 public:
     HysteresisTimeChecker(int32_t time = 0)
     {
-        hysteresisTime = time;
-        countHysteresisTime = hysteresisTime;
-        notifiedDirection = 1;
-        firstNotified = false;
-        previousValue = 0;
+        mHysteresisTime = time;
+        mCountHysteresisTime = mHysteresisTime;
+        mNotifiedDirection = 1;
+        mFirstNotified = false;
+        mPreviousValue = 0;
     }
 
     void initialize(int32_t time)
     {
-        hysteresisTime = time;
-        countHysteresisTime = hysteresisTime;
-        notifiedDirection = 1;
-        firstNotified = false;
-        previousValue = 0;
+        mHysteresisTime = time;
+        mCountHysteresisTime = mHysteresisTime;
+        mNotifiedDirection = 1;
+        mFirstNotified = false;
+        mPreviousValue = 0;
     }
 
     ~HysteresisTimeChecker() {}
@@ -67,45 +67,45 @@ public:
         auto iterCrossed = find_if(thresholds.begin(), thresholds.end(),
                 [=, *this](int32_t thres)
                 {
-                    return ((currentValue >= thres && previousValue < thres) ||
-                            (currentValue < thres && previousValue >= thres));
+                    return ((currentValue >= thres && mPreviousValue < thres) ||
+                            (currentValue < thres && mPreviousValue >= thres));
                 });
 
         if (iterCrossed != thresholds.end())
         {
-            uint32_t currentDirection = (currentValue - previousValue) > 0 ? 1 : 0;
+            uint32_t currentDirection = (currentValue - mPreviousValue) > 0 ? 1 : 0;
 
-            if (countHysteresisTime >= hysteresisTime || currentDirection == notifiedDirection)
+            if (mCountHysteresisTime >= mHysteresisTime || currentDirection == mNotifiedDirection)
             {
-                if (!firstNotified)
+                if (!mFirstNotified)
                 {
-                    firstNotified = true;
+                    mFirstNotified = true;
                 }
 
-                previousValue = currentValue;
-                countHysteresisTime = 0;
-                notifiedDirection = currentDirection;
+                mPreviousValue = currentValue;
+                mCountHysteresisTime = 0;
+                mNotifiedDirection = currentDirection;
                 notifiable = true;
             }
 
-            countHysteresisTime++;
+            mCountHysteresisTime++;
         }
         else
         {
-            if (firstNotified)
+            if (mFirstNotified)
             {
-                countHysteresisTime = 1;
+                mCountHysteresisTime = 1;
             }
         }
 
         return notifiable;
     }
 
-    int32_t hysteresisTime;
-    int32_t countHysteresisTime;
-    int32_t previousValue;
-    uint32_t notifiedDirection;
-    bool firstNotified;
+    int32_t mHysteresisTime;
+    int32_t mCountHysteresisTime;
+    int32_t mPreviousValue;
+    uint32_t mNotifiedDirection;
+    bool mFirstNotified;
 };
 
 class MediaQualityAnalyzer : public IImsMediaThread
@@ -350,7 +350,7 @@ protected:
     std::list<uint32_t> mListevent;
     std::list<uint64_t> mListParamA;
     std::list<uint64_t> mListParamB;
-    std::mutex mEventMutex;
+    ImsMediaMutex mEventMutex;
     ImsMediaCondition mConditionExit;
     uint32_t mTimeFactor;
 };

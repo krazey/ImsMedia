@@ -20,7 +20,6 @@
 #include <BaseNode.h>
 #include <ImsMediaVideoSource.h>
 #include <android/native_window.h>
-#include <mutex>
 
 /**
  * @brief This class is interface between audio device and ims media packetization node

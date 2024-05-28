@@ -19,7 +19,7 @@
 
 #include <stdint.h>
 #include <list>
-#include <mutex>
+#include <ImsMediaMutex.h>
 #include <IImsMediaThread.h>
 #include <ImsMediaCondition.h>
 
@@ -37,13 +37,13 @@ private:
     std::list<uint64_t> mListParamA;
     std::list<uint64_t> mListParamB;
     std::list<uint64_t> mListParamC;
-    static std::list<ImsMediaEventHandler*> gListEventHandler;
-    static std::mutex mMutex;
+    static std::list<ImsMediaEventHandler*> sListEventHandler;
+    static ImsMediaMutex sMutex;
     ImsMediaCondition mCondition;
     ImsMediaCondition mConditionExit;
     bool mbTerminate;
     char mName[MAX_EVENTHANDLER_NAME];
-    std::mutex mMutexEvent;
+    ImsMediaMutex mMutexEvent;
 
 public:
     ImsMediaEventHandler();

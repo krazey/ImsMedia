@@ -36,11 +36,11 @@
 std::list<ImsMediaSocket*> ImsMediaSocket::slistRxSocket;
 std::list<ImsMediaSocket*> ImsMediaSocket::slistSocket;
 int32_t ImsMediaSocket::sRxSocketCount = 0;
-bool ImsMediaSocket::mSocketListUpdated = false;
-bool ImsMediaSocket::mTerminateMonitor = false;
-ImsMediaCondition ImsMediaSocket::mConditionExit;
-std::mutex ImsMediaSocket::sMutexRxSocket;
-std::mutex ImsMediaSocket::sMutexSocketList;
+bool ImsMediaSocket::sSocketListUpdated = false;
+bool ImsMediaSocket::sTerminateMonitor = false;
+ImsMediaCondition ImsMediaSocket::sConditionExit;
+ImsMediaMutex ImsMediaSocket::sMutexRxSocket;
+ImsMediaMutex ImsMediaSocket::sMutexSocketList;
 
 enum kDscp
 {
@@ -77,7 +77,7 @@ ImsMediaSocket* ImsMediaSocket::GetInstance(
         uint32_t localPort, const char* peerIpAddress, uint32_t peerPort)
 {
     ImsMediaSocket* pImsMediaSocket = nullptr;
-    std::lock_guard<std::mutex> guard(sMutexSocketList);
+    ImsMediaMutex::Autolock lock(sMutexSocketList);
 
     for (auto& i : slistSocket)
     {
@@ -209,7 +209,7 @@ void ImsMediaSocket::Listen(ISocketListener* listener)
         }
         else
         {
-            mSocketListUpdated = true;
+            sSocketListUpdated = true;
         }
 
         sRxSocketCount++;
@@ -229,7 +229,7 @@ void ImsMediaSocket::Listen(ISocketListener* listener)
         }
         else
         {
-            mSocketListUpdated = true;
+            sSocketListUpdated = true;
         }
 
         IMLOGD1("[Listen] remove RxSocketCount[%d]", sRxSocketCount);
@@ -371,7 +371,7 @@ void ImsMediaSocket::Close()
     }
 
     // close(mSocketFd);
-    std::lock_guard<std::mutex> guard(sMutexSocketList);
+    ImsMediaMutex::Autolock lock(sMutexSocketList);
     slistSocket.remove(this);
     IMLOGD0("[Close] exit");
 }
@@ -462,15 +462,15 @@ ISocketListener* ImsMediaSocket::GetListener()
 
 void ImsMediaSocket::StartSocketMonitor()
 {
-    if (mTerminateMonitor == true)
+    if (sTerminateMonitor == true)
     {
         IMLOGD0("[StartSocketMonitor] Send Signal");
-        mTerminateMonitor = false;
-        mConditionExit.signal();
+        sTerminateMonitor = false;
+        sConditionExit.signal();
         return;
     }
 
-    mTerminateMonitor = false;
+    sTerminateMonitor = false;
     IMLOGD_PACKET0(IM_PACKET_LOG_SOCKET, "[StartSocketMonitor] start monitor thread");
 
     std::thread socketMonitorThread(&ImsMediaSocket::SocketMonitorThread);
@@ -480,14 +480,14 @@ void ImsMediaSocket::StartSocketMonitor()
 void ImsMediaSocket::StopSocketMonitor()
 {
     IMLOGD_PACKET0(IM_PACKET_LOG_SOCKET, "[StopSocketMonitor] stop monitor thread");
-    mTerminateMonitor = true;
-    mConditionExit.wait();
+    sTerminateMonitor = true;
+    sConditionExit.wait();
 }
 
 uint32_t ImsMediaSocket::SetSocketFD(void* pReadFds, void* pWriteFds, void* pExceptFds)
 {
     uint32_t nMaxSD = 0;
-    std::lock_guard<std::mutex> guard(sMutexRxSocket);
+    ImsMediaMutex::Autolock lock(sMutexRxSocket);
     FD_ZERO(reinterpret_cast<fd_set*>(pReadFds));
     FD_ZERO(reinterpret_cast<fd_set*>(pWriteFds));
     FD_ZERO(reinterpret_cast<fd_set*>(pExceptFds));
@@ -504,13 +504,13 @@ uint32_t ImsMediaSocket::SetSocketFD(void* pReadFds, void* pWriteFds, void* pExc
         }
     }
 
-    mSocketListUpdated = false;
+    sSocketListUpdated = false;
     return nMaxSD;
 }
 
 void ImsMediaSocket::ReadDataFromSocket(void* pReadfds)
 {
-    std::lock_guard<std::mutex> guard(sMutexRxSocket);
+    ImsMediaMutex::Autolock lock(sMutexRxSocket);
     IMLOGD_PACKET0(IM_PACKET_LOG_SOCKET, "[ReadDataFromSocket]");
 
     for (auto& rxSocket : slistRxSocket)
@@ -552,12 +552,12 @@ void ImsMediaSocket::SocketMonitorThread()
         tv.tv_sec = 0;
         tv.tv_usec = 100 * 1000;  // micro-second
 
-        if (mTerminateMonitor)
+        if (sTerminateMonitor)
         {
             break;
         }
 
-        if (mSocketListUpdated)
+        if (sSocketListUpdated)
         {
             nMaxSD = SetSocketFD(&ReadFds, &WriteFds, &ExceptFds);
         }
@@ -568,7 +568,7 @@ void ImsMediaSocket::SocketMonitorThread()
 
         int32_t res = select(nMaxSD + 1, &TmpReadfds, &TmpWritefds, &TmpExcepfds, &tv);
 
-        if (mTerminateMonitor)
+        if (sTerminateMonitor)
         {
             break;
         }
@@ -584,6 +584,6 @@ void ImsMediaSocket::SocketMonitorThread()
     }
 
     IMLOGD0("[SocketMonitorThread] exit");
-    mTerminateMonitor = false;
-    mConditionExit.signal();
+    sTerminateMonitor = false;
+    sConditionExit.signal();
 }

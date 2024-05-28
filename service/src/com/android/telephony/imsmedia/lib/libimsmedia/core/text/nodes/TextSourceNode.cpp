@@ -106,7 +106,7 @@ void TextSourceNode::ProcessData()
         return;
     }
 
-    std::lock_guard<std::mutex> guard(mMutex);
+    ImsMediaMutex::Autolock lock(mMutex);
 
     if (GetDataCount() > 0 && !mSentBOM)
     {
@@ -192,7 +192,7 @@ void TextSourceNode::SendRtt(const android::String8* text)
         }
 
         {
-            std::lock_guard<std::mutex> guard(mMutex);
+            ImsMediaMutex::Autolock lock(mMutex);
             AddData(data, chunkSize, 0, false, 0);
             data += chunkSize;
             size -= chunkSize;

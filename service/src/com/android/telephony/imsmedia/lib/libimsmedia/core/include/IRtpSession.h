@@ -23,7 +23,7 @@
 #include <list>
 #include <atomic>
 #include <stdint.h>
-#include <mutex>
+#include <ImsMediaMutex.h>
 
 /*!
  * @class       IRtpEncoderListener
@@ -154,8 +154,8 @@ private:
     uint32_t mNumRtpPacketSent;
     uint32_t mNumRtcpPacketSent;
     int32_t mRttd;
-    std::mutex mutexDecoder;
-    std::mutex mutexEncoder;
+    ImsMediaMutex mMutexDecoder;
+    ImsMediaMutex mMutexEncoder;
 
     ImsMediaType getMediaType();
     void increaseRefCounter();

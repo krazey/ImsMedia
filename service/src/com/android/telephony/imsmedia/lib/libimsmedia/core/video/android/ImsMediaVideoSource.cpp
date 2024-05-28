@@ -54,7 +54,7 @@ ImsMediaVideoSource::~ImsMediaVideoSource() {}
 
 void ImsMediaVideoSource::SetListener(IVideoSourceCallback* listener)
 {
-    std::lock_guard<std::mutex> guard(mMutex);
+    ImsMediaMutex::Autolock lock(mMutex);
     mListener = listener;
 }
 
@@ -312,7 +312,7 @@ void ImsMediaVideoSource::Stop()
 {
     IMLOGD0("[Stop]");
 
-    std::lock_guard<std::mutex> guard(mMutex);
+    ImsMediaMutex::Autolock lock(mMutex);
     mStopped = true;
 
     if (mImageReader != nullptr)
@@ -356,13 +356,13 @@ void ImsMediaVideoSource::Stop()
 
 bool ImsMediaVideoSource::IsStopped()
 {
-    std::lock_guard<std::mutex> guard(mMutex);
+    ImsMediaMutex::Autolock lock(mMutex);
     return mStopped;
 }
 
 void ImsMediaVideoSource::onCameraFrame(AImage* pImage)
 {
-    std::lock_guard<std::mutex> guard(mMutex);
+    ImsMediaMutex::Autolock lock(mMutex);
 
     if (mImageReader == nullptr || pImage == nullptr)
     {
@@ -451,7 +451,7 @@ void ImsMediaVideoSource::onCameraFrame(AImage* pImage)
 bool ImsMediaVideoSource::changeBitrate(const uint32_t bitrate)
 {
     IMLOGD1("[changeBitrate] bitrate[%d]", bitrate);
-    std::lock_guard<std::mutex> guard(mMutex);
+    ImsMediaMutex::Autolock lock(mMutex);
 
     if (mStopped)
     {
@@ -474,7 +474,7 @@ bool ImsMediaVideoSource::changeBitrate(const uint32_t bitrate)
 void ImsMediaVideoSource::requestIdrFrame()
 {
     IMLOGD0("[requestIdrFrame]");
-    std::lock_guard<std::mutex> guard(mMutex);
+    ImsMediaMutex::Autolock lock(mMutex);
 
     if (mStopped)
     {

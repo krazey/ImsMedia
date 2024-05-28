@@ -433,7 +433,7 @@ void RtpEncoderNode::SetRtpHeaderExtension(std::list<RtpHeaderExtension>* listEx
 void RtpEncoderNode::ProcessAudioData(
         ImsMediaSubType subtype, uint8_t* data, uint32_t size, uint32_t timestamp)
 {
-    std::lock_guard<std::mutex> guard(mMutex);
+    ImsMediaMutex::Autolock lock(mMutex);
 
     uint32_t timeDiff;
     uint32_t timestampDiff;

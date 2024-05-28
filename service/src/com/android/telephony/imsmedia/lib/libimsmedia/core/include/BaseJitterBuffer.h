@@ -19,7 +19,7 @@
 
 #include <ImsMediaDataQueue.h>
 #include <BaseSessionCallback.h>
-#include <mutex>
+#include <ImsMediaMutex.h>
 
 /*!
  *    @class        BaseJitterBuffer
@@ -109,7 +109,7 @@ protected:
     uint32_t mSsrc;
     uint32_t mCodecType;
     ImsMediaDataQueue mDataQueue;
-    std::mutex mMutex;
+    ImsMediaMutex mMutex;
     uint32_t mInitJitterBufferSize;
     uint32_t mMinJitterBufferSize;
     uint32_t mMaxJitterBufferSize;

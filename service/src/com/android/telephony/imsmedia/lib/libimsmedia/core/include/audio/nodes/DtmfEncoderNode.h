@@ -21,7 +21,7 @@
 #include <BaseNode.h>
 #include <IImsMediaThread.h>
 #include <ImsMediaCondition.h>
-#include <mutex>
+#include <ImsMediaMutex.h>
 
 class DtmfEncoderNode : public BaseNode, IImsMediaThread
 {
@@ -48,7 +48,7 @@ private:
             uint8_t* pbPayload, uint8_t nEvent, bool bEnd, uint8_t nVolume, uint32_t nPeriod);
     ImsMediaCondition mConditionDtmf;
     ImsMediaCondition mConditionExit;
-    std::mutex mMutex;
+    ImsMediaMutex mMutex;
     std::list<uint8_t> mListDtmfDigit;
     bool mStopDtmf;
     int8_t mSamplingRate;          // audio sampling rate

@@ -30,7 +30,7 @@
 #include <RtpTimerInfo.h>
 #include <RtpReceiverInfo.h>
 #include <RtcpPacket.h>
-#include <mutex>
+#include <ImsMediaMutex.h>
 #include <list>
 
 class RtpStack;
@@ -48,7 +48,7 @@ class RtpStack;
  */
 class RtpSession
 {
-    std::mutex m_objRtpSessionLock;
+    ImsMediaMutex m_objRtpSessionLock;
 
     // Ip address assigned to RTP session
     RtpBuffer* m_pobjTransAddr;

@@ -23,7 +23,6 @@
 #include <ImsMediaCondition.h>
 #include <ImsMediaAudioPlayer.h>
 #include <AudioConfig.h>
-#include <mutex>
 
 /**
  * @brief This class describes an interface between depacketization module and audio device

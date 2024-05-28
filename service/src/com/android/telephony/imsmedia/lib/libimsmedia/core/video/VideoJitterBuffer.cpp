@@ -162,7 +162,7 @@ void VideoJitterBuffer::SetResponseWaitTime(const uint32_t time)
 
 void VideoJitterBuffer::SetAdditionalDelay(const int32_t delayMs)
 {
-    std::lock_guard<std::mutex> guard(mMutex);
+    ImsMediaMutex::Autolock lock(mMutex);
     mAdditionalDelay = delayMs > 0 ? delayMs : 0;
     IMLOGD2("[SetAdditionalDelay] additionalDelayMs=%u, totalDelay=%u", mAdditionalDelay,
             mInitJitterBufferSize + mAdditionalDelay);
@@ -192,7 +192,7 @@ void VideoJitterBuffer::Add(ImsMediaSubType subtype, uint8_t* pbBuffer, uint32_t
     currEntry.eDataType = eDataType;
     currEntry.arrivalTime = arrivalTime;
 
-    std::lock_guard<std::mutex> guard(mMutex);
+    ImsMediaMutex::Autolock lock(mMutex);
 
     if (currEntry.bHeader == true)
     {
@@ -313,7 +313,7 @@ bool VideoJitterBuffer::Get(ImsMediaSubType* subtype, uint8_t** ppData, uint32_t
 {
     DataEntry* pEntry = nullptr;
     bool bValidPacket = false;
-    std::lock_guard<std::mutex> guard(mMutex);
+    ImsMediaMutex::Autolock lock(mMutex);
 
     // check validation
     if (mNewInputData)
@@ -641,7 +641,7 @@ void VideoJitterBuffer::CheckValidIDR(DataEntry* pIDREntry)
 void VideoJitterBuffer::Delete()
 {
     DataEntry* pEntry;
-    std::lock_guard<std::mutex> guard(mMutex);
+    ImsMediaMutex::Autolock lock(mMutex);
     mDataQueue.Get(&pEntry);
 
     if (pEntry == nullptr)

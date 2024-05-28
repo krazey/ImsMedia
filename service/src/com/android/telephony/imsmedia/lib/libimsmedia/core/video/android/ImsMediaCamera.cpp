@@ -44,7 +44,7 @@ const char* GetPairStr(T key, std::vector<std::pair<T, const char*>>& store)
  * camera_status_t error translation
  */
 using ERROR_PAIR = std::pair<camera_status_t, const char*>;
-static std::vector<ERROR_PAIR> errorInfo{
+static std::vector<ERROR_PAIR> gErrorInfo{
         MAKE_PAIR(ACAMERA_OK),
         MAKE_PAIR(ACAMERA_ERROR_UNKNOWN),
         MAKE_PAIR(ACAMERA_ERROR_INVALID_PARAMETER),
@@ -63,7 +63,7 @@ static std::vector<ERROR_PAIR> errorInfo{
 };
 const char* GetErrorStr(camera_status_t err)
 {
-    return GetPairStr<camera_status_t>(err, errorInfo);
+    return GetPairStr<camera_status_t>(err, gErrorInfo);
 }
 
 /**

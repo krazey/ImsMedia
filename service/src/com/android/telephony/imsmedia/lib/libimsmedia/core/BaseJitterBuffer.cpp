@@ -61,7 +61,7 @@ uint32_t BaseJitterBuffer::GetCount()
 void BaseJitterBuffer::Reset()
 {
     IMLOGD0("[Reset]");
-    std::lock_guard<std::mutex> guard(mMutex);
+    ImsMediaMutex::Autolock lock(mMutex);
     mFirstFrameReceived = false;
     mLastPlayedSeqNum = 0;
     mLastPlayedTimestamp = 0;
@@ -69,14 +69,14 @@ void BaseJitterBuffer::Reset()
 
 void BaseJitterBuffer::Delete()
 {
-    std::lock_guard<std::mutex> guard(mMutex);
+    ImsMediaMutex::Autolock lock(mMutex);
     mDataQueue.Delete();
 }
 
 void BaseJitterBuffer::ClearBuffer()
 {
     IMLOGD0("[ClearBuffer]");
-    std::lock_guard<std::mutex> guard(mMutex);
+    ImsMediaMutex::Autolock lock(mMutex);
     DataEntry* entry = nullptr;
 
     while (mDataQueue.Get(&entry))

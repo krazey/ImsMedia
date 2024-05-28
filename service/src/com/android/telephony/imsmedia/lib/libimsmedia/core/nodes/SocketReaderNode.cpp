@@ -72,7 +72,7 @@ ImsMediaResult SocketReaderNode::Start()
 void SocketReaderNode::Stop()
 {
     IMLOGD2("[Stop] media[%d], protocolType[%d]", mMediaType, mProtocolType);
-    std::lock_guard<std::mutex> guard(mMutex);
+    ImsMediaMutex::Autolock lock(mMutex);
     mNodeState = kNodeStateStopped;
 }
 
@@ -175,7 +175,7 @@ ImsMediaResult SocketReaderNode::UpdateConfig(void* config)
 
 void SocketReaderNode::OnReadDataFromSocket()
 {
-    std::lock_guard<std::mutex> guard(mMutex);
+    ImsMediaMutex::Autolock lock(mMutex);
 
     if (mSocketOpened && mSocket != nullptr)
     {
