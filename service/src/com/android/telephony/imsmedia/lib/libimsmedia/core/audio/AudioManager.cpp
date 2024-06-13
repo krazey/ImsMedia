@@ -18,6 +18,7 @@
 #include <ImsMediaTrace.h>
 #include <ImsMediaNetworkUtil.h>
 #include <MediaQualityStatus.h>
+#include <RtpReceptionStats.h>
 
 using namespace android;
 
@@ -222,6 +223,36 @@ void AudioManager::setMediaQualityThreshold(int sessionId, MediaQualityThreshold
     }
 }
 
+void AudioManager::requestRtpReceptionStats(int sessionId, int intervalMs)
+{
+    auto session = mSessions.find(sessionId);
+
+    if (session != mSessions.end())
+    {
+        IMLOGI1("[requestRtpReceptionStats] sessionId[%d]", sessionId);
+        (session->second)->requestRtpReceptionStats(intervalMs);
+    }
+    else
+    {
+        IMLOGE1("[requestRtpReceptionStats] sessionId[%d] is not found", sessionId);
+    }
+}
+
+void AudioManager::adjustDelay(int sessionId, int delayMs)
+{
+    auto session = mSessions.find(sessionId);
+
+    if (session != mSessions.end())
+    {
+        IMLOGI1("[adjustDelay] sessionId[%d]", sessionId);
+        (session->second)->adjustDelay(delayMs);
+    }
+    else
+    {
+        IMLOGE1("[adjustDelay] sessionId[%d] is not found", sessionId);
+    }
+}
+
 void AudioManager::SendInternalEvent(
         uint32_t event, uint64_t sessionId, uint64_t paramA, uint64_t paramB)
 {
@@ -313,6 +344,11 @@ void AudioManager::sendMessage(const int sessionId, const android::Parcel& parce
                     "AUDIO_REQUEST_EVENT", nMsg, sessionId, reinterpret_cast<uint64_t>(threshold));
         }
         break;
+        case kAudioRequestRtpReceptionStats:
+        case kAudioAdjustDelay:
+            ImsMediaEventHandler::SendEvent(
+                    "AUDIO_REQUEST_EVENT", nMsg, sessionId, parcel.readInt32());
+            break;
         default:
             break;
     }
@@ -440,6 +476,12 @@ void AudioManager::RequestHandler::processEvent(
             }
         }
         break;
+        case kAudioRequestRtpReceptionStats:
+            sManager->requestRtpReceptionStats(static_cast<int>(sessionId), paramA);
+            break;
+        case kAudioAdjustDelay:
+            sManager->adjustDelay(static_cast<int>(sessionId), paramA);
+            break;
         case kRequestAudioCmr:
         case kRequestAudioCmrEvs:
         case kRequestSendRtcpXrReport:
@@ -536,7 +578,16 @@ void AudioManager::ResponseHandler::processEvent(
         }
         break;
         case kAudioTriggerAnbrQueryInd:
-            /** TODO: add implementation */
+        {
+            parcel.writeInt32(event);
+            AudioConfig* status = reinterpret_cast<AudioConfig*>(paramA);
+            if (status != nullptr)
+            {
+                status->writeToParcel(&parcel);
+                AudioManager::getInstance()->sendResponse(sessionId, parcel);
+                delete status;
+            }
+        }
             break;
         case kAudioDtmfReceivedInd:
             parcel.writeInt32(event);
@@ -561,6 +612,19 @@ void AudioManager::ResponseHandler::processEvent(
             parcel.writeInt32(static_cast<int>(sessionId));
             sManager->sendResponse(sessionId, parcel);
             break;
+        case kAudioNotifyRtpReceptionStats:
+        {
+            parcel.writeInt32(event);
+            RtpReceptionStats* stats = reinterpret_cast<RtpReceptionStats*>(paramA);
+
+            if (stats != nullptr)
+            {
+                stats->writeToParcel(&parcel);
+                sManager->sendResponse(sessionId, parcel);
+                delete stats;
+            }
+        }
+        break;
         default:
             break;
     }

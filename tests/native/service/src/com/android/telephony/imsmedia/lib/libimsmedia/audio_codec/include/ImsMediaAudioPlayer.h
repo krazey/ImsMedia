@@ -71,7 +71,7 @@ public:
     /**
      * @brief Sets the payload header mode of the EVS codec.
      *
-     * @param EvsPayloadHeaderMode kRtpPyaloadHeaderMode defined in ImsMediaDefine.h
+     * @param EvsPayloadHeaderMode kRtpPayloadHeaderMode defined in ImsMediaDefine.h
      */
     void SetEvsPayloadHeaderMode(int32_t EvsPayloadHeaderMode);
 

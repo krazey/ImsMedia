@@ -26,6 +26,9 @@ const int8_t kDscp = 0;
 const int8_t kRxPayload = 96;
 const int8_t kTxPayload = 96;
 const int8_t kSamplingRate = 8;
+// AnbrParam
+const int32_t kAnbrMUplinkMode = 1;
+const int32_t kAnbrMDownlinkMode = 2;
 
 // RtcpConfig
 const android::String8 kCanonicalName("name");
@@ -58,6 +61,7 @@ class AudioConfigTest : public ::testing::Test
 {
 public:
     RtcpConfig rtcp;
+    AnbrMode anbr;
     AmrParams amr;
     EvsParams evs;
     AudioConfig config1;
@@ -82,6 +86,9 @@ protected:
         evs.setUseHeaderFullOnly(kUseHeaderFullOnly);
         evs.setCodecModeRequest(kcodecModeRequest);
 
+        anbr.setAnbrUplinkCodecMode(kAnbrMUplinkMode);
+        anbr.setAnbrDownlinkCodecMode(kAnbrMDownlinkMode);
+
         config1.setMediaDirection(kMediaDirection);
         config1.setRemoteAddress(kRemoteAddress);
         config1.setRemotePort(kRemotePort);
@@ -90,6 +97,7 @@ protected:
         config1.setRxPayloadTypeNumber(kRxPayload);
         config1.setTxPayloadTypeNumber(kTxPayload);
         config1.setSamplingRateKHz(kSamplingRate);
+        config1.setAnbrMode(anbr);
         config1.setPtimeMillis(kPTimeMillis);
         config1.setMaxPtimeMillis(kMaxPtimeMillis);
         config1.setDtxEnabled(kDtxEnabled);
@@ -149,6 +157,7 @@ TEST_F(AudioConfigTest, TestEqual)
     config2.setRxPayloadTypeNumber(kRxPayload);
     config2.setTxPayloadTypeNumber(kTxPayload);
     config2.setSamplingRateKHz(kSamplingRate);
+    config2.setAnbrMode(anbr);
     config2.setPtimeMillis(kPTimeMillis);
     config2.setMaxPtimeMillis(kMaxPtimeMillis);
     config2.setDtxEnabled(kDtxEnabled);
@@ -171,6 +180,7 @@ TEST_F(AudioConfigTest, TestNotEqual)
     config2.setRxPayloadTypeNumber(kRxPayload);
     config2.setTxPayloadTypeNumber(kTxPayload);
     config2.setSamplingRateKHz(kSamplingRate);
+    config2.setAnbrMode(anbr);
     config2.setPtimeMillis(kPTimeMillis);
     config2.setMaxPtimeMillis(kMaxPtimeMillis);
     config2.setDtxEnabled(kDtxEnabled);
@@ -189,6 +199,7 @@ TEST_F(AudioConfigTest, TestNotEqual)
     config3.setRxPayloadTypeNumber(kRxPayload);
     config3.setTxPayloadTypeNumber(kTxPayload);
     config3.setSamplingRateKHz(kSamplingRate);
+    config3.setAnbrMode(anbr);
     config3.setPtimeMillis(kPTimeMillis);
     config3.setMaxPtimeMillis(kMaxPtimeMillis);
     config3.setDtxEnabled(false);
@@ -215,6 +226,7 @@ TEST_F(AudioConfigTest, TestParcelWithoutRtcp)
     configWrite.setRxPayloadTypeNumber(kRxPayload);
     configWrite.setTxPayloadTypeNumber(kTxPayload);
     configWrite.setSamplingRateKHz(kSamplingRate);
+    configWrite.setAnbrMode(anbr);
     configWrite.setPtimeMillis(kPTimeMillis);
     configWrite.setMaxPtimeMillis(kMaxPtimeMillis);
     configWrite.setDtxEnabled(kDtxEnabled);
@@ -250,6 +262,7 @@ TEST_F(AudioConfigTest, TestParcelWithoutAmrParams)
     configWrite.setRxPayloadTypeNumber(kRxPayload);
     configWrite.setTxPayloadTypeNumber(kTxPayload);
     configWrite.setSamplingRateKHz(kSamplingRate);
+    configWrite.setAnbrMode(anbr);
     configWrite.setPtimeMillis(kPTimeMillis);
     configWrite.setMaxPtimeMillis(kMaxPtimeMillis);
     configWrite.setDtxEnabled(kDtxEnabled);
@@ -283,6 +296,7 @@ TEST_F(AudioConfigTest, TestParcelWithoutEvsParams)
     configWrite.setRxPayloadTypeNumber(kRxPayload);
     configWrite.setTxPayloadTypeNumber(kTxPayload);
     configWrite.setSamplingRateKHz(kSamplingRate);
+    configWrite.setAnbrMode(anbr);
     configWrite.setPtimeMillis(kPTimeMillis);
     configWrite.setMaxPtimeMillis(kMaxPtimeMillis);
     configWrite.setDtxEnabled(kDtxEnabled);

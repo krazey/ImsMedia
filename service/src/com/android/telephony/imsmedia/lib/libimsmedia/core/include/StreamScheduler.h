@@ -22,8 +22,9 @@
 #include <StreamSchedulerCallback.h>
 #include <ImsMediaCondition.h>
 #include <list>
+#include <atomic>
 
-class StreamScheduler : public IImsMediaThread, StreamSchedulerCallback
+class StreamScheduler : public IImsMediaThread, public StreamSchedulerCallback
 {
 public:
     StreamScheduler();
@@ -35,13 +36,16 @@ public:
     void Awake();
     virtual void onAwakeScheduler() { this->Awake(); }
     virtual void* run();
+    bool IsThreadRunning() { return mIsRunning; }
+    uint32_t GetNumRegisteredNodes() { return mListRegisteredNode.size(); }
 
 private:
-    void RunRegisteredNode();
-    std::list<BaseNode*> mlistRegisteredNode;
+    bool RunRegisteredNode();
+    std::list<BaseNode*> mListRegisteredNode;
     ImsMediaCondition mConditionMain;
     ImsMediaCondition mConditionExit;
     std::mutex mMutex;
+    std::atomic<bool> mIsRunning;
 };
 
 #endif

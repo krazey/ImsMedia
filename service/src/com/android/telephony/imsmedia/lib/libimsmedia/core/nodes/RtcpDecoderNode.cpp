@@ -142,12 +142,17 @@ void RtcpDecoderNode::OnRtcpInd(tRtpSvc_IndicationFromStack type, void* data)
         case RTPSVC_RECEIVE_RTCP_SR_IND:
         {
             tNotifyReceiveRtcpSrInd* payload = reinterpret_cast<tNotifyReceiveRtcpSrInd*>(data);
-            IMLOGD_PACKET2(IM_PACKET_LOG_RTCP, "[OnRtcpInd] RtcpSr - fractionLost[%d], jitter[%d]",
-                    payload->stRecvRpt.fractionLost, payload->stRecvRpt.jitter);
 
             if (mMediaType == IMS_MEDIA_AUDIO)
             {
-                mCallback->SendEvent(kCollectPacketInfo, kStreamRtcp);
+                RtcpSr* rtcpSr = new RtcpSr(payload->ntpTimestampMsw, payload->ntpTimestampLsw,
+                        payload->rtpTimestamp, payload->sendPktCount, payload->sendOctCount,
+                        RtcpRecvReport(payload->stRecvRpt.ssrc, payload->stRecvRpt.fractionLost,
+                                payload->stRecvRpt.cumPktsLost, payload->stRecvRpt.extHighSeqNum,
+                                payload->stRecvRpt.jitter, payload->stRecvRpt.lsr,
+                                payload->stRecvRpt.delayLsr));
+                mCallback->SendEvent(
+                        kCollectPacketInfo, kStreamRtcp, reinterpret_cast<uint64_t>(rtcpSr));
             }
 #ifdef DEBUG_BITRATE_CHANGE_SIMULATION
             else if (mMediaType == IMS_MEDIA_VIDEO)

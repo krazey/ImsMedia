@@ -42,6 +42,7 @@ public:
     virtual bool IsSameConfig(void* config);
     virtual void* run();
     void ProcessCmr(const uint32_t cmrType, const uint32_t cmrDefine);
+    void AdjustDelay(const int32_t delayMs);
 
 private:
     AudioConfig* mConfig;
@@ -53,6 +54,7 @@ private:
     kEvsBandwidth mEvsBandwidth;
     int8_t mSamplingRate;
     int32_t mEvsPayloadHeaderMode;
+    int32_t mAnbrDownlinkMode;
     bool mIsDtxEnabled;
     bool mIsOctetAligned;
     uint32_t mRunningCodecMode;

@@ -26,14 +26,15 @@ import android.telephony.imsmedia.IImsVideoSession;
 import android.telephony.imsmedia.IImsVideoSessionCallback;
 import android.telephony.imsmedia.ImsMediaSession;
 import android.telephony.imsmedia.MediaQualityThreshold;
+import android.telephony.imsmedia.RtpConfig;
 import android.telephony.imsmedia.VideoConfig;
-import android.util.Log;
 import android.view.Surface;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.android.telephony.imsmedia.Utils.OpenSessionParams;
+import com.android.telephony.imsmedia.util.Log;
 
 import java.util.List;
 
@@ -108,11 +109,18 @@ public final class VideoSession extends IImsVideoSession.Stub implements IMediaS
     @Override
     public void openSession(OpenSessionParams sessionParams) {
         Utils.sendMessage(mHandler, CMD_OPEN_SESSION, sessionParams);
+        RtpConfig rtpConfig = sessionParams.getRtpConfig();
+        if (rtpConfig != null) {
+            WakeLockManager.getInstance().manageWakeLockOnMediaDirectionUpdate(
+                    mSessionId, rtpConfig.getMediaDirection());
+        }
     }
 
     @Override
     public void closeSession() {
         Utils.sendMessage(mHandler, CMD_CLOSE_SESSION);
+        WakeLockManager.getInstance().manageWakeLockOnMediaDirectionUpdate(
+                mSessionId, RtpConfig.MEDIA_DIRECTION_NO_FLOW);
     }
 
     @Override
@@ -122,55 +130,54 @@ public final class VideoSession extends IImsVideoSession.Stub implements IMediaS
 
     @Override
     public void modifySession(VideoConfig config) {
-        Log.d(TAG, "modifySession: " + config);
+        Log.d(TAG, "modifySession: " + Log.hidePii(String.valueOf(config)));
         Utils.sendMessage(mHandler, CMD_MODIFY_SESSION, config);
+        WakeLockManager.getInstance().manageWakeLockOnMediaDirectionUpdate(
+                mSessionId, config.getMediaDirection());
     }
 
     @Override
     public void setPreviewSurface(Surface surface) {
-        Log.d(TAG, "setPreviewSurface: " + surface);
+        Log.dc(TAG, "setPreviewSurface: " + surface);
         Utils.sendMessage(mHandler, CMD_SET_PREVIEW_SURFACE, surface);
     }
 
     @Override
     public void setDisplaySurface(Surface surface) {
-        Log.d(TAG, "setDisplaySurface: " + surface);
+        Log.dc(TAG, "setDisplaySurface: " + surface);
         Utils.sendMessage(mHandler, CMD_SET_DISPLAY_SURFACE, surface);
     }
 
     @Override
     public void sendHeaderExtension(List<RtpHeaderExtension> extensions) {
-        Log.d(TAG, "sendHeaderExtension");
+        Log.d(TAG, "sendHeaderExtension" + Log.hidePii(String.valueOf(extensions)));
         Utils.sendMessage(mHandler, CMD_SEND_RTP_HDR_EXTN, extensions);
     }
 
     @Override
     public void setMediaQualityThreshold(MediaQualityThreshold threshold) {
-        Log.d(TAG, "setMediaQualityThreshold: " + threshold);
+        Log.d(TAG, "setMediaQualityThreshold: " + Log.hidePii(String.valueOf(threshold)));
         Utils.sendMessage(mHandler, CMD_SET_MEDIA_QUALITY_THRESHOLD, threshold);
     }
 
     @Override
     public void requestVideoDataUsage() {
-        Log.d(TAG, "requestVideoDataUsage: ");
+        Log.dc(TAG, "requestVideoDataUsage: ");
         Utils.sendMessage(mHandler, CMD_REQUEST_VIDEO_DATA_USAGE);
     }
 
     @Override
     public void onOpenSessionSuccess(Object session) {
-        Log.d(TAG, "onOpenSessionSuccess");
         Utils.sendMessage(mHandler, EVENT_OPEN_SESSION_SUCCESS, session);
     }
 
     @Override
     public void onOpenSessionFailure(int error) {
-        Log.d(TAG, "onOpenSessionFailure: error=" + error);
         Utils.sendMessage(mHandler, EVENT_OPEN_SESSION_FAILURE, error);
     }
 
     @Override
     public void onSessionClosed() {
-        Log.d(TAG, "onSessionClosed");
         Utils.sendMessage(mHandler, EVENT_SESSION_CLOSED);
     }
 
@@ -184,7 +191,7 @@ public final class VideoSession extends IImsVideoSession.Stub implements IMediaS
 
         @Override
         public void handleMessage(Message msg) {
-            Log.d(TAG, "handleMessage() -" + VideoSessionHandler.this + ", " + msg.what);
+            Log.dc(TAG, "handleMessage() -" + VideoSessionHandler.this + ", " + msg.what);
             switch(msg.what) {
                 case CMD_OPEN_SESSION:
                     handleOpenSession((OpenSessionParams) msg.obj);
@@ -247,7 +254,6 @@ public final class VideoSession extends IImsVideoSession.Stub implements IMediaS
 
     private void handleOpenSession(OpenSessionParams sessionParams) {
         mVideoListener.setMediaCallback(sessionParams.getCallback());
-        Log.d(TAG, "handleOpenSession");
         int result = mVideoService.openSession(mSessionId, sessionParams);
         if (result != ImsMediaSession.RESULT_SUCCESS) {
             handleOpenFailure(result);
@@ -255,7 +261,6 @@ public final class VideoSession extends IImsVideoSession.Stub implements IMediaS
     }
 
     private void handleCloseSession() {
-        Log.d(TAG, "handleCloseSession");
         mVideoService.closeSession(mSessionId);
     }
 
@@ -297,6 +302,9 @@ public final class VideoSession extends IImsVideoSession.Stub implements IMediaS
             mCallback.onOpenSessionFailure(error);
         } catch (RemoteException e) {
             Log.e(TAG, "Failed to notify openFailure: " + e);
+        } finally {
+            WakeLockManager.getInstance().manageWakeLockOnMediaDirectionUpdate(
+                    mSessionId, RtpConfig.MEDIA_DIRECTION_NO_FLOW);
         }
     }
 

@@ -53,9 +53,17 @@ public:
      * @brief Change the bitrate with given cmr value
      *
      * @param cmr The cmr value to change. The value will be 0-7 for AMR, or 0-8 for AMR-WB. CMR
-       value 15 indicates that no mode request is present, and other values are for future use.
+     * value 15 indicates that no mode request is present, and other values are for future use.
      */
     void ProcessCmr(const uint32_t cmrType, const uint32_t cmrDefine = 0);
+
+    /**
+     * @brief Trigger Anbr Query to change the bitrate with given cmr value
+     *
+     * @param cmr The cmr value to change. The value will be 0-7 for AMR, or 0-8 for AMR-WB. CMR
+     * value 15 indicates that no mode request is present, and other values are for future use.
+     */
+    void triggerAnbrQuery(uint32_t cmr);
 
 public:
     bool mFirstFrame;
@@ -68,6 +76,7 @@ public:
     int8_t mSamplingRate;
     int8_t mEvsChAwOffset;
     int32_t mMediaDirection;
+    int32_t mAnbrUplinkMode;
     bool mIsDtxEnabled;
     bool mIsOctetAligned;
 };

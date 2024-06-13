@@ -38,9 +38,9 @@ public:
 
 private:
     void DecodeAvc(ImsMediaSubType subtype, uint8_t* pData, uint32_t nDataSize, uint32_t nTimeStamp,
-            bool bMark, uint32_t nSeqNum);
+            bool bMark, uint32_t nSeqNum, uint32_t arrivalTime);
     void DecodeHevc(ImsMediaSubType subtype, uint8_t* pData, uint32_t nDataSize,
-            uint32_t nTimeStamp, bool bMark, uint32_t nSeqNum);
+            uint32_t nTimeStamp, bool bMark, uint32_t nSeqNum, uint32_t arrivalTime);
 
     uint32_t mCodecType;
     uint32_t mPayloadMode;

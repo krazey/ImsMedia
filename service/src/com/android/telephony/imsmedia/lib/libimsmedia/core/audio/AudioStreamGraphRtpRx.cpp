@@ -147,16 +147,6 @@ ImsMediaResult AudioStreamGraphRtpRx::update(RtpConfig* config)
     return ret;
 }
 
-void AudioStreamGraphRtpRx::processCmr(const uint32_t cmrType, const uint32_t cmrDefine)
-{
-    BaseNode* node = findNode(kNodeIdAudioPlayer);
-
-    if (node != nullptr)
-    {
-        (reinterpret_cast<IAudioPlayerNode*>(node))->ProcessCmr(cmrType, cmrDefine);
-    }
-}
-
 ImsMediaResult AudioStreamGraphRtpRx::start()
 {
     if (mConfig == nullptr)
@@ -172,4 +162,24 @@ ImsMediaResult AudioStreamGraphRtpRx::start()
 
     // not started
     return RESULT_SUCCESS;
+}
+
+void AudioStreamGraphRtpRx::processCmr(const uint32_t cmrType, const uint32_t cmrDefine)
+{
+    BaseNode* node = findNode(kNodeIdAudioPlayer);
+
+    if (node != nullptr)
+    {
+        (reinterpret_cast<IAudioPlayerNode*>(node))->ProcessCmr(cmrType, cmrDefine);
+    }
+}
+
+void AudioStreamGraphRtpRx::adjustDelay(const int32_t delayMs)
+{
+    BaseNode* node = findNode(kNodeIdAudioPlayer);
+
+    if (node != nullptr)
+    {
+        (reinterpret_cast<IAudioPlayerNode*>(node))->AdjustDelay(delayMs);
+    }
 }

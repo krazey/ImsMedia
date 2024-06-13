@@ -74,9 +74,9 @@ public final class RtpContextParams implements Parcelable {
     @NonNull
     @Override
     public String toString() {
-        return "RtpContextParams: {mSsrc=" + mSsrc
-            + ", mTimestamp=" + mTimestamp
-            + ", mSequenceNumber=" + mSequenceNumber
+        return "RtpContextParams: {mSsrc=" + Long.toHexString(mSsrc)
+            + ", mTimestamp=" + Long.toHexString(mTimestamp)
+            + ", mSequenceNumber=" + Integer.toHexString(mSequenceNumber)
             + " }";
     }
 
@@ -153,7 +153,7 @@ public final class RtpContextParams implements Parcelable {
          * @return The same instance of the builder.
          */
         public @NonNull Builder setSsrc(final long ssrc) {
-            if (ssrc < 0 || ssrc > MAX_VALUE_32BIT) {
+            if (Long.compareUnsigned(ssrc, MAX_VALUE_32BIT) > 0) {
                 throw new IllegalArgumentException("Invalid ssrc value: " + ssrc);
             } else {
                 this.mSsrc = ssrc;
@@ -169,7 +169,7 @@ public final class RtpContextParams implements Parcelable {
          * @return The same instance of the builder.
          */
         public @NonNull Builder setTimestamp(final long timestamp) {
-            if (timestamp < 0 || timestamp > MAX_VALUE_32BIT) {
+            if (Long.compareUnsigned(timestamp, MAX_VALUE_32BIT) > 0) {
                 throw new IllegalArgumentException("Invalid timestamp value: " + timestamp);
             } else {
                 this.mTimestamp = timestamp;
@@ -185,7 +185,7 @@ public final class RtpContextParams implements Parcelable {
          * @return The same instance of the builder.
          */
         public @NonNull Builder setSequenceNumber(final int sequenceNumber) {
-            if (sequenceNumber < 0 || sequenceNumber > MAX_VALUE_16BIT) {
+            if (Integer.compareUnsigned(sequenceNumber, MAX_VALUE_16BIT) > 0) {
                 throw new IllegalArgumentException(
                         "Invalid sequenceNumber value: " + sequenceNumber);
             } else {

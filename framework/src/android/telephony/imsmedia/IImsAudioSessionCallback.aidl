@@ -21,6 +21,7 @@ import android.telephony.imsmedia.AudioConfig;
 import android.telephony.ims.RtpHeaderExtension;
 import android.telephony.imsmedia.IImsAudioSession;
 import android.telephony.imsmedia.MediaQualityStatus;
+import android.telephony.imsmedia.RtpReceptionStats;
 
 /**
  * See ImsAudioSessionCallback for more information.
@@ -40,4 +41,5 @@ oneway interface IImsAudioSessionCallback {
     void onCallQualityChanged(in CallQuality callQuality);
     void triggerAnbrQuery(in AudioConfig config);
     void onDtmfReceived(in char dtmfDigit, int durationMs);
+    void notifyRtpReceptionStats(in RtpReceptionStats stats);
 }

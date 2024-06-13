@@ -65,7 +65,7 @@ public:
 
         // cross the threshold case
         auto iterCrossed = find_if(thresholds.begin(), thresholds.end(),
-                [=](int32_t thres)
+                [=, *this](int32_t thres)
                 {
                     return ((currentValue >= thres && previousValue < thres) ||
                             (currentValue < thres && previousValue >= thres));
@@ -131,6 +131,15 @@ public:
     void setMediaQualityThreshold(const MediaQualityThreshold& threshold);
 
     /**
+     * @brief Sets the interval of the RTP reception statistics notification params for checking the
+     *        current status of the rtp stream. It will trigger the notifyRtpReceptionStats() with
+     *        the RtpReceptionStats.
+     *
+     * @param intervalMs The interval of the time in milliseconds of the rtp reception notification
+     */
+    void setNotifyRtpReceptionStatsInterval(const int32_t intervalMs);
+
+    /**
      * @brief Check the audio config has different codec values
      *
      * @param config The AudioConfig to compare
@@ -151,9 +160,9 @@ public:
      * @brief Collect information of sending or receiving the rtp or the rtcp packet datas.
      *
      * @param streamType The stream type. Tx, Rx, Rtcp.
-     * @param packet The packet data struct.
+     * @param param The structure set of the rtp/rtcp payload.
      */
-    void collectInfo(const int32_t streamType, RtpPacket* packet);
+    void collectInfo(const int32_t streamType, uint64_t param);
 
     /**
      * @brief Collect optional information of sending or receiving the rtp or rtcp packet datas.
@@ -213,6 +222,18 @@ public:
     uint32_t getLostPacketSize();
 
     /**
+     * @brief Set the event handler time factor. This method is to adjust the event timing intervals
+     * only for the testing purpose to reduce the testing time. The normal case, the default time
+     * interval will be used.
+     *
+     * For example: if 100 is passed in, then the event processing period will be reduced from
+     * 20ms to 200us and the call quality processing period will be reduced from 1 second to 10ms.
+     *
+     * @param timeFactor Time intervals will be divided by this value.  The maximum value is 1000.
+     */
+    void setEventTimeFactor(const uint32_t timeFactor);
+
+    /**
      * @brief Send message event to event handler
      *
      * @param event The event type
@@ -229,6 +250,7 @@ protected:
      */
     void processData(const int32_t timeCount);
     void processMediaQuality();
+    void processRtpReceptionStats(const int32_t timeCount);
     void notifyCallQuality();
     void notifyMediaQualityStatus();
     void AddEvent(uint32_t event, uint64_t paramA, uint64_t paramB);
@@ -280,6 +302,14 @@ protected:
     uint32_t mCallQualityNumRxPacket;
     /** The number of lost rx packet for call quality calculation */
     uint32_t mCallQualityNumLostPacket;
+    /** The number of dropped packets this period for call quality calculation */
+    uint32_t mCallQualityNumDroppedPacket;
+    /** The number of received packets this period for call quality inactivity */
+    uint32_t mCallQualityInactNumRxPacket;
+    /** The number of 1s periods without activity for call quality inactivity */
+    uint32_t mCallQualityNumInactPeriods;
+    /** The list of the playout delay of the audio frames */
+    std::list<uint32_t> mListPlayoutDelay;
 
     // MediaQualityThreshold parameters
     std::vector<int32_t> mBaseRtpInactivityTimes;
@@ -290,6 +320,12 @@ protected:
     std::vector<int32_t> mPacketLossThreshold;
     std::vector<int32_t> mJitterThreshold;
     bool mNotifyStatus;
+
+    // Rtp Reception Statistics
+    int32_t mReceptionInterval;
+    int32_t mLatestRtcpSrTimestamp;
+    int64_t mLatestRtcpSrNtpTimestamp;
+    int32_t mLatestRoundTripDelayMs;
 
     // Counter for inactivity check
     int32_t mCountRtpInactivity;
@@ -316,6 +352,7 @@ protected:
     std::list<uint64_t> mListParamB;
     std::mutex mEventMutex;
     ImsMediaCondition mConditionExit;
+    uint32_t mTimeFactor;
 };
 
 #endif

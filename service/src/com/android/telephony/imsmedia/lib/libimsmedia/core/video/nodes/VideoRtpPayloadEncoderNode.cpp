@@ -36,7 +36,7 @@ VideoRtpPayloadEncoderNode::VideoRtpPayloadEncoderNode(BaseSessionCallback* call
         BaseNode(callback)
 {
     mCodecType = VideoConfig::CODEC_AVC;
-    mPayloadMode = kRtpPyaloadHeaderModeNonInterleaved;
+    mPayloadMode = kRtpPayloadHeaderModeNonInterleaved;
     mPrevMark = false;
     mBuffer = nullptr;
     memset(mVPS, 0, sizeof(mVPS));
@@ -326,7 +326,7 @@ void VideoRtpPayloadEncoderNode::EncodeAvcNALUnit(
     }
 
     // make FU-A packets
-    if (mPayloadMode == kRtpPyaloadHeaderModeNonInterleaved && nDataSize > nMtu)
+    if (mPayloadMode == kRtpPayloadHeaderModeNonInterleaved && nDataSize > nMtu)
     {
         uint32_t nRemainSize = nDataSize;
         uint32_t nSendDataSize;
@@ -560,7 +560,7 @@ void VideoRtpPayloadEncoderNode::EncodeHevcNALUnit(
 
     // Share payload header mode with h.264 - single nal unit mode, non interleaved mode
     // make FU-A packets
-    if (mPayloadMode == kRtpPyaloadHeaderModeNonInterleaved && nDataSize > nMtu)
+    if (mPayloadMode == kRtpPayloadHeaderModeNonInterleaved && nDataSize > nMtu)
     {
         uint32_t nRemainSize = nDataSize;
         uint32_t nSendDataSize;

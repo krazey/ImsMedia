@@ -64,7 +64,7 @@ void BaseNode::SetSessionCallback(BaseSessionCallback* callback)
     mCallback = callback;
 }
 
-void BaseNode::SetSchedulerCallback(std::shared_ptr<StreamSchedulerCallback>& callback)
+void BaseNode::SetSchedulerCallback(const std::shared_ptr<StreamSchedulerCallback>& callback)
 {
     mScheduler = callback;
 }
@@ -203,7 +203,7 @@ const char* BaseNode::GetNodeName()
         }
     }
 
-    return nullptr;
+    return "NodeUnknown";
 }
 
 void BaseNode::SetMediaType(ImsMediaType eType)
@@ -304,7 +304,7 @@ void BaseNode::SendDataToRearNode(ImsMediaSubType subtype, uint8_t* pData, uint3
         uint32_t nTimestamp, bool bMark, uint32_t nSeqNum, ImsMediaSubType nDataType,
         uint32_t arrivalTime)
 {
-    bool nNeedRunCount = false;
+    bool needRunCount = false;
 
     for (auto& node : mListRearNodes)
     {
@@ -313,14 +313,14 @@ void BaseNode::SendDataToRearNode(ImsMediaSubType subtype, uint8_t* pData, uint3
             node->OnDataFromFrontNode(
                     subtype, pData, nDataSize, nTimestamp, bMark, nSeqNum, nDataType, arrivalTime);
 
-            if (node->IsRunTime() == false)
+            if (!node->IsRunTime())
             {
-                nNeedRunCount = true;
+                needRunCount = true;
             }
         }
     }
 
-    if (nNeedRunCount == true && mScheduler != nullptr)
+    if (needRunCount && mScheduler != nullptr)
     {
         mScheduler->onAwakeScheduler();
     }

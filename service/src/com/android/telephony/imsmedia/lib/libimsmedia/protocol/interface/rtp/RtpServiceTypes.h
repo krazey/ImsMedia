@@ -62,7 +62,6 @@ typedef struct
 {
     RtpDt_UInt32 payloadType;
     RtpDt_UInt32 samplingRate;
-    RtpDt_UInt32 frameInterval;
 } tRtpSvc_SetPayloadParam;
 
 typedef struct

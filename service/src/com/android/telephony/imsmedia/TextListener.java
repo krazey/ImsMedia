@@ -19,7 +19,8 @@ package com.android.telephony.imsmedia;
 import android.os.Handler;
 import android.os.Parcel;
 import android.telephony.imsmedia.TextConfig;
-import android.util.Log;
+
+import com.android.telephony.imsmedia.util.Log;
 
 /**
  * Text listener to process JNI messages from local AP based RTP stack
@@ -62,7 +63,7 @@ public class TextListener implements JNIImsMediaListener {
     @Override
     public void onMessage(final Parcel parcel) {
         final int event = parcel.readInt();
-        Log.d(TAG, "onMessage() -" + TextListener.this + ", event=" + event);
+        Log.dc(TAG, "onMessage() -" + TextListener.this + ", event=" + event);
         switch (event) {
             case TextSession.EVENT_OPEN_SESSION_SUCCESS:
                 final int sessionId = parcel.readInt();

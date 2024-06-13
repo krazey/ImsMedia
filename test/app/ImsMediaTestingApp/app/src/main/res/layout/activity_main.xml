@@ -186,6 +186,7 @@
       android:textColor="@color/black" />
 
   <Button
+      android:id="@+id/sendHeaderExtension"
       android:layout_width="wrap_content"
       android:layout_height="wrap_content"
       android:layout_marginTop="20dp"
@@ -196,6 +197,21 @@
       android:enabled="true"
       android:onClick="sendHeaderExtension"
       android:text="@string/send_header_extension_button_text"
+      android:autoSizeTextType="uniform"
+      android:textColor="@color/black" />
+
+  <Button
+      android:id="@+id/adjustDelay"
+      android:layout_width="wrap_content"
+      android:layout_height="wrap_content"
+      android:layout_marginTop="20dp"
+      android:layout_marginEnd="15dp"
+      android:layout_alignParentEnd="true"
+      android:layout_below="@+id/sendHeaderExtension"
+      android:backgroundTint="@drawable/selected_green"
+      android:enabled="true"
+      android:onClick="adjustDelay"
+      android:text="@string/apply_delay_button_text"
       android:autoSizeTextType="uniform"
       android:textColor="@color/black" />
 

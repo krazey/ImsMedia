@@ -16,6 +16,8 @@
 
 package com.android.telephony.imsmedia;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.times;
@@ -55,6 +57,7 @@ public class TextSessionTest extends ImsMediaTest {
     private static final String TEXT_STREAM = "Hello";
     private TextSession mTextSession;
     private TextSession.TextSessionHandler mHandler;
+    private WakeLockManager mWakeLockManager;
     @Mock
     private TextService mTextService;
     private TextListener mTextListener;
@@ -71,12 +74,14 @@ public class TextSessionTest extends ImsMediaTest {
         mTextListener = mTextSession.getTextListener();
         mHandler = mTextSession.getTextSessionHandler();
         mTestClass = TextSessionTest.this;
+        mWakeLockManager = WakeLockManager.getInstance();
         super.setUp();
     }
 
     @After
     public void tearDown() throws Exception {
         super.tearDown();
+        mWakeLockManager.cleanup();
     }
 
     private Parcel createParcel(int message, int result, TextConfig config) {
@@ -110,6 +115,7 @@ public class TextSessionTest extends ImsMediaTest {
         mTextSession.openSession(params);
         processAllMessages();
         verify(mTextService, times(1)).openSession(eq(SESSION_ID), eq(params));
+        assertThat(mWakeLockManager.mWakeLock.isHeld()).isEqualTo(false);
     }
 
     @Test
@@ -117,6 +123,7 @@ public class TextSessionTest extends ImsMediaTest {
         mTextSession.closeSession();
         processAllMessages();
         verify(mTextService, times(1)).closeSession(eq(SESSION_ID));
+        assertThat(mWakeLockManager.mWakeLock.isHeld()).isEqualTo(false);
     }
 
     @Test
@@ -126,6 +133,7 @@ public class TextSessionTest extends ImsMediaTest {
         mTextSession.modifySession(config);
         processAllMessages();
         verify(mTextLocalSession, times(1)).modifySession(eq(config));
+        assertThat(mWakeLockManager.mWakeLock.isHeld()).isEqualTo(true);
 
         // Modify Session Response - Success
         mTextListener.onMessage(
@@ -211,6 +219,7 @@ public class TextSessionTest extends ImsMediaTest {
         processAllMessages();
         try {
             verify(mCallback, times(1)).onOpenSessionSuccess(mTextSession);
+            assertThat(mWakeLockManager.mWakeLock.isHeld()).isEqualTo(false);
         } catch (RemoteException e) {
             fail("Failed to notify onOpenSessionSuccess: " + e);
         }
@@ -222,6 +231,7 @@ public class TextSessionTest extends ImsMediaTest {
         processAllMessages();
         try {
             verify(mCallback, times(1)).onOpenSessionFailure(ImsMediaSession.RESULT_INVALID_PARAM);
+            assertThat(mWakeLockManager.mWakeLock.isHeld()).isEqualTo(false);
         } catch (RemoteException e) {
             fail("Failed to notify onOpenSessionFailure: " + e);
         }
