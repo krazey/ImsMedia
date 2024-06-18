@@ -18,40 +18,6 @@ package {
     default_applicable_licenses: ["Android-Apache-2.0"],
 }
 
-soong_config_module_type {
-    name: "audio_cc_defaults",
-    module_type: "cc_defaults",
-    config_namespace: "audio_lib",
-    variables: ["audio_type"],
-    properties: ["defaults","static_libs","header_libs"],
-}
-
-soong_config_string_variable {
-    name: "audio_type",
-    values: ["oem_audio"],
-}
-
-audio_cc_defaults {
-    name: "libimsmedia_audio_cc_defaults",
-    soong_config_variables: {
-        audio_type: {
-            oem_audio: {
-                defaults: [
-                    "libimsmedia_oem_audio_codec_defaults",
-                ],
-                static_libs: [
-                    "libimsmedia_oem_audio_codec",
-                ],
-            },
-            conditions_default: {
-                static_libs: [
-                    "libimsmedia_aosp_audio_codec",
-                ],
-            },
-        },
-    },
-}
-
 cc_defaults {
     name: "libimsmedia_defaults",
     cflags: [
@@ -70,13 +36,13 @@ cc_library_shared {
     name: "libimsmedia",
     system_ext_specific: true,
     defaults: [
-        "libimsmedia_audio_cc_defaults",
         "libimsmedia_defaults",
     ],
     srcs: [
         "libimsmedia.cpp",
     ],
     static_libs: [
+        "libimsmedia_audio",
         "libimsmedia_config",
         "libimsmedia_core",
         "libimsmedia_protocol",

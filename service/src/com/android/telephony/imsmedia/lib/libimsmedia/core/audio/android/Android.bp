@@ -19,14 +19,14 @@ package {
 }
 
 cc_library_headers {
-    name: "libimsmedia_aosp_audio_codec_headers",
+    name: "libimsmedia_android_audio_headers",
     export_include_dirs: [
         "include",
     ],
 }
 
 cc_library_static {
-    name: "libimsmedia_aosp_audio_codec",
+    name: "libimsmedia_audio",
     defaults: [
         "libimsmedia_defaults",
         "libimsmedia_audio_defaults",
