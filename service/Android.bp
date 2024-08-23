@@ -32,6 +32,7 @@ android_library {
     libs: [
         "android-support-annotations",
         "androidx.annotation_annotation",
+        "keepanno-annotations",
     ],
     static_libs: [
         "android.hardware.radio.ims.media-V1-java",
@@ -51,9 +52,6 @@ android_app {
     required: [
         "libimsmedia",
     ],
-    optimize: {
-        enabled: false,
-    },
     dex_preopt: {
         enabled: false,
     },
