@@ -26,6 +26,7 @@
 #include <media/NdkImageReader.h>
 #include <ImsMediaCondition.h>
 #include "ImsMediaPauseImageSource.h"
+#include <mutex>
 
 class IVideoSourceCallback
 {
