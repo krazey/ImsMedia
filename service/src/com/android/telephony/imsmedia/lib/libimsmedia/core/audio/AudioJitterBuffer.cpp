@@ -20,6 +20,8 @@
 #include <ImsMediaTimer.h>
 #include <ImsMediaTrace.h>
 #include <numeric>
+#include <algorithm>
+#include <mutex>
 
 #define AUDIO_JITTER_BUFFER_MIN_SIZE    (3)
 #define AUDIO_JITTER_BUFFER_MAX_SIZE    (9)
