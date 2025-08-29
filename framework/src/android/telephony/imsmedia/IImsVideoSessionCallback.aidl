@@ -24,7 +24,7 @@ import android.telephony.imsmedia.IImsVideoSession;
 /**
  * See ImsVideoSessionCallback for more information.
  *
- * {@hide}
+ * @hide
  */
 oneway interface IImsVideoSessionCallback {
     void onOpenSessionSuccess(IImsVideoSession session);

@@ -26,7 +26,7 @@ import android.telephony.imsmedia.RtpReceptionStats;
 /**
  * See ImsAudioSessionCallback for more information.
  *
- * {@hide}
+ * @hide
  */
 oneway interface IImsAudioSessionCallback {
     void onOpenSessionSuccess(IImsAudioSession session);

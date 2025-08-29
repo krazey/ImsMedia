@@ -23,7 +23,7 @@ import android.telephony.ims.RtpHeaderExtension;
 /**
  * See ImsAudioSession for more information.
  *
- * {@hide}
+ * @hide
  */
 interface IImsAudioSession {
     int getSessionId();

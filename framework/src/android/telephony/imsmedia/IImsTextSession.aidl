@@ -22,7 +22,7 @@ import android.telephony.imsmedia.MediaQualityThreshold;
 /**
  * See ImsTextSession for more information.
  *
- * {@hide}
+ * @hide
  */
 interface IImsTextSession {
     int getSessionId();
