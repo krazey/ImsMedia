@@ -23,7 +23,7 @@ import android.telephony.imsmedia.VideoConfig;
 /**
  * See ImsMediaManager for more information
  *
- * {@hide}
+ * @hide
  */
 oneway interface IImsMedia {
     void openSession(
