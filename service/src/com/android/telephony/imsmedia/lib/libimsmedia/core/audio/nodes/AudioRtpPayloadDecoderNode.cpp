@@ -729,10 +729,7 @@ bool AudioRtpPayloadDecoderNode::ProcessCMRForEVS(
 
     if (eEVSPayloadHeaderMode == kRtpPayloadHeaderModeEvsHeaderFull)
     {
-        if (cmr_t < 8)  // cmr_type is 3bit validation.
-        {
-            eNewEVSCMRCodeType = cmr_t;
-        }
+        eNewEVSCMRCodeType = cmr_t;
 
         if (cmr_d < 16)  // cmr_define is 4bit validation
         {
