@@ -461,17 +461,17 @@ void RtcpXrEncoder::encodeStatisticSummeryReport(tLossReport* lossReport,
     mBitWriter.Write(1, 1);
 
     // TTL and HL : 0 - not using, 1 - IPv4, 2 - IPv6, 3 must not used
-    if (ttlReport->ipVersion == -1)
-    {
-        mBitWriter.Write(0, 2);
-    }
-    else if (ttlReport->ipVersion == IPV4)
+    if (ttlReport->ipVersion == IPV4)
     {
         mBitWriter.Write(1, 2);
     }
-    else
+    else if (ttlReport->ipVersion == IPV6)
     {
         mBitWriter.Write(2, 2);
+    }
+    else
+    {
+        mBitWriter.Write(0, 2);
     }
 
     // padding

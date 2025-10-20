@@ -22,7 +22,7 @@ import android.telephony.imsmedia.IImsTextSession;
 /**
  * See ImsTextSessionCallback for more information.
  *
- * {@hide}
+ * @hide
  */
 oneway interface IImsTextSessionCallback {
     void onOpenSessionSuccess(IImsTextSession session);

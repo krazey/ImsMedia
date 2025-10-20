@@ -24,7 +24,7 @@ import android.view.Surface;
 /**
  * See ImsVideoSession for more information.
  *
- * {@hide}
+ * @hide
  */
 interface IImsVideoSession {
     int getSessionId();
