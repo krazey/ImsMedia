@@ -138,6 +138,7 @@ void AudioRtpPayloadDecoderNode::OnDataFromFrontNode(ImsMediaSubType subtype, ui
             break;
         case kAudioCodecPcmu:
         case kAudioCodecPcma:
+        case kAudioCodecL16:
             SendDataToRearNode(
                     MEDIASUBTYPE_RTPPAYLOAD, pData, nDataSize, nTimestamp, bMark, nSeqNum);
             break;

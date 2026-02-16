@@ -43,16 +43,19 @@ public final class AudioConfig extends RtpConfig {
     public static final int CODEC_PCMA = android.hardware.radio.ims.media.CodecType.PCMA;
     /** G.711 μ-law i.e. Pulse Code Modulation using μ-law */
     public static final int CODEC_PCMU = android.hardware.radio.ims.media.CodecType.PCMU;
+    /** L16 is 16 bit Pulse Code Modulation */
+    public static final int CODEC_L16 = 1 << 5;
 
     /** @hide */
     @IntDef(
         flag = true,
         value = {
-           CODEC_AMR,
-           CODEC_AMR_WB,
-           CODEC_EVS,
-           CODEC_PCMA,
-           CODEC_PCMU,
+            CODEC_AMR,
+            CODEC_AMR_WB,
+            CODEC_EVS,
+            CODEC_PCMA,
+            CODEC_PCMU,
+            CODEC_L16,
     })
     @Retention(RetentionPolicy.SOURCE)
     public @interface CodecType {}

@@ -33,6 +33,7 @@ TEST_F(ImsMediaAudioUtilTest, ConvertCodecTypeTest)
     EXPECT_EQ(ImsMediaAudioUtil::ConvertCodecType(AudioConfig::CODEC_PCMA), kAudioCodecPcma);
     EXPECT_EQ(ImsMediaAudioUtil::ConvertCodecType(AudioConfig::CODEC_PCMU), kAudioCodecPcmu);
     EXPECT_EQ(ImsMediaAudioUtil::ConvertCodecType(12), kAudioCodecAmr);
+    EXPECT_EQ(ImsMediaAudioUtil::ConvertCodecType(AudioConfig::CODEC_L16), kAudioCodecL16);
 }
 
 TEST_F(ImsMediaAudioUtilTest, ConvertAmrModeToBitLenTest)

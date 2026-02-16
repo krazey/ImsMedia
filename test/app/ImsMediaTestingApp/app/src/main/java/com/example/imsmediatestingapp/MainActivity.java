@@ -5,7 +5,6 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.SurfaceTexture;
 import android.hardware.radio.ims.media.AmrMode;
-import android.hardware.radio.ims.media.CodecType;
 import android.hardware.radio.ims.media.EvsBandwidth;
 import android.hardware.radio.ims.media.EvsMode;
 import android.media.AudioManager;
@@ -138,13 +137,25 @@ public class MainActivity extends AppCompatActivity {
     private int mSelectedCvoValue = -1;
     private String mSelectedVideoResolution = "VGA_PR";
     private Set<Integer> mSelectedRtcpFbTypes = new HashSet<>();
+    /** Adaptive Multi-Rate */
+    public static final int CODEC_AMR = 1 << 0;
+    /** Adaptive Multi-Rate Wide Band */
+    public static final int CODEC_AMR_WB = 1 << 1;
+    /** Enhanced Voice Services */
+    public static final int CODEC_EVS = 1 << 2;
+    /** G.711 A-law i.e. Pulse Code Modulation using A-law */
+    public static final int CODEC_PCMA = 1 << 3;
+    /** G.711 μ-law i.e. Pulse Code Modulation using μ-law */
+    public static final int CODEC_PCMU = 1 << 4;
+    /** L16 is 16 bit Pulse Code Modulation */
+    public static final int CODEC_L16 = 1 << 5;
 
     // The order of these values determines the priority in which they would be
     // selected if there
     // is a common match between the two devices' selections during the handshake
     // process.
-    private static final int[] CODEC_ORDER = new int[] { CodecType.AMR, CodecType.AMR_WB,
-            CodecType.EVS, CodecType.PCMA, CodecType.PCMU };
+    public static final int[] CODEC_ORDER = new int[] { CODEC_AMR, CODEC_AMR_WB,
+            CODEC_EVS, CODEC_PCMA, CODEC_PCMU, CODEC_L16 };
     private static final int[] EVS_BANDWIDTH_ORDER = new int[] { EvsBandwidth.NONE,
             EvsBandwidth.NARROW_BAND, EvsBandwidth.WIDE_BAND, EvsBandwidth.SUPER_WIDE_BAND,
             EvsBandwidth.FULL_BAND };
@@ -214,11 +225,12 @@ public class MainActivity extends AppCompatActivity {
      * Integer value.
      */
     public enum CodecTypeEnum {
-        AMR(CodecType.AMR),
-        AMR_WB(CodecType.AMR_WB),
-        EVS(CodecType.EVS),
-        PCMA(CodecType.PCMA),
-        PCMU(CodecType.PCMU);
+        AMR(CODEC_AMR),
+        AMR_WB(CODEC_AMR_WB),
+        EVS(CODEC_EVS),
+        PCMA(CODEC_PCMA),
+        PCMU(CODEC_PCMU),
+        L16(CODEC_L16);
 
         private final int mValue;
 
@@ -1626,14 +1638,14 @@ public class MainActivity extends AppCompatActivity {
                 remoteDevice.getAudioCodecs(), CODEC_ORDER);
 
         switch (selectedCodec) {
-            case CodecType.AMR:
-            case CodecType.AMR_WB:
+            case CODEC_AMR:
+            case CODEC_AMR_WB:
                 int amrMode = determineCommonCodecSettings(localDevice.getAmrModes(),
                     remoteDevice.getAmrModes(), AMR_MODE_ORDER);
                 amrParams = createAmrParams(amrMode, false, 0);
                 break;
 
-            case CodecType.EVS:
+            case CODEC_EVS:
                 int evsMode = determineCommonCodecSettings(localDevice.getEvsModes(),
                         remoteDevice.getEvsModes(), EVS_MODE_ORDER);
                 int evsBand = determineCommonCodecSettings(localDevice.getEvsBandwidths(),
@@ -1642,8 +1654,13 @@ public class MainActivity extends AppCompatActivity {
                 amrParams = createAmrParams(0, false, 0);
                 break;
 
-            case -1:
-                return createAudioConfig(CodecType.AMR_WB,
+            case CODEC_PCMA:
+            case CODEC_PCMU:
+            case CODEC_L16:
+                break;
+
+            default:
+                return createAudioConfig(CODEC_AMR_WB,
                     createAmrParams(AmrMode.AMR_MODE_4, false, 0), null);
         }
 
@@ -1698,19 +1715,20 @@ public class MainActivity extends AppCompatActivity {
                 .build();
 
         switch (audioCodec) {
-            case CodecType.AMR:
-            case CodecType.AMR_WB:
+            case CODEC_AMR:
+            case CODEC_AMR_WB:
                 mAudioConfig = createAudioConfig(getRemoteAudioSocketAddress(),
                         getRemoteAudioRtcpConfig(), audioCodec, amrParams, mEvs);
                 break;
 
-            case CodecType.EVS:
+            case CODEC_EVS:
                 mAudioConfig = createAudioConfig(getRemoteAudioSocketAddress(),
                         getRemoteAudioRtcpConfig(), audioCodec, amrParams, evsParams);
                 break;
 
-            case CodecType.PCMA:
-            case CodecType.PCMU:
+            case CODEC_PCMA:
+            case CODEC_PCMU:
+            case CODEC_L16:
                 mAudioConfig = createAudioConfig(getRemoteAudioSocketAddress(),
                         getRemoteAudioRtcpConfig(), audioCodec, null, null);
                 break;
@@ -2024,8 +2042,8 @@ public class MainActivity extends AppCompatActivity {
         int audioCodec = mBottomSheetAudioCodecSettings.getAudioCodec();
 
         switch (audioCodec) {
-            case CodecType.AMR:
-            case CodecType.AMR_WB:
+            case CODEC_AMR:
+            case CODEC_AMR_WB:
 
                 evsParams = new EvsParams.Builder()
                 .setEvsbandwidth(EvsParams.EVS_BAND_NONE)
@@ -2043,7 +2061,7 @@ public class MainActivity extends AppCompatActivity {
                         config.getAmrParams().toString()));
                 break;
 
-            case CodecType.EVS:
+            case CODEC_EVS:
                 evsParams = createEvsParams(mBottomSheetAudioCodecSettings.getEvsBand(),
                     mBottomSheetAudioCodecSettings.getEvsMode());
                 amrParams = createAmrParams(0, false, 0);
@@ -2054,8 +2072,9 @@ public class MainActivity extends AppCompatActivity {
                         config.getEvsParams().toString()));
                 break;
 
-            case CodecType.PCMA:
-            case CodecType.PCMU:
+            case CODEC_PCMA:
+            case CODEC_PCMU:
+            case CODEC_L16:
                 config = createAudioConfig(getRemoteAudioSocketAddress(),
                         getRemoteAudioRtcpConfig(), audioCodec, null, null);
                 Log.d(TAG, String.format("AudioConfig switched to Codec: %s",

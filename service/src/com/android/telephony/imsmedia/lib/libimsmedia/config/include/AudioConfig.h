@@ -53,6 +53,8 @@ public:
         CODEC_PCMA = 1 << 3,
         /** G.711 μ-law i.e. Pulse Code Modulation using μ-law */
         CODEC_PCMU = 1 << 4,
+        /** Linear PCM 16 bit */
+        CODEC_L16 = 1 << 5,
     };
 
     AudioConfig();

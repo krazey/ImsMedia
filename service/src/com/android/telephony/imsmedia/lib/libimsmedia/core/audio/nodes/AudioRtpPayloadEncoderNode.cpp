@@ -94,12 +94,13 @@ void AudioRtpPayloadEncoderNode::OnDataFromFrontNode(ImsMediaSubType /*subtype*/
         uint32_t nDataSize, uint32_t nTimestamp, bool bMark, uint32_t nSeqNum,
         ImsMediaSubType nDataType, uint32_t arrivalTime)
 {
-    switch (mCodecType)
+    switch (static_cast<kAudioCodecType>(mCodecType))
     {
         case kAudioCodecAmr:
         case kAudioCodecAmrWb:
             EncodePayloadAmr(pData, nDataSize, nTimestamp, arrivalTime);
             break;
+        case kAudioCodecL16:
         case kAudioCodecPcmu:
         case kAudioCodecPcma:
             SendDataToRearNode(MEDIASUBTYPE_RTPPAYLOAD, pData, nDataSize, nTimestamp, bMark,

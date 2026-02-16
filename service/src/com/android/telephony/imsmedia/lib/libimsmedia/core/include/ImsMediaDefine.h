@@ -416,6 +416,7 @@ enum kAudioCodecType
     kAudioCodecPcmu,
     kAudioCodecPcma,
     kAudioCodecEvs,
+    kAudioCodecL16,
 };
 
 enum kVideoCodecType
