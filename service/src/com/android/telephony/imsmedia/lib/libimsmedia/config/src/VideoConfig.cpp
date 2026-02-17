@@ -47,6 +47,7 @@ VideoConfig::VideoConfig() :
     deviceOrientationDegree = 0;
     cvoValue = CVO_DEFINE_NONE;
     rtcpFbTypes = RTP_FB_NONE;
+    codecSprop = String8("");
 }
 
 VideoConfig::VideoConfig(VideoConfig* config) :
@@ -61,6 +62,7 @@ VideoConfig::VideoConfig(VideoConfig* config) :
     maxMtuBytes = config->maxMtuBytes;
     codecProfile = config->codecProfile;
     codecLevel = config->codecLevel;
+    codecSprop = config->codecSprop;
     intraFrameIntervalSec = config->intraFrameIntervalSec;
     packetizationMode = config->packetizationMode;
     cameraId = config->cameraId;
@@ -83,6 +85,7 @@ VideoConfig::VideoConfig(const VideoConfig& config) :
     maxMtuBytes = config.maxMtuBytes;
     codecProfile = config.codecProfile;
     codecLevel = config.codecLevel;
+    codecSprop = config.codecSprop;
     intraFrameIntervalSec = config.intraFrameIntervalSec;
     packetizationMode = config.packetizationMode;
     cameraId = config.cameraId;
@@ -109,6 +112,7 @@ VideoConfig& VideoConfig::operator=(const VideoConfig& config)
         maxMtuBytes = config.maxMtuBytes;
         codecProfile = config.codecProfile;
         codecLevel = config.codecLevel;
+        codecSprop = config.codecSprop;
         intraFrameIntervalSec = config.intraFrameIntervalSec;
         packetizationMode = config.packetizationMode;
         cameraId = config.cameraId;
@@ -129,6 +133,7 @@ bool VideoConfig::operator==(const VideoConfig& config) const
             this->codecType == config.codecType && this->framerate == config.framerate &&
             this->bitrate == config.bitrate && this->maxMtuBytes == config.maxMtuBytes &&
             this->codecProfile == config.codecProfile && this->codecLevel == config.codecLevel &&
+            !this->codecSprop.compare(config.codecSprop) &&
             this->intraFrameIntervalSec == config.intraFrameIntervalSec &&
             this->packetizationMode == config.packetizationMode &&
             this->cameraId == config.cameraId && this->cameraZoom == config.cameraZoom &&
@@ -145,6 +150,7 @@ bool VideoConfig::operator!=(const VideoConfig& config) const
             this->codecType != config.codecType || this->framerate != config.framerate ||
             this->bitrate != config.bitrate || this->maxMtuBytes != config.maxMtuBytes ||
             this->codecProfile != config.codecProfile || this->codecLevel != config.codecLevel ||
+            this->codecSprop.compare(config.codecSprop) ||
             this->intraFrameIntervalSec != config.intraFrameIntervalSec ||
             this->packetizationMode != config.packetizationMode ||
             this->cameraId != config.cameraId || this->cameraZoom != config.cameraZoom ||
@@ -266,6 +272,13 @@ status_t VideoConfig::writeToParcel(Parcel* out) const
     }
 
     err = out->writeInt32(rtcpFbTypes);
+    if (err != NO_ERROR)
+    {
+        return err;
+    }
+
+    String16 sprop(codecSprop.c_str());
+    err = out->writeString16(sprop);
     if (err != NO_ERROR)
     {
         return err;
@@ -393,6 +406,13 @@ status_t VideoConfig::readFromParcel(const Parcel* in)
         return err;
     }
 
+    String16 sprop;
+    err = in->readString16(&sprop);
+    if (err == NO_ERROR)
+    {
+        codecSprop = String8(sprop.c_str());
+    }
+
     return NO_ERROR;
 }
 
@@ -464,6 +484,16 @@ void VideoConfig::setCodecLevel(const int32_t level)
 int32_t VideoConfig::getCodecLevel()
 {
     return codecLevel;
+}
+
+void VideoConfig::setCodecSprop(const String8& sprop)
+{
+    this->codecSprop = sprop;
+}
+
+String8 VideoConfig::getCodecSprop()
+{
+    return codecSprop;
 }
 
 void VideoConfig::setIntraFrameInterval(const int32_t interval)

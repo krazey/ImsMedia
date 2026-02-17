@@ -21,7 +21,6 @@ import android.telephony.imsmedia.AmrParams;
 import android.telephony.imsmedia.AudioConfig;
 import android.telephony.imsmedia.AudioSessionCallback;
 import android.telephony.imsmedia.EvsParams;
-import android.telephony.imsmedia.IImsMediaCallback;
 import android.telephony.imsmedia.ImsAudioSession;
 import android.telephony.imsmedia.ImsMediaManager;
 import android.telephony.imsmedia.ImsMediaSession;
@@ -2717,7 +2716,8 @@ public class MainActivity extends AppCompatActivity {
         viewGroup.invalidate();
     }
 
-    private IImsMediaCallback.Stub mMediaUtilCallback = new IImsMediaCallback.Stub() {
+    private final ImsMediaManager.ImsMediaManagerCallback mMediaUtilCallback =
+            new ImsMediaManager.ImsMediaManagerCallback() {
         @Override
         public void onVideoSpropResponse(String[] spropList) {
             Log.d(TAG, "[GetSprop]onVideoSprop");
@@ -2750,7 +2750,7 @@ public class MainActivity extends AppCompatActivity {
         videoConfigList[0] = vcbuilder.build();
 
         try {
-            mImsMediaManager.generateVideoSprop(videoConfigList, mMediaUtilCallback.asBinder());
+            mImsMediaManager.generateVideoSprop(videoConfigList, mMediaUtilCallback);
         } catch (Exception e) {
             Log.d(TAG, e.toString());
         }

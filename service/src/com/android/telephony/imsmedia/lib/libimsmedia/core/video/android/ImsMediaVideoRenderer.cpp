@@ -77,6 +77,12 @@ void ImsMediaVideoRenderer::SetSurface(ANativeWindow* window)
     mWindow = window;
 }
 
+void ImsMediaVideoRenderer::SetCodecSprop(String8& sprop)
+{
+    IMLOGD1("[SetCodecSprop] sprop[%s]", sprop.c_str());
+    mSpropValue = sprop;
+}
+
 bool ImsMediaVideoRenderer::Start()
 {
     IMLOGD0("[Start]");

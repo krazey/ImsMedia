@@ -48,6 +48,7 @@ public class ImsMediaManager {
             MEDIA_SERVICE_PACKAGE + ".ImsMediaController";
     private final Context mContext;
     private final OnConnectedCallback mOnConnectedCallback;
+    private ImsMediaManagerCallback mCallback;
     private final Executor mExecutor;
     private final ServiceConnection mConnection;
     private volatile IImsMedia mImsMedia;
@@ -112,13 +113,21 @@ public class ImsMediaManager {
      * configurations and returns via IImsMediaCallback.
      *
      * @param videoConfigList array of video configuration for which sprop should be generated.
-     * @param callback Binder interface implemented by caller and called with array of generated
-     * sprop values.
+     * @param callback ImsMediaManagerCallback interface implemented by caller and called with
+     *                 array of generated sprop values.
      **/
-    public void generateVideoSprop(@NonNull VideoConfig[] videoConfigList, IBinder callback) {
+    public void generateVideoSprop(@NonNull VideoConfig[] videoConfigList,
+                                   @NonNull ImsMediaManagerCallback callback) {
         if (isConnected()) {
             try {
-                mImsMedia.generateVideoSprop(videoConfigList, callback);
+                mCallback = callback;
+                mImsMedia.generateVideoSprop(videoConfigList, new IImsMediaCallback.Stub() {
+                    @Override
+                    public void onVideoSpropResponse(String[] spropList) {
+                        mCallback.onVideoSpropResponse(spropList);
+                        mCallback = null;
+                    }
+                });
             } catch (RemoteException e) {
                 Log.e(TAG, "Failed to closeSession", e);
             }
@@ -154,6 +163,18 @@ public class ImsMediaManager {
          * Called by the ImsMedia framework when the service is disconnected.
          */
         void onDisconnected();
+    }
+
+    /**
+     * Interface to be implemented by application to received IImsMedia interface callbacks.
+     */
+    public interface ImsMediaManagerCallback {
+        /**
+         * @param spropList Array of payload type and generated video sprop pairs
+         *                  (payloadType:sprop)
+         *                  Example: 105:Z0LAFtoHgUaagQEBA8UKqA==,aM4NiA==
+         **/
+        void onVideoSpropResponse(String[] spropList);
     }
 
     public ImsMediaManager(@NonNull Context context, @NonNull Executor executor,

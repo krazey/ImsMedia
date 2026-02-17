@@ -75,6 +75,27 @@ public final class VideoConfig extends RtpConfig {
     @Retention(RetentionPolicy.SOURCE)
     public @interface CodecType {}
 
+    /** AVC Baseline Profile idc */
+    public static final int AVC_PROFILE_IDC_BASELINE = 0x42;
+    /** AVC Main Profile idc */
+    public static final int AVC_PROFILE_IDC_MAIN = 0x4D;
+    /** AVC  Extended Profile idc */
+    public static final int AVC_PROFILE_IDC_EXTENDED = 0x58;
+    /** AVC High Profile idc */
+    public static final int AVC_PROFILE_IDC_HIGH = 0x64;
+
+    /** @hide */
+    @IntDef(
+            flag = true,
+            value = {
+                    AVC_PROFILE_IDC_BASELINE,
+                    AVC_PROFILE_IDC_MAIN,
+                    AVC_PROFILE_IDC_EXTENDED,
+                    AVC_PROFILE_IDC_HIGH,
+            })
+    @Retention(RetentionPolicy.SOURCE)
+    public @interface AvcProfileIdc {}
+
     /** Codec profile is not specified */
     public static final int CODEC_PROFILE_NONE = 0;
     /** AVC Codec Baseline profile */
@@ -87,6 +108,8 @@ public final class VideoConfig extends RtpConfig {
     public static final int AVC_PROFILE_HIGH = 0x00000008;
     /** AVC Codec Main profile */
     public static final int AVC_PROFILE_MAIN = 0x00000002;
+    /** AVC Codec Extended profile */
+    public static final int AVC_PROFILE_EXTENDED = 0x00000003;
     /** HEVC Codec Main profile */
     public static final int HEVC_PROFILE_MAIN = 0x00000001;
     /** HEVC Codec Main 10 profile */
@@ -262,6 +285,7 @@ public final class VideoConfig extends RtpConfig {
     private final int mBitrate;
     private final @CodecProfile int mCodecProfile;
     private final @CodecLevel int mCodecLevel;
+    private final String mCodecSprop;
     private final int mIntraFrameIntervalSec;
     private final int mPacketizationMode;
     private final int mCameraId;
@@ -295,6 +319,7 @@ public final class VideoConfig extends RtpConfig {
         mDeviceOrientationDegree = in.readInt();
         mCvoValue = in.readInt();
         mRtcpFbTypes = in.readInt();
+        mCodecSprop = in.readString();
     }
 
     /** @hide */
@@ -307,6 +332,7 @@ public final class VideoConfig extends RtpConfig {
         mMaxMtuBytes = builder.mMaxMtuBytes;
         mCodecProfile = builder.mCodecProfile;
         mCodecLevel = builder.mCodecLevel;
+        mCodecSprop = builder.mCodecSprop;
         mIntraFrameIntervalSec = builder.mIntraFrameIntervalSec;
         mPacketizationMode = builder.mPacketizationMode;
         mCameraId = builder.mCameraId;
@@ -347,6 +373,10 @@ public final class VideoConfig extends RtpConfig {
     /** @hide **/
     public int getCodecLevel() {
         return this.mCodecLevel;
+    }
+
+    public String getCodecSprop() {
+        return this.mCodecSprop;
     }
 
     /** @hide **/
@@ -407,30 +437,32 @@ public final class VideoConfig extends RtpConfig {
     @NonNull
     @Override
     public String toString() {
-        return super.toString() + " VideoConfig: {mVideoMode=" + mVideoMode
-            + ", mCodecType=" + mCodecType
-            + ", mFramerate=" + mFramerate
-            + ", mBitrate=" + mBitrate
-            + ", mMaxMtuBytes=" + mMaxMtuBytes
-            + ", mCodecProfile=" + mCodecProfile
-            + ", mCodecLevel=" + mCodecLevel
-            + ", mIntraFrameIntervalSec=" + mIntraFrameIntervalSec
-            + ", mPacketizationMode=" + mPacketizationMode
-            + ", mCameraId=" + mCameraId
-            + ", mCameraZoom=" + mCameraZoom
-            + ", mResolutionWidth=" + mResolutionWidth
-            + ", mResolutionHeight=" + mResolutionHeight
-            + ", mPauseImagePath=" + mPauseImagePath
-            + ", mDeviceOrientationDegree=" + mDeviceOrientationDegree
-            + ", mCvoValue=" + mCvoValue
-            + ", rtcpFb=" + mRtcpFbTypes
-            + " }";
+        return super.toString()
+                + " VideoConfig: {mVideoMode=" + mVideoMode
+                + ", mCodecType=" + mCodecType
+                + ", mFramerate=" + mFramerate
+                + ", mBitrate=" + mBitrate
+                + ", mMaxMtuBytes=" + mMaxMtuBytes
+                + ", mCodecProfile=" + mCodecProfile
+                + ", mCodecLevel=" + mCodecLevel
+                + ", mCodecSprop=" + mCodecSprop
+                + ", mIntraFrameIntervalSec=" + mIntraFrameIntervalSec
+                + ", mPacketizationMode=" + mPacketizationMode
+                + ", mCameraId=" + mCameraId
+                + ", mCameraZoom=" + mCameraZoom
+                + ", mResolutionWidth=" + mResolutionWidth
+                + ", mResolutionHeight=" + mResolutionHeight
+                + ", mPauseImagePath=" + mPauseImagePath
+                + ", mDeviceOrientationDegree=" + mDeviceOrientationDegree
+                + ", mCvoValue=" + mCvoValue
+                + ", rtcpFb=" + mRtcpFbTypes
+                + " }";
     }
 
     @Override
     public int hashCode() {
         return Objects.hash(super.hashCode(), mVideoMode, mCodecType, mFramerate, mBitrate,
-            mMaxMtuBytes, mCodecProfile, mCodecLevel, mIntraFrameIntervalSec,
+            mMaxMtuBytes, mCodecProfile, mCodecLevel, mCodecSprop, mIntraFrameIntervalSec,
             mPacketizationMode, mCameraId, mCameraZoom, mResolutionWidth, mResolutionHeight,
             mPauseImagePath, mDeviceOrientationDegree, mCvoValue, mRtcpFbTypes);
     }
@@ -452,22 +484,23 @@ public final class VideoConfig extends RtpConfig {
         }
 
         return (mVideoMode == s.mVideoMode
-            && mCodecType == s.mCodecType
-            && mFramerate == s.mFramerate
-            && mBitrate == s.mBitrate
-            && mMaxMtuBytes == s.mMaxMtuBytes
-            && mCodecProfile == s.mCodecProfile
-            && mCodecLevel == s.mCodecLevel
-            && mIntraFrameIntervalSec == s.mIntraFrameIntervalSec
-            && mPacketizationMode == s.mPacketizationMode
-            && mCameraId == s.mCameraId
-            && mCameraZoom == s.mCameraZoom
-            && mResolutionWidth == s.mResolutionWidth
-            && mResolutionHeight == s.mResolutionHeight
-            && Objects.equals(mPauseImagePath, s.mPauseImagePath)
-            && mDeviceOrientationDegree == s.mDeviceOrientationDegree
-            && mCvoValue == s.mCvoValue
-            && mRtcpFbTypes == s.mRtcpFbTypes);
+                && mCodecType == s.mCodecType
+                && mFramerate == s.mFramerate
+                && mBitrate == s.mBitrate
+                && mMaxMtuBytes == s.mMaxMtuBytes
+                && mCodecProfile == s.mCodecProfile
+                && mCodecLevel == s.mCodecLevel
+                && mCodecSprop.equals(s.mCodecSprop)
+                && mIntraFrameIntervalSec == s.mIntraFrameIntervalSec
+                && mPacketizationMode == s.mPacketizationMode
+                && mCameraId == s.mCameraId
+                && mCameraZoom == s.mCameraZoom
+                && mResolutionWidth == s.mResolutionWidth
+                && mResolutionHeight == s.mResolutionHeight
+                && Objects.equals(mPauseImagePath, s.mPauseImagePath)
+                && mDeviceOrientationDegree == s.mDeviceOrientationDegree
+                && mCvoValue == s.mCvoValue
+                && mRtcpFbTypes == s.mRtcpFbTypes);
     }
 
     /**
@@ -499,6 +532,7 @@ public final class VideoConfig extends RtpConfig {
         dest.writeInt(mDeviceOrientationDegree);
         dest.writeInt(mCvoValue);
         dest.writeInt(mRtcpFbTypes);
+        dest.writeString(mCodecSprop);
     }
 
     public static final @NonNull Parcelable.Creator<VideoConfig>
@@ -525,6 +559,7 @@ public final class VideoConfig extends RtpConfig {
         private int mMaxMtuBytes;
         private int mCodecProfile;
         private int mCodecLevel;
+        private String mCodecSprop = "";
         private int mIntraFrameIntervalSec;
         private int mPacketizationMode;
         private int mCameraId;
@@ -609,6 +644,93 @@ public final class VideoConfig extends RtpConfig {
         public Builder setCodecLevel(final @CodecLevel int codecLevel) {
             this.mCodecLevel = codecLevel;
             return this;
+        }
+
+        /**
+         * Sets video codec sprop string parameter.
+         *
+         * @param codecSprop codec sprop value. Base64 encoded SPS,PPS for AVC codec.
+         *                    And Base64 encoded VPS,SPS,PPS for HEVC codec.
+         */
+        public Builder setCodecSprop(final String codecSprop) {
+            this.mCodecSprop = codecSprop;
+            return this;
+        }
+
+        /**
+         * Parses and sets AVC codec profile and level fields.
+         * @param profileLevel profile-level string to be parsed.
+         * @return This builder object.
+         */
+        public Builder setCodecProfileLevelString(String profileLevel) {
+            if (profileLevel != null && !profileLevel.isEmpty()) {
+                this.mCodecProfile = parseProfile(profileLevel);
+                this.mCodecLevel = parseLevel(profileLevel);
+            }
+            return this;
+        }
+
+        private @CodecProfile int parseProfile(String profileLevel) {
+
+            // Table 5.  Combinations of profile_idc and profile-iop (RFC 6184)
+            //      Profile   profile_idc         profile-iop
+            //                (hexadecimal)       (binary)
+            //
+            //        CB              42 (B)       x1xx0000
+            //               same as: 4D (M)       1xxx0000
+            //               same as: 58 (E)       11xx0000
+            //        B               42 (B)       x0xx0000
+            //               same as: 58 (E)       10xx0000
+            //        M               4D (M)       0x0x0000
+            //        E               58           00xx0000
+            //        H               64           00000000
+
+            if (profileLevel == null || profileLevel.length() < 3) {
+                return CODEC_PROFILE_NONE;
+            }
+
+            int reProfile = Integer.valueOf(profileLevel.substring(0, 1), 16);
+            int profileIop = Integer.valueOf("" + profileLevel.charAt(2), 16);
+
+            switch (reProfile) {
+                case AVC_PROFILE_IDC_BASELINE: {
+                    reProfile = ((profileIop & 0x04) != 0)
+                            ? AVC_PROFILE_CONSTRAINED_BASELINE : AVC_PROFILE_BASELINE;
+                }
+                break;
+
+                case AVC_PROFILE_IDC_MAIN: {
+                    reProfile = ((profileIop & 0x08) != 0)
+                            ? AVC_PROFILE_CONSTRAINED_BASELINE : AVC_PROFILE_MAIN;
+                }
+                break;
+
+                case AVC_PROFILE_IDC_EXTENDED: {
+                    if ((profileIop & 0x0C) != 0) {
+                        reProfile = AVC_PROFILE_CONSTRAINED_BASELINE;
+                    } else if ((profileIop & 0x08) != 0 && (profileIop & 0x04) == 0) {
+                        reProfile = AVC_PROFILE_MAIN;
+                    } else {
+                        reProfile = AVC_PROFILE_EXTENDED;
+                    }
+                }
+                break;
+
+                case AVC_PROFILE_IDC_HIGH: {
+                    reProfile = AVC_PROFILE_HIGH;
+                }
+                break;
+            }
+
+            return reProfile;
+        }
+
+        private @CodecLevel int parseLevel(String profileLevel) {
+            if (profileLevel.length() < 6) {
+                return 12;
+            }
+
+            return Integer.valueOf(profileLevel.substring(4, 5), 16);
         }
 
         /**
@@ -715,4 +837,3 @@ public final class VideoConfig extends RtpConfig {
         }
     }
 }
-

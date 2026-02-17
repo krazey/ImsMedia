@@ -192,6 +192,8 @@ public:
     int32_t getBitrate();
     void setCodecProfile(const int32_t profile);
     int32_t getCodecProfile();
+    void setCodecSprop(const String8& sprop);
+    String8 getCodecSprop();
     void setCodecLevel(const int32_t level);
     int32_t getCodecLevel();
     void setIntraFrameInterval(const int32_t interval);
@@ -232,6 +234,10 @@ protected:
     int32_t codecProfile;
     /* Video codec encoder level */
     int32_t codecLevel;
+    /* Video codec sprop value. Base64(SPS,PPS) for AVC codec.
+     * And Base64 encoded (VPS,SPS,PPS) for HEVC codec.
+     */
+    String8 codecSprop;
     /* Video codec encoder interval of intra-frames in seconds */
     int32_t intraFrameIntervalSec;
     /* Video Rtp packetization mode. The 0 means Single NAL unit mode, 1 means non-interleaved

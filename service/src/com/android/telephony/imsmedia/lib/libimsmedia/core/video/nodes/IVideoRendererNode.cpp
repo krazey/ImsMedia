@@ -84,6 +84,7 @@ ImsMediaResult IVideoRendererNode::Start()
         mVideoRenderer->SetCodec(mCodecType);
         mVideoRenderer->SetResolution(mWidth, mHeight);
         mVideoRenderer->SetDeviceOrientation(mDeviceOrientation);
+        mVideoRenderer->SetCodecSprop(mCodecSprop);
         mVideoRenderer->SetSurface(mWindow);
 
         if (!mVideoRenderer->Start())
@@ -141,6 +142,7 @@ void IVideoRendererNode::SetConfig(void* config)
     mCvoValue = pConfig->getCvoValue();
     mDeviceOrientation = pConfig->getDeviceOrientationDegree();
     mFramerate = pConfig->getFramerate();
+    mCodecSprop = pConfig->getCodecSprop();
 }
 
 bool IVideoRendererNode::IsSameConfig(void* config)
@@ -155,7 +157,8 @@ bool IVideoRendererNode::IsSameConfig(void* config)
             mWidth == pConfig->getResolutionWidth() && mHeight == pConfig->getResolutionHeight() &&
             mCvoValue == pConfig->getCvoValue() &&
             mDeviceOrientation == pConfig->getDeviceOrientationDegree() &&
-            mSamplingRate == pConfig->getSamplingRateKHz());
+            mSamplingRate == pConfig->getSamplingRateKHz() &&
+            mCodecSprop == pConfig->getCodecSprop());
 }
 
 void IVideoRendererNode::ProcessData()

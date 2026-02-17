@@ -129,7 +129,8 @@ public class ImsMediaController extends Service {
                     Parcel parcel = Parcel.obtain();
                     config.writeToParcel(parcel, 0);
                     parcel.setDataPosition(0);
-                    spropList[idx] = JNIImsMediaService.generateSprop(parcel.marshall());
+                    spropList[idx] = config.getTxPayloadTypeNumber() + ":"
+                            + JNIImsMediaService.generateSprop(parcel.marshall());
                     parcel.recycle();
                     idx++;
                 }
