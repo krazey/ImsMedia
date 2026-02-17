@@ -45,8 +45,6 @@ public final class RtpReceptionStats implements Parcelable {
     private int mJitterBufferMs;
     /* The round trip time delay in millisecond when latest RTP packet received */
     private int mRoundTripTimeMs;
-    /* Maximum 16bit value */
-    private static final int MAX_VALUE_16BIT = Short.MAX_VALUE;
 
     /** @hide **/
     public RtpReceptionStats(Parcel in) {

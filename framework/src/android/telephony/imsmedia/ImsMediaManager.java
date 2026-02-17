@@ -64,6 +64,7 @@ public class ImsMediaManager {
      *
      * @param rtpSocket  local UDP socket to send and receive incoming RTP packets
      * @param rtcpSocket local UDP socket to send and receive incoming RTCP packets
+     * @param sessionType The type of media session to be opened.
      * @param rtpConfig  provides remote endpoint info and codec details.
      *                   This could be null initially and the application may update
      *                   this later using {@link ImsMediaSession#modifySession()}
@@ -72,7 +73,7 @@ public class ImsMediaManager {
      */
     public void openSession(@NonNull final DatagramSocket rtpSocket,
             @NonNull final DatagramSocket rtcpSocket,
-            @NonNull final @ImsMediaSession.SessionType int sessionType,
+            final @ImsMediaSession.SessionType int sessionType,
             @Nullable final RtpConfig rtpConfig,
             @NonNull final Executor executor,
             @NonNull final SessionCallback callback) {
@@ -83,7 +84,7 @@ public class ImsMediaManager {
                         ParcelFileDescriptor.fromDatagramSocket(rtcpSocket), sessionType,
                         rtpConfig, callback.getBinder());
             } catch (RemoteException e) {
-                Log.e(TAG, "Failed to openSession: " + e);
+                Log.e(TAG, "Failed to openSession", e);
                 // TODO throw exception or callback.onOpenSessionFailure()
             }
         }
@@ -101,7 +102,7 @@ public class ImsMediaManager {
             try {
                 mImsMedia.closeSession(session.getBinder());
             } catch (RemoteException e) {
-                Log.e(TAG, "Failed to closeSession: " + e);
+                Log.e(TAG, "Failed to closeSession", e);
             }
         }
     }
@@ -119,7 +120,7 @@ public class ImsMediaManager {
             try {
                 mImsMedia.generateVideoSprop(videoConfigList, callback);
             } catch (RemoteException e) {
-                Log.e(TAG, "Failed to closeSession: " + e);
+                Log.e(TAG, "Failed to closeSession", e);
             }
         }
     }
@@ -133,7 +134,7 @@ public class ImsMediaManager {
             try {
                 mContext.unbindService(mConnection);
             } catch (IllegalArgumentException e) {
-                Log.e(TAG, "IllegalArgumentException: " + e.toString());
+                Log.e(TAG, "IllegalArgumentException", e);
             }
             mImsMedia = null;
         }

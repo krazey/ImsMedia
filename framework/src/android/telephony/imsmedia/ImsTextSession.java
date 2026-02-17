@@ -45,7 +45,7 @@ public class ImsTextSession implements ImsMediaSession {
         try {
             return mSession.getSessionId();
         } catch (RemoteException e) {
-            Log.e(TAG, "Failed to get session ID: " + e);
+            Log.e(TAG, "Failed to get session ID", e);
         }
 
         return -1;
@@ -58,7 +58,7 @@ public class ImsTextSession implements ImsMediaSession {
         try {
             mSession.modifySession((TextConfig) config);
         } catch (RemoteException e) {
-            Log.e(TAG, "Failed to modify session: " + e);
+            Log.e(TAG, "Failed to modify session", e);
         }
     }
 
@@ -69,7 +69,7 @@ public class ImsTextSession implements ImsMediaSession {
         try {
             mSession.setMediaQualityThreshold(threshold);
         } catch (RemoteException e) {
-            Log.e(TAG, "Failed to set media quality threshold: " + e);
+            Log.e(TAG, "Failed to set media quality threshold", e);
         }
     }
 
@@ -82,7 +82,7 @@ public class ImsTextSession implements ImsMediaSession {
         try {
             mSession.sendRtt(text);
         } catch (RemoteException e) {
-            Log.e(TAG, "Failed to request video data usage: " + e);
+            Log.e(TAG, "Failed to request video data usage", e);
         }
     }
 }

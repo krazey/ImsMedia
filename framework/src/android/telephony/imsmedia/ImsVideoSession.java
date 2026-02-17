@@ -49,7 +49,7 @@ public class ImsVideoSession implements ImsMediaSession {
         try {
             return mSession.getSessionId();
         } catch (RemoteException e) {
-            Log.e(TAG, "Failed to get session ID: " + e);
+            Log.e(TAG, "Failed to get session ID", e);
         }
 
         return -1;
@@ -62,7 +62,7 @@ public class ImsVideoSession implements ImsMediaSession {
         try {
             mSession.modifySession((VideoConfig) config);
         } catch (RemoteException e) {
-            Log.e(TAG, "Failed to modify session: " + e);
+            Log.e(TAG, "Failed to modify session", e);
         }
     }
 
@@ -76,7 +76,7 @@ public class ImsVideoSession implements ImsMediaSession {
         try {
             mSession.setPreviewSurface(surface);
         } catch (RemoteException e) {
-            Log.e(TAG, "Failed to set preview surface: " + e);
+            Log.e(TAG, "Failed to set preview surface", e);
         }
     }
 
@@ -90,7 +90,7 @@ public class ImsVideoSession implements ImsMediaSession {
         try {
             mSession.setDisplaySurface(surface);
         } catch (RemoteException e) {
-            Log.e(TAG, "Failed to set display surface: " + e);
+            Log.e(TAG, "Failed to set display surface", e);
         }
     }
 
@@ -101,7 +101,7 @@ public class ImsVideoSession implements ImsMediaSession {
         try {
             mSession.setMediaQualityThreshold(threshold);
         } catch (RemoteException e) {
-            Log.e(TAG, "Failed to set media quality threshold: " + e);
+            Log.e(TAG, "Failed to set media quality threshold", e);
         }
     }
 
@@ -114,7 +114,7 @@ public class ImsVideoSession implements ImsMediaSession {
         try {
             mSession.sendHeaderExtension(extensions);
         } catch (RemoteException e) {
-            Log.e(TAG, "Failed to send RTP header extension: " + e);
+            Log.e(TAG, "Failed to send RTP header extension", e);
         }
     }
 
@@ -126,7 +126,7 @@ public class ImsVideoSession implements ImsMediaSession {
         try {
             mSession.requestVideoDataUsage();
         } catch (RemoteException e) {
-            Log.e(TAG, "Failed to request video data usage: " + e);
+            Log.e(TAG, "Failed to request video data usage", e);
         }
     }
 }

@@ -297,16 +297,12 @@ public abstract class RtpConfig implements Parcelable {
             CREATOR = new Parcelable.Creator() {
                 public RtpConfig createFromParcel(Parcel in) {
                     int type = in.readInt();
-                    switch (type) {
-                        case TYPE_AUDIO:
-                            return new AudioConfig(in);
-                        case TYPE_VIDEO:
-                            return new VideoConfig(in);
-                        case TYPE_TEXT:
-                            return new TextConfig(in);
-                        default:
-                            throw new IllegalArgumentException("Bad Type Parcel");
-                    }
+                    return switch (type) {
+                        case TYPE_AUDIO -> new AudioConfig(in);
+                        case TYPE_VIDEO -> new VideoConfig(in);
+                        case TYPE_TEXT -> new TextConfig(in);
+                        default -> throw new IllegalArgumentException("Bad Type Parcel");
+                    };
                 }
 
                 public RtpConfig[] newArray(int size) {
