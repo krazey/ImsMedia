@@ -27,6 +27,7 @@ import android.telephony.imsmedia.IImsVideoSessionCallback;
 import android.telephony.imsmedia.ImsMediaSession;
 import android.telephony.imsmedia.MediaQualityThreshold;
 import android.telephony.imsmedia.RtpConfig;
+import android.telephony.imsmedia.RtpReceptionStats;
 import android.telephony.imsmedia.VideoConfig;
 import android.view.Surface;
 
@@ -53,6 +54,8 @@ public final class VideoSession extends IImsVideoSession.Stub implements IMediaS
     public static final int CMD_SEND_RTP_HDR_EXTN = 106;
     public static final int CMD_SET_MEDIA_QUALITY_THRESHOLD = 107;
     public static final int CMD_REQUEST_VIDEO_DATA_USAGE = 108;
+    public static final int CMD_REQUEST_RECEPTION_STATS = 109;
+    public static final int CMD_ADJUST_DELAY = 110;
 
     public static final int EVENT_OPEN_SESSION_SUCCESS = 201;
     public static final int EVENT_OPEN_SESSION_FAILURE = 202;
@@ -64,6 +67,7 @@ public final class VideoSession extends IImsVideoSession.Stub implements IMediaS
     public static final int EVENT_NOTIFY_BITRATE_IND = 208;
     public static final int EVENT_VIDEO_DATA_USAGE_IND = 209;
     public static final int EVENT_SESSION_CLOSED = 210;
+    public static final int EVENT_NOTIFY_RECEPTION_STATS = 211;
 
     private int mSessionId;
     private IImsVideoSessionCallback mCallback;
@@ -167,6 +171,18 @@ public final class VideoSession extends IImsVideoSession.Stub implements IMediaS
     }
 
     @Override
+    public void requestRtpReceptionStats(int intervalMs) {
+        Log.d(TAG, "requestRtpReceptionStats: interval=" + intervalMs);
+        Utils.sendMessage(mHandler, CMD_REQUEST_RECEPTION_STATS, intervalMs);
+    }
+
+    @Override
+    public void adjustDelay(int delayMs) {
+        Log.d(TAG, "adjustDelay: delay=" + delayMs);
+        Utils.sendMessage(mHandler, CMD_ADJUST_DELAY, delayMs);
+    }
+
+    @Override
     public void onOpenSessionSuccess(Object session) {
         Utils.sendMessage(mHandler, EVENT_OPEN_SESSION_SUCCESS, session);
     }
@@ -217,6 +233,12 @@ public final class VideoSession extends IImsVideoSession.Stub implements IMediaS
                 case CMD_REQUEST_VIDEO_DATA_USAGE:
                     handleRequestVideoDataUsage();
                     break;
+                case CMD_REQUEST_RECEPTION_STATS:
+                    handleRequestRtpReceptionStats((int) msg.obj);
+                    break;
+                case CMD_ADJUST_DELAY:
+                    handleAdjustDelay((int) msg.obj);
+                    break;
                 case EVENT_OPEN_SESSION_SUCCESS:
                     handleOpenSuccess(msg.obj);
                     break;
@@ -246,6 +268,9 @@ public final class VideoSession extends IImsVideoSession.Stub implements IMediaS
                     break;
                 case EVENT_VIDEO_DATA_USAGE_IND:
                     handleNotifyVideoDataUsage((long) msg.obj);
+                    break;
+                case EVENT_NOTIFY_RECEPTION_STATS:
+                    handleNotifyReceptionStats((RtpReceptionStats) msg.obj);
                     break;
                 default:
             }
@@ -286,6 +311,14 @@ public final class VideoSession extends IImsVideoSession.Stub implements IMediaS
 
     private void handleRequestVideoDataUsage() {
         mLocalSession.requestVideoDataUsage();
+    }
+
+    private void handleRequestRtpReceptionStats(int intervalMs) {
+        mLocalSession.requestRtpReceptionStats(intervalMs);
+    }
+
+    private void handleAdjustDelay(int delayMs) {
+        mLocalSession.adjustDelay(delayMs);
     }
 
     private void handleOpenSuccess(Object session) {
@@ -369,6 +402,14 @@ public final class VideoSession extends IImsVideoSession.Stub implements IMediaS
             mCallback.notifyVideoDataUsage(bytes);
         } catch (RemoteException e) {
             Log.e(TAG, "Failed to notify video data usage: " + e);
+        }
+    }
+
+    private void handleNotifyReceptionStats(RtpReceptionStats stats) {
+        try {
+            mCallback.notifyRtpReceptionStats(stats);
+        }  catch (RemoteException e) {
+            Log.e(TAG, "Failed to notify rtp reception statistics: " + e);
         }
     }
 }

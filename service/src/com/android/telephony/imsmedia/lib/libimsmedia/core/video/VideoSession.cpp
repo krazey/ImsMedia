@@ -271,6 +271,10 @@ void VideoSession::onEvent(int32_t type, uint64_t param1, uint64_t param2)
             ImsMediaEventHandler::SendEvent(
                     "VIDEO_RESPONSE_EVENT", kVideoBitrateInd, mSessionId, param1, param2);
             break;
+        case kVideoNotifyRtpReceptionStats:
+            ImsMediaEventHandler::SendEvent(
+                    "VIDEO_RESPONSE_EVENT", kVideoNotifyRtpReceptionStats, mSessionId, param1);
+            break;
         case kRequestVideoCvoUpdate:
         case kRequestVideoBitrateChange:
         case kRequestVideoIdrFrame:
@@ -361,5 +365,18 @@ void VideoSession::SendInternalEvent(int32_t type, uint64_t param1, uint64_t par
             break;
         default:
             break;
+    }
+}
+
+void VideoSession::requestRtpReceptionStats(const int32_t /*intervalMs*/)
+{
+    // TODO Implementation
+}
+
+void VideoSession::adjustDelay(const int32_t delayMs)
+{
+    if (mGraphRtpRx != nullptr && mGraphRtpRx->getState() == kStreamStateRunning)
+    {
+        mGraphRtpRx->adjustDelay(delayMs);
     }
 }

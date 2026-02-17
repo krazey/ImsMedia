@@ -834,7 +834,7 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         public void notifyRtpReceptionStats(final RtpReceptionStats stats) {
-            Log.d(TAG, "notifyRtpReceptionStats, RtpReceptionStats=" + stats);
+            Log.d(TAG, "notifyRtpReceptionStats, audio RtpReceptionStats=" + stats);
         }
     }
 
@@ -879,6 +879,8 @@ public class MainActivity extends AppCompatActivity {
                     mVideoSession.setDisplaySurface(mDisplaySurface);
                 }
             });
+
+            mVideoSession.requestRtpReceptionStats(3000);
         }
 
         @Override
@@ -895,6 +897,11 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void notifyBitrate(final int bitrate) {
             Log.d(TAG, "notifyBitrate - bitrate=" + bitrate);
+        }
+
+        @Override
+        public void notifyRtpReceptionStats(final RtpReceptionStats stats) {
+            Log.d(TAG, "notifyRtpReceptionStats, video RtpReceptionStats=" + stats);
         }
     }
 
@@ -2766,15 +2773,17 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
-     * Send the parameter to adjust the audio delay
+     * Send the parameter to adjust the audio and video delay for test
      */
     public void adjustDelay(View btn) {
         if (mAudioSession != null) {
-            mDelay = (mDelay + 20) % 240;
-            if (mDelay < 60) {
-                mDelay = 60;
-            }
+            mDelay = (mDelay + 20) % 200;
             mAudioSession.adjustDelay(mDelay);
+        }
+
+        if (mVideoSession != null) {
+            mDelay = (mDelay + 20) % 200;
+            mVideoSession.adjustDelay(mDelay);
         }
     }
 }

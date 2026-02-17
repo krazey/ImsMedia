@@ -27,9 +27,12 @@ import android.os.Parcel;
 import android.os.RemoteException;
 import android.telephony.imsmedia.IImsVideoSessionCallback;
 import android.telephony.imsmedia.ImsMediaSession;
+import android.telephony.imsmedia.RtpReceptionStats;
 import android.telephony.imsmedia.VideoConfig;
 import android.testing.AndroidTestingRunner;
 import android.testing.TestableLooper;
+
+import com.android.telephony.imsmedia.tests.RtpReceptionStatsTest;
 
 import org.junit.After;
 import org.junit.Before;
@@ -195,5 +198,19 @@ public class VideoListenerTest extends ImsMediaTest {
         doNothing().when(mMockCallback).onSessionClosed(eq(SESSION_ID));
         parcel.recycle();
         verify(mMockCallback, times(1)).onSessionClosed(eq(SESSION_ID));
+    }
+
+    @Test
+    public void testEventNotifyReceptionStats() throws RemoteException {
+        Parcel parcel = Parcel.obtain();
+        parcel.writeInt(VideoSession.EVENT_NOTIFY_RECEPTION_STATS);
+        RtpReceptionStats stats = RtpReceptionStatsTest.createRtpReceptionStats();
+        stats.writeToParcel(parcel, 0);
+        parcel.setDataPosition(0);
+        mVideoListener.onMessage(parcel);
+        processAllMessages();
+        parcel.recycle();
+        verify(mMockIImsVideoSessionCallback,
+                times(1)).notifyRtpReceptionStats(eq(stats));
     }
 }

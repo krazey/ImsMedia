@@ -91,7 +91,8 @@ protected:
     virtual ImsMediaResult setDisplaySurfaceToSession(const int sessionId, ANativeWindow* surface);
     ImsMediaResult modifySession(const int sessionId, VideoConfig* config);
     virtual void setMediaQualityThreshold(const int sessionId, MediaQualityThreshold* threshold);
-
+    virtual void requestRtpReceptionStats(const int sessionId, const int intervalMs);
+    virtual void adjustDelay(const int sessionId, const int delayMs);
     static VideoManager* sManager;
     std::unordered_map<int, std::unique_ptr<VideoSession>> mSessions;
     RequestHandler mRequestHandler;

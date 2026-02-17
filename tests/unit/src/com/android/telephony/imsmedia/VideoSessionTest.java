@@ -33,12 +33,14 @@ import android.telephony.ims.RtpHeaderExtension;
 import android.telephony.imsmedia.IImsVideoSessionCallback;
 import android.telephony.imsmedia.ImsMediaSession;
 import android.telephony.imsmedia.MediaQualityThreshold;
+import android.telephony.imsmedia.RtpReceptionStats;
 import android.telephony.imsmedia.VideoConfig;
 import android.testing.AndroidTestingRunner;
 import android.testing.TestableLooper;
 import android.view.Surface;
 
 import com.android.telephony.imsmedia.Utils.OpenSessionParams;
+import com.android.telephony.imsmedia.tests.RtpReceptionStatsTest;
 
 import org.junit.After;
 import org.junit.Before;
@@ -68,6 +70,8 @@ public class VideoSessionTest extends ImsMediaTest {
             RESOLUTION_WIDTH, RESOLUTION_HEIGHT, ImageFormat.JPEG, 1).getSurface();
     private static final Surface DISPLAY_SURFACE = ImageReader.newInstance(
             RESOLUTION_WIDTH, RESOLUTION_HEIGHT, ImageFormat.JPEG, 1).getSurface();
+    private static final int RECEPTION_DURATION = 10000;
+    private static final int DELAY_ADJUSTMENT = 100;
     private VideoSession mVideoSession;
     private VideoSession.VideoSessionHandler mHandler;
     private WakeLockManager mWakeLockManager;
@@ -195,6 +199,22 @@ public class VideoSessionTest extends ImsMediaTest {
         mVideoSession.requestVideoDataUsage();
         processAllMessages();
         verify(mVideoLocalSession, times(1)).requestVideoDataUsage();
+    }
+
+    @Test
+    public void testRequestRtpReceptionStats() {
+        // Query rtp reception stats
+        mVideoSession.requestRtpReceptionStats(RECEPTION_DURATION);
+        processAllMessages();
+        verify(mVideoLocalSession, times(1)).requestRtpReceptionStats(eq(RECEPTION_DURATION));
+    }
+
+    @Test
+    public void testAdjustDelay() {
+        // Apply delay
+        mVideoSession.adjustDelay(DELAY_ADJUSTMENT);
+        processAllMessages();
+        verify(mVideoLocalSession, times(1)).adjustDelay(eq(DELAY_ADJUSTMENT));
     }
 
     @Test
@@ -335,6 +355,18 @@ public class VideoSessionTest extends ImsMediaTest {
             assertThat(mWakeLockManager.mWakeLock.isHeld()).isEqualTo(false);
         } catch (RemoteException e) {
             fail("Failed to notify onSessionClosed: " + e);
+        }
+    }
+    @Test
+    public void testNotifyRtpReceptionStats() {
+        // Receive Rtp reception statistics notification
+        RtpReceptionStats stats = RtpReceptionStatsTest.createRtpReceptionStats();
+        Utils.sendMessage(mHandler, VideoSession.EVENT_NOTIFY_RECEPTION_STATS, stats);
+        processAllMessages();
+        try {
+            verify(mCallback, times(1)).notifyRtpReceptionStats(eq(stats));
+        } catch (RemoteException e) {
+            fail("Failed to notify RtpReceptionStats: " + e);
         }
     }
 }

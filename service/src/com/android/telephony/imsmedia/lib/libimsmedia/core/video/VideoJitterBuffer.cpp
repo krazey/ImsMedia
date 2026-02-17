@@ -56,6 +56,7 @@ VideoJitterBuffer::VideoJitterBuffer() :
     mLossRateThreshold = 0;
     mCountTimerExpired = 0;
     mTimer = nullptr;
+    mAdditionalDelay = 0;
 }
 
 VideoJitterBuffer::~VideoJitterBuffer()
@@ -157,6 +158,14 @@ void VideoJitterBuffer::SetResponseWaitTime(const uint32_t time)
 {
     IMLOGD1("[SetResponseWaitTime] time[%u]", time);
     mResponseWaitTime = time;
+}
+
+void VideoJitterBuffer::SetAdditionalDelay(const int32_t delayMs)
+{
+    std::lock_guard<std::mutex> guard(mMutex);
+    mAdditionalDelay = delayMs > 0 ? delayMs : 0;
+    IMLOGD2("[SetAdditionalDelay] additionalDelayMs=%u, totalDelay=%u", mAdditionalDelay,
+            mInitJitterBufferSize + mAdditionalDelay);
 }
 
 void VideoJitterBuffer::Add(ImsMediaSubType subtype, uint8_t* pbBuffer, uint32_t nBufferSize,

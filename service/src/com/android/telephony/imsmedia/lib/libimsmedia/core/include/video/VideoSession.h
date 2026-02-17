@@ -62,6 +62,24 @@ public:
      */
     void SendInternalEvent(int32_t type, uint64_t param1, uint64_t param2);
 
+    /**
+     * @brief Request the current rtp reception statistics params for checking the current status of
+     *        the rtp stream. It will trigger the notifyRtpReceptionStats() with the
+     *        RtpReceptionStats.
+     *
+     * @param intervalMs The interval of the time in milliseconds of the rtp reception notification
+     */
+    void requestRtpReceptionStats(const int32_t intervalMs);
+
+    /**
+     * @brief Adjust the delay in the jitter buffer to synchronize the video frame with the time of
+     *        audio timestamp
+     *
+     * @param delayMs The additional delay to the jitter buffer in milliseconds unit. The value is
+     *        always positive.
+     */
+    void adjustDelay(const int32_t delayMs);
+
 private:
     VideoStreamGraphRtpTx* mGraphRtpTx;
     VideoStreamGraphRtpRx* mGraphRtpRx;

@@ -18,6 +18,7 @@ package com.android.telephony.imsmedia;
 
 import android.os.Handler;
 import android.os.Parcel;
+import android.telephony.imsmedia.RtpReceptionStats;
 import android.telephony.imsmedia.VideoConfig;
 
 import com.android.telephony.imsmedia.util.Log;
@@ -101,6 +102,10 @@ public class VideoListener implements JNIImsMediaListener {
                 break;
             case VideoSession.EVENT_SESSION_CLOSED:
                 mCallback.onSessionClosed(parcel.readInt());
+                break;
+            case VideoSession.EVENT_NOTIFY_RECEPTION_STATS:
+                Utils.sendMessage(mHandler, event,
+                        RtpReceptionStats.CREATOR.createFromParcel(parcel));
                 break;
             default:
                 break;

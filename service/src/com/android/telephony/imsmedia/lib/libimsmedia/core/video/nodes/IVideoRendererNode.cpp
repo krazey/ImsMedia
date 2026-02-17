@@ -72,7 +72,7 @@ ImsMediaResult IVideoRendererNode::Start()
         VideoJitterBuffer* jitter = reinterpret_cast<VideoJitterBuffer*>(mJitterBuffer);
         jitter->SetCodecType(mCodecType);
         jitter->SetFramerate(mFramerate);
-        jitter->SetJitterBufferSize(15, 15, 25);
+        jitter->SetJitterBufferSize(200, 200, 400);
         jitter->StartTimer(mLossDuration / 1000, mLossRateThreshold);
     }
 
@@ -338,6 +338,14 @@ void IVideoRendererNode::UpdateSurface(ANativeWindow* window)
 {
     IMLOGD1("[UpdateSurface] surface[%p]", window);
     mWindow = window;
+}
+
+void IVideoRendererNode::AdjustDelay(const int32_t delayMs)
+{
+    if (mJitterBuffer != nullptr)
+    {
+        reinterpret_cast<VideoJitterBuffer*>(mJitterBuffer)->SetAdditionalDelay(delayMs);
+    }
 }
 
 void IVideoRendererNode::UpdateRoundTripTimeDelay(int32_t delay)

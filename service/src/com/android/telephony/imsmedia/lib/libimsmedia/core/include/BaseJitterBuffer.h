@@ -35,7 +35,15 @@ public:
      * @brief Set the codec type
      */
     virtual void SetCodecType(uint32_t type);
-    virtual void SetJitterBufferSize(uint32_t nInit, uint32_t nMin, uint32_t nMax);
+
+    /**
+     * @brief Set the Jitter Buffer Size
+     *
+     * @param initMs initial size of jitter buffer in milliseconds unit
+     * @param minMs minimum size of jitter buffer in milliseconds unit
+     * @param maxMs maximum size of jitter buffer in milliseconds unit
+     */
+    virtual void SetJitterBufferSize(uint32_t initMs, uint32_t minMs, uint32_t maxMs);
 
     /**
      * @brief Get the size of the queue
