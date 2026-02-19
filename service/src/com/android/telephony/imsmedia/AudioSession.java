@@ -464,7 +464,13 @@ public final class AudioSession extends IImsAudioSession.Stub implements IMediaS
     }
 
     private void handleRequestRtpReceptionStats(int intervalMs) {
-        if (!isAudioOffload()) {
+        if (isAudioOffload()) {
+            try {
+                mHalSession.requestRtpReceptionStats(intervalMs);
+            } catch (RemoteException e) {
+                Log.e(TAG, "Exception occurred in HAL requestRtpReceptionStats", e);
+            }
+        } else {
             mLocalSession.requestRtpReceptionStats(intervalMs);
         }
     }

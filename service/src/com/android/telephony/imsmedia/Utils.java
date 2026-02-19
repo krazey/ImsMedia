@@ -36,6 +36,7 @@ import android.telephony.imsmedia.MediaQualityStatus;
 import android.telephony.imsmedia.MediaQualityThreshold;
 import android.telephony.imsmedia.RtcpConfig;
 import android.telephony.imsmedia.RtpConfig;
+import android.telephony.imsmedia.RtpReceptionStats;
 
 import com.android.telephony.imsmedia.ImsMediaController.OpenSessionCallback;
 
@@ -519,6 +520,18 @@ public final class Utils {
                 .setMaxPlayoutDelayMillis(in.maxPlayoutDelayMillis)
                 .setNumRtpSidPacketsReceived(in.numRtpSidPacketsReceived)
                 .setNumRtpDuplicatePackets(in.numRtpDuplicatePackets)
+                .build();
+    }
+
+    /** Converts HAL RtpReceptionStats to {@link RtpReceptionStats} */
+    public static RtpReceptionStats convertRtpReceptionStats(
+            final android.hardware.radio.ims.media.RtpReceptionStats in) {
+        return (in == null) ? null : new RtpReceptionStats.Builder()
+                .setRtpTimestamp(in.rtpTimestamp)
+                .setRtcpSrTimestamp(in.rtcpSrTimestamp)
+                .setRtcpSrNtpTimestamp(in.rtcpSrNtpTimestamp)
+                .setJitterBufferMs(in.jitterBufferMs)
+                .setRoundTripTimeMs(in.roundTripTimeMs)
                 .build();
     }
 }

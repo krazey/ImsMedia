@@ -21,6 +21,7 @@ import android.hardware.radio.ims.media.IImsMediaSessionListener;
 import android.hardware.radio.ims.media.MediaQualityStatus;
 import android.hardware.radio.ims.media.RtpConfig;
 import android.hardware.radio.ims.media.RtpHeaderExtension;
+import android.hardware.radio.ims.media.RtpReceptionStats;
 import android.os.Handler;
 
 import java.util.List;
@@ -83,6 +84,13 @@ final class AudioOffloadListener extends IImsMediaSessionListener.Stub {
     public void onCallQualityChanged(CallQuality callQuality) {
         Utils.sendMessage(handler, AudioSession.EVENT_CALL_QUALITY_CHANGE_IND,
                 Utils.convertCallQuality(callQuality));
+    }
+
+    @Override
+    public void notifyRtpReceptionStats(RtpReceptionStats stats) {
+        Utils.sendMessage(handler,
+                AudioSession.EVENT_NOTIFY_RECEPTION_STATS,
+                Utils.convertRtpReceptionStats(stats));
     }
 
     AudioOffloadListener(Handler handler) {

@@ -135,4 +135,20 @@ public class IImsMediaSessionImpl extends IImsMediaSession.Stub {
         }
         connector.sendRequest(mSessionId, parcel);
     }
+
+    @Override
+    public void requestRtpReceptionStats(int intervalMs) {
+        Log.d(TAG, "requestRtpReceptionStats: interval=" + intervalMs);
+        Parcel parcel = Parcel.obtain();
+        parcel.writeInt(AudioSession.CMD_REQUEST_RECEPTION_STATS);
+        parcel.writeInt(intervalMs);
+        connector.sendRequest(mSessionId, parcel);
+    }
+
+    @Override
+    public void adjustDelay(int delayMs) {
+        Log.d(TAG, "adjustDelay: " + delayMs);
+        Parcel parcel = Parcel.obtain();
+        parcel.writeInt(AudioSession.CMD_ADJUST_DELAY);
+    }
 }
