@@ -139,6 +139,12 @@ public class ImsMediaController extends Service {
                 Log.e(TAG, "[SPROP] Error: " + e.toString());
             }
         }
+
+        @Override
+        public void setTestMode(int testMode) {
+            // TODO Implement test mode
+            Log.d(TAG, "setTestMode: " + testMode);
+        }
     }
 
     private IImsMedia.Stub mImsMediaBinder = new ImsMediaBinder();

@@ -46,6 +46,7 @@ public class ImsMediaManager {
     @VisibleForTesting
     protected static final String MEDIA_SERVICE_CLASS =
             MEDIA_SERVICE_PACKAGE + ".ImsMediaController";
+    @VisibleForTesting
     private final Context mContext;
     private final OnConnectedCallback mOnConnectedCallback;
     private ImsMediaManagerCallback mCallback;
@@ -146,6 +147,22 @@ public class ImsMediaManager {
                 Log.e(TAG, "IllegalArgumentException", e);
             }
             mImsMedia = null;
+        }
+    }
+
+    /**
+     * Sets the test mode for the ImsMediaService.
+     *
+     * @param testMode The test mode to be set.
+     */
+    public void setTestMode(int testMode) {
+        Log.d(TAG, "setTestMode: " + testMode);
+        if (isConnected()) {
+            try {
+                mImsMedia.setTestMode(testMode);
+            } catch (RemoteException e) {
+                Log.e(TAG, "Failed to setTestMode", e);
+            }
         }
     }
 
