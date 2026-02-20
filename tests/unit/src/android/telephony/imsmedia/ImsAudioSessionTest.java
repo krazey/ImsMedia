@@ -16,70 +16,221 @@
 
 package android.telephony.imsmedia;
 
-import static org.junit.Assert.fail;
-import static org.mockito.Mockito.doReturn;
+import static org.junit.Assert.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import android.os.IBinder;
+import android.os.RemoteException;
 import android.telephony.ims.RtpHeaderExtension;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Unit tests for {@link ImsAudioSession}.
+ */
+@RunWith(JUnit4.class)
 public class ImsAudioSessionTest {
 
-    static final int AUDIO_SESSION_ID = 1;
+    private ImsAudioSession mImsAudioSession;
 
     @Mock
-    IImsAudioSession mMockIImsAudioSession;
-
+    private IImsAudioSession mMockAudioSession;
     @Mock
-    IBinder mMockIBinder;
+    private IBinder mMockBinder;
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         MockitoAnnotations.initMocks(this);
-        doReturn(mMockIBinder).when(mMockIImsAudioSession).asBinder();
+        when(mMockAudioSession.asBinder()).thenReturn(mMockBinder);
+        mImsAudioSession = new ImsAudioSession(mMockAudioSession);
     }
 
     @Test
-    public void testConstructorAndApis() {
-        ImsAudioSession imsAudioSession = new ImsAudioSession(mMockIImsAudioSession);
+    public void testGetBinder() {
+        assertEquals(mMockBinder, mImsAudioSession.getBinder());
+    }
 
-        imsAudioSession.getBinder();
-        imsAudioSession.getSessionId();
+    @Test
+    public void testGetSessionId() throws RemoteException {
+        when(mMockAudioSession.getSessionId()).thenReturn(1);
+        assertEquals(1, mImsAudioSession.getSessionId());
+        verify(mMockAudioSession).getSessionId();
+    }
 
-        AudioConfig audioConfig = new AudioConfig.Builder().build();
-        imsAudioSession.addConfig(audioConfig);
-        imsAudioSession.deleteConfig(audioConfig);
-        imsAudioSession.modifySession(audioConfig);
-        imsAudioSession.confirmConfig(audioConfig);
+    @Test
+    public void testGetSessionIdWithException() throws RemoteException {
+        doThrow(new RemoteException()).when(mMockAudioSession).getSessionId();
+        assertEquals(-1, mImsAudioSession.getSessionId());
+    }
 
+    @Test
+    public void testModifySession() throws RemoteException {
+        AudioConfig config = new AudioConfig.Builder().build();
+        mImsAudioSession.modifySession(config);
+        verify(mMockAudioSession).modifySession(config);
+    }
+
+    @Test
+    public void testModifySessionWithException() throws RemoteException {
+        AudioConfig config = new AudioConfig.Builder().build();
+        doThrow(new RemoteException())
+                .when(mMockAudioSession).modifySession(any(AudioConfig.class));
+        mImsAudioSession.modifySession(config);
+        // Verify method call and no exception is thrown
+        verify(mMockAudioSession).modifySession(config);
+    }
+
+    @Test
+    public void testSetMediaQualityThreshold() throws RemoteException {
         MediaQualityThreshold threshold = new MediaQualityThreshold.Builder().build();
-        imsAudioSession.setMediaQualityThreshold(threshold);
+        mImsAudioSession.setMediaQualityThreshold(threshold);
+        verify(mMockAudioSession).setMediaQualityThreshold(threshold);
+    }
 
-        imsAudioSession.sendDtmf('1', 10);
+    @Test
+    public void testSetMediaQualityThresholdWithException() throws RemoteException {
+        MediaQualityThreshold threshold = new MediaQualityThreshold.Builder().build();
+        doThrow(new RemoteException()).when(mMockAudioSession).setMediaQualityThreshold(
+                any(MediaQualityThreshold.class));
+        mImsAudioSession.setMediaQualityThreshold(threshold);
+        verify(mMockAudioSession).setMediaQualityThreshold(threshold);
+    }
 
-        List<RtpHeaderExtension> extensions = new ArrayList<RtpHeaderExtension>();
-        imsAudioSession.sendHeaderExtension(extensions);
+    @Test
+    public void testAddConfig() throws RemoteException {
+        AudioConfig config = new AudioConfig.Builder().build();
+        mImsAudioSession.addConfig(config);
+        verify(mMockAudioSession).addConfig(config);
+    }
 
-        try {
-            verify(mMockIImsAudioSession).asBinder();
-            verify(mMockIImsAudioSession).getSessionId();
-            verify(mMockIImsAudioSession).addConfig(audioConfig);
-            verify(mMockIImsAudioSession).deleteConfig(audioConfig);
-            verify(mMockIImsAudioSession).modifySession(audioConfig);
-            verify(mMockIImsAudioSession).confirmConfig(audioConfig);
-            verify(mMockIImsAudioSession).setMediaQualityThreshold(threshold);
-            verify(mMockIImsAudioSession).sendDtmf('1', 10);
-            verify(mMockIImsAudioSession).sendHeaderExtension(extensions);
-        } catch (Exception e) {
-            fail(e.getMessage());
-        }
+    @Test
+    public void testAddConfigWithException() throws RemoteException {
+        AudioConfig config = new AudioConfig.Builder().build();
+        doThrow(new RemoteException()).when(mMockAudioSession).addConfig(any(AudioConfig.class));
+        mImsAudioSession.addConfig(config);
+        verify(mMockAudioSession).addConfig(config);
+    }
+
+    @Test
+    public void testDeleteConfig() throws RemoteException {
+        AudioConfig config = new AudioConfig.Builder().build();
+        mImsAudioSession.deleteConfig(config);
+        verify(mMockAudioSession).deleteConfig(config);
+    }
+
+    @Test
+    public void testDeleteConfigWithException() throws RemoteException {
+        AudioConfig config = new AudioConfig.Builder().build();
+        doThrow(new RemoteException())
+                .when(mMockAudioSession).deleteConfig(any(AudioConfig.class));
+        mImsAudioSession.deleteConfig(config);
+        verify(mMockAudioSession).deleteConfig(config);
+    }
+
+    @Test
+    public void testConfirmConfig() throws RemoteException {
+        AudioConfig config = new AudioConfig.Builder().build();
+        mImsAudioSession.confirmConfig(config);
+        verify(mMockAudioSession).confirmConfig(config);
+    }
+
+    @Test
+    public void testConfirmConfigWithException() throws RemoteException {
+        AudioConfig config = new AudioConfig.Builder().build();
+        doThrow(new RemoteException())
+                .when(mMockAudioSession).confirmConfig(any(AudioConfig.class));
+        mImsAudioSession.confirmConfig(config);
+        verify(mMockAudioSession).confirmConfig(config);
+    }
+
+    @Test
+    public void testSendDtmf() throws RemoteException {
+        mImsAudioSession.sendDtmf('1', 100);
+        verify(mMockAudioSession).sendDtmf('1', 100);
+    }
+
+    @Test
+    public void testSendDtmfWithException() throws RemoteException {
+        doThrow(new RemoteException()).when(mMockAudioSession).sendDtmf('1', 100);
+        mImsAudioSession.sendDtmf('1', 100);
+        verify(mMockAudioSession).sendDtmf('1', 100);
+    }
+
+    @Test
+    public void testStartDtmf() throws RemoteException {
+        mImsAudioSession.startDtmf('1');
+        verify(mMockAudioSession).startDtmf('1');
+    }
+
+    @Test
+    public void testStartDtmfWithException() throws RemoteException {
+        doThrow(new RemoteException()).when(mMockAudioSession).startDtmf('1');
+        mImsAudioSession.startDtmf('1');
+        verify(mMockAudioSession).startDtmf('1');
+    }
+
+    @Test
+    public void testStopDtmf() throws RemoteException {
+        mImsAudioSession.stopDtmf();
+        verify(mMockAudioSession).stopDtmf();
+    }
+
+    @Test
+    public void testStopDtmfWithException() throws RemoteException {
+        doThrow(new RemoteException()).when(mMockAudioSession).stopDtmf();
+        mImsAudioSession.stopDtmf();
+        verify(mMockAudioSession).stopDtmf();
+    }
+
+    @Test
+    public void testSendHeaderExtension() throws RemoteException {
+        List<RtpHeaderExtension> extensions = new ArrayList<>();
+        mImsAudioSession.sendHeaderExtension(extensions);
+        verify(mMockAudioSession).sendHeaderExtension(extensions);
+    }
+
+    @Test
+    public void testSendHeaderExtensionWithException() throws RemoteException {
+        List<RtpHeaderExtension> extensions = new ArrayList<>();
+        doThrow(new RemoteException()).when(mMockAudioSession).sendHeaderExtension(any());
+        mImsAudioSession.sendHeaderExtension(extensions);
+        verify(mMockAudioSession).sendHeaderExtension(extensions);
+    }
+
+    @Test
+    public void testRequestRtpReceptionStats() throws RemoteException {
+        mImsAudioSession.requestRtpReceptionStats(1000);
+        verify(mMockAudioSession).requestRtpReceptionStats(1000);
+    }
+
+    @Test
+    public void testRequestRtpReceptionStatsWithException() throws RemoteException {
+        doThrow(new RemoteException()).when(mMockAudioSession).requestRtpReceptionStats(1000);
+        mImsAudioSession.requestRtpReceptionStats(1000);
+        verify(mMockAudioSession).requestRtpReceptionStats(1000);
+    }
+
+    @Test
+    public void testAdjustDelay() throws RemoteException {
+        mImsAudioSession.adjustDelay(100);
+        verify(mMockAudioSession).adjustDelay(100);
+    }
+
+    @Test
+    public void testAdjustDelayWithException() throws RemoteException {
+        doThrow(new RemoteException()).when(mMockAudioSession).adjustDelay(100);
+        mImsAudioSession.adjustDelay(100);
+        verify(mMockAudioSession).adjustDelay(100);
     }
 }
