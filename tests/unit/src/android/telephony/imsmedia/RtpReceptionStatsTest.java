@@ -14,12 +14,11 @@
  * limitations under the License.
  */
 
-package com.android.telephony.imsmedia.tests;
+package android.telephony.imsmedia;
 
 import static com.google.common.truth.Truth.assertThat;
 
 import android.os.Parcel;
-import android.telephony.imsmedia.RtpReceptionStats;
 
 import androidx.test.runner.AndroidJUnit4;
 
@@ -28,7 +27,6 @@ import org.junit.runner.RunWith;
 
 @RunWith(AndroidJUnit4.class)
 public class RtpReceptionStatsTest {
-    private static final int INVALID_NUMBER = -1;
     private static final int RTP_TIMESTAMP = 100;
     private static final int RTCPSR_TIMESTAMP = 4390;
     private static final long RTCPSR_NTP_TIMESTAMP = Long.MAX_VALUE;

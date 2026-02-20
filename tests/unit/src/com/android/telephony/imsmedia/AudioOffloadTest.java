@@ -36,15 +36,17 @@ import android.os.RemoteException;
 import android.telephony.CallQuality;
 import android.telephony.ims.RtpHeaderExtension;
 import android.telephony.imsmedia.AudioConfig;
+import android.telephony.imsmedia.AudioConfigTest;
+import android.telephony.imsmedia.CallQualityTest;
 import android.telephony.imsmedia.IImsAudioSessionCallback;
 import android.telephony.imsmedia.ImsMediaSession;
 import android.telephony.imsmedia.MediaQualityStatus;
+import android.telephony.imsmedia.MediaQualityStatusTest;
 import android.telephony.imsmedia.MediaQualityThreshold;
+import android.telephony.imsmedia.MediaQualityThresholdTest;
 import android.testing.AndroidTestingRunner;
 import android.testing.TestableLooper;
 
-import com.android.telephony.imsmedia.AudioSession;
-import com.android.telephony.imsmedia.Utils;
 import com.android.telephony.imsmedia.Utils.OpenSessionParams;
 
 import org.junit.After;
@@ -69,8 +71,6 @@ public class AudioOffloadTest extends ImsMediaTest {
     private static final int NO_RESOURCES = ImsMediaSession.RESULT_NO_RESOURCES;
     private static final int NO_MEMORY = ImsMediaSession.RESULT_NO_MEMORY;
     private static final int SUCCESS = ImsMediaSession.RESULT_SUCCESS;
-    private static final int PACKET_LOSS = 15;
-    private static final int JITTER = 200;
     private static final char DTMF_DIGIT = '7';
     private AudioSession audioSession;
     private AudioOffloadListener offloadListener;

@@ -14,17 +14,13 @@
  * limitations under the License.
  */
 
-package com.android.telephony.imsmedia;
+package android.telephony.imsmedia;
 
 import static com.google.common.truth.Truth.assertThat;
 
 import android.net.InetAddresses;
 import android.os.Parcel;
 import android.telephony.AccessNetworkConstants.AccessNetworkType;
-import android.telephony.imsmedia.RtcpConfig;
-import android.telephony.imsmedia.RtpConfig;
-import android.telephony.imsmedia.RtpContextParams;
-import android.telephony.imsmedia.TextConfig;
 
 import androidx.test.runner.AndroidJUnit4;
 
@@ -152,7 +148,12 @@ public class TextConfigTest {
         assertThat(config1).isNotEqualTo(config3);
     }
 
-    static TextConfig createTextConfig() {
+    /**
+     * Creates a default {@link TextConfig} instance for testing purposes.
+     *
+     * @return A new {@link TextConfig} instance with predefined values.
+     */
+    public static TextConfig createTextConfig() {
         return new TextConfig.Builder()
                 .setMediaDirection(RtpConfig.MEDIA_DIRECTION_SEND_RECEIVE)
                 .setAccessNetwork(AccessNetworkType.EUTRAN)

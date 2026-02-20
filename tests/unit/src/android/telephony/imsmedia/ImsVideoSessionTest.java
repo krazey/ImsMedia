@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.android.telephony.imsmedia;
+package android.telephony.imsmedia;
 
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.doReturn;
@@ -22,10 +22,6 @@ import static org.mockito.Mockito.verify;
 
 import android.os.IBinder;
 import android.telephony.ims.RtpHeaderExtension;
-import android.telephony.imsmedia.IImsVideoSession;
-import android.telephony.imsmedia.ImsVideoSession;
-import android.telephony.imsmedia.MediaQualityThreshold;
-import android.telephony.imsmedia.VideoConfig;
 import android.view.Surface;
 
 import org.junit.Before;

@@ -28,6 +28,7 @@ import android.os.RemoteException;
 import android.telephony.imsmedia.IImsTextSessionCallback;
 import android.telephony.imsmedia.ImsMediaSession;
 import android.telephony.imsmedia.TextConfig;
+import android.telephony.imsmedia.TextConfigTest;
 import android.testing.AndroidTestingRunner;
 import android.testing.TestableLooper;
 

@@ -14,12 +14,11 @@
  * limitations under the License.
  */
 
-package com.android.telephony.imsmedia;
+package android.telephony.imsmedia;
 
 import static com.google.common.truth.Truth.assertThat;
 
 import android.os.Parcel;
-import android.telephony.imsmedia.MediaQualityThreshold;
 
 import androidx.test.runner.AndroidJUnit4;
 
@@ -130,7 +129,12 @@ public class MediaQualityThresholdTest {
         assertThat(threshold1).isNotEqualTo(threshold5);
     }
 
-    static MediaQualityThreshold createMediaQualityThreshold() {
+    /**
+     * Creates a {@link MediaQualityThreshold} instance with default test values.
+     *
+     * @return A new {@link MediaQualityThreshold} instance.
+     */
+    public static MediaQualityThreshold createMediaQualityThreshold() {
         return new MediaQualityThreshold.Builder()
                 .setRtpInactivityTimerMillis(RTP_TIMEOUT)
                 .setRtcpInactivityTimerMillis(RTCP_TIMEOUT)
@@ -143,7 +147,12 @@ public class MediaQualityThresholdTest {
                 .build();
     }
 
-    static MediaQualityThreshold createMediaQualityThresholdForHal() {
+    /**
+     * Creates a {@link MediaQualityThreshold} instance with default values for HAL testing.
+     * The video bitrate is set to 0, indicating it's not relevant for HAL-specific tests.
+     * @return A new {@link MediaQualityThreshold} instance.
+     */
+    public static MediaQualityThreshold createMediaQualityThresholdForHal() {
         return new MediaQualityThreshold.Builder()
                 .setRtpInactivityTimerMillis(RTP_TIMEOUT)
                 .setRtcpInactivityTimerMillis(RTCP_TIMEOUT)

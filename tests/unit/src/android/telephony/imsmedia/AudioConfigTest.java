@@ -14,19 +14,13 @@
  * limitations under the License.
  */
 
-package com.android.telephony.imsmedia;
+package android.telephony.imsmedia;
 
 import static com.google.common.truth.Truth.assertThat;
 
 import android.net.InetAddresses;
 import android.os.Parcel;
 import android.telephony.AccessNetworkConstants.AccessNetworkType;
-import android.telephony.imsmedia.AmrParams;
-import android.telephony.imsmedia.AnbrMode;
-import android.telephony.imsmedia.AudioConfig;
-import android.telephony.imsmedia.EvsParams;
-import android.telephony.imsmedia.RtcpConfig;
-import android.telephony.imsmedia.RtpConfig;
 
 import androidx.test.runner.AndroidJUnit4;
 
@@ -67,21 +61,21 @@ public class AudioConfigTest {
     private static final byte DTMF_PAYLOAD = 126;
     private static final byte DTMF_SAMPLING_RATE = 127;
 
-    private static final RtcpConfig rtcp = new RtcpConfig.Builder()
+    private static final RtcpConfig sRtcp = new RtcpConfig.Builder()
             .setCanonicalName(CANONICAL_NAME)
             .setTransmitPort(RTCP_PORT)
             .setIntervalSec(RTCP_INTERVAL)
             .setRtcpXrBlockTypes(RtcpConfig.FLAG_RTCPXR_DLRR_REPORT_BLOCK)
             .build();
 
-    private static final EvsParams evs = new EvsParams.Builder()
+    private static final EvsParams sEvs = new EvsParams.Builder()
             .setEvsbandwidth(EvsParams.EVS_SUPER_WIDE_BAND)
             .setEvsMode(EvsParams.EVS_MODE_7)
             .setChannelAwareMode(CHANNEL_AWARE_MODE)
             .setHeaderFullOnly(USE_HEADER_FULL_ONLY)
             .build();
 
-    private static final AmrParams amr = new AmrParams.Builder()
+    private static final AmrParams sAmr = new AmrParams.Builder()
             .setAmrMode(AmrParams.AMR_MODE_5)
             .setOctetAligned(OCTET_ALIGNED)
             .setMaxRedundancyMillis(MAX_REDUNDANCY_MILLIS)
@@ -106,11 +100,11 @@ public class AudioConfigTest {
         assertThat(config.getRxDtmfPayloadTypeNumber()).isEqualTo(DTMF_PAYLOAD);
         assertThat(config.getDtmfSamplingRateKHz()).isEqualTo(DTMF_SAMPLING_RATE);
         assertThat(config.getAmrParams()).isEqualTo(null);
-        assertThat(config.getEvsParams()).isEqualTo(evs);
+        assertThat(config.getEvsParams()).isEqualTo(sEvs);
         assertThat(config.getAccessNetwork()).isEqualTo(AccessNetworkType.EUTRAN);
         assertThat(config.getRemoteRtpAddress()).isEqualTo(new InetSocketAddress(
                 InetAddresses.parseNumericAddress(REMOTE_RTP_ADDRESS), REMOTE_RTP_PORT));
-        assertThat(config.getRtcpConfig()).isEqualTo(rtcp);
+        assertThat(config.getRtcpConfig()).isEqualTo(sRtcp);
         assertThat(config.getRxPayloadTypeNumber()).isEqualTo(RX_PAYLOAD);
         assertThat(config.getTxPayloadTypeNumber()).isEqualTo(TX_PAYLOAD);
         assertThat(config.getSamplingRateKHz()).isEqualTo(SAMPLING_RATE);
@@ -148,7 +142,7 @@ public class AudioConfigTest {
                 .setAccessNetwork(AccessNetworkType.EUTRAN)
                 .setRemoteRtpAddress(new InetSocketAddress(
                     InetAddresses.parseNumericAddress(REMOTE_RTP_ADDRESS), REMOTE_RTP_PORT))
-                .setRtcpConfig(rtcp)
+                .setRtcpConfig(sRtcp)
                 .setDscp(DSCP)
                 .setRxPayloadTypeNumber(RX_PAYLOAD)
                 .setTxPayloadTypeNumber(TX_PAYLOAD)
@@ -161,20 +155,25 @@ public class AudioConfigTest {
                 .setTxDtmfPayloadTypeNumber(DTMF_PAYLOAD)
                 .setRxDtmfPayloadTypeNumber(DTMF_PAYLOAD)
                 .setDtmfSamplingRateKHz(DTMF_SAMPLING_RATE)
-                .setAmrParams(amr)
-                .setEvsParams(evs)
+                .setAmrParams(sAmr)
+                .setEvsParams(sEvs)
                 .build();
 
         assertThat(config1).isNotEqualTo(config2);
     }
 
-    static AudioConfig createAudioConfig() {
+    /**
+     * Creates a default {@link AudioConfig} instance for testing purposes.
+     *
+     * @return A new {@link AudioConfig} instance with predefined values.
+     */
+    public static AudioConfig createAudioConfig() {
         return new AudioConfig.Builder()
                 .setMediaDirection(RtpConfig.MEDIA_DIRECTION_SEND_RECEIVE)
                 .setAccessNetwork(AccessNetworkType.EUTRAN)
                 .setRemoteRtpAddress(new InetSocketAddress(
                     InetAddresses.parseNumericAddress(REMOTE_RTP_ADDRESS), REMOTE_RTP_PORT))
-                .setRtcpConfig(rtcp)
+                .setRtcpConfig(sRtcp)
                 .setDscp(DSCP)
                 .setRxPayloadTypeNumber(RX_PAYLOAD)
                 .setTxPayloadTypeNumber(TX_PAYLOAD)
@@ -187,7 +186,7 @@ public class AudioConfigTest {
                 .setTxDtmfPayloadTypeNumber(DTMF_PAYLOAD)
                 .setRxDtmfPayloadTypeNumber(DTMF_PAYLOAD)
                 .setDtmfSamplingRateKHz(DTMF_SAMPLING_RATE)
-                .setEvsParams(evs)
+                .setEvsParams(sEvs)
                 .build();
     }
 }

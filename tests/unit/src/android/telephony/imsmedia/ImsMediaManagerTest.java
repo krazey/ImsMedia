@@ -185,6 +185,9 @@ public class ImsMediaManagerTest {
     }
 
     public abstract static class IMediaStubTest extends IMediaStubBase implements IInterface {
+        /**
+         * A mockable stub class used to test binder transactions with a mocked IImsMedia interface.
+         */
         public abstract boolean transact(int code, Parcel data, Parcel reply, int flags);
     }
 }

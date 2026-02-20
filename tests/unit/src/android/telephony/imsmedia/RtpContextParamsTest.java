@@ -14,14 +14,13 @@
  * limitations under the License.
  */
 
-package com.android.telephony.imsmedia.tests;
+package android.telephony.imsmedia;
 
 import static com.google.common.truth.Truth.assertThat;
 
 import static org.junit.Assert.assertEquals;
 
 import android.os.Parcel;
-import android.telephony.imsmedia.RtpContextParams;
 
 import androidx.test.runner.AndroidJUnit4;
 

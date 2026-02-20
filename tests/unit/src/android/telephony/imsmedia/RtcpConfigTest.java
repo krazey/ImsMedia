@@ -14,17 +14,16 @@
  * limitations under the License.
  */
 
-package com.android.telephony.imsmedia.tests;
+package android.telephony.imsmedia;
 
 import static com.google.common.truth.Truth.assertThat;
 
 import android.os.Parcel;
-import android.telephony.imsmedia.RtcpConfig;
-import androidx.test.filters.SmallTest;
+
 import androidx.test.runner.AndroidJUnit4;
 
-import org.junit.runner.RunWith;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 
 @RunWith(AndroidJUnit4.class)
 public class RtcpConfigTest {

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.android.telephony.imsmedia;
+package android.telephony.imsmedia;
 
 import static com.google.common.truth.Truth.assertThat;
 
@@ -50,7 +50,12 @@ public class CallQualityTest {
     private static final int NUMRTPSIDPACKETSRECEIVED = 20;
     private static final int NUMRTPDUPLICATEPACKETS = 50;
 
-    static CallQuality createCallQuality() {
+    /**
+     * Creates a {@link CallQuality} instance with predefined test values.
+     *
+     * @return A new {@link CallQuality} object.
+     */
+    public static CallQuality createCallQuality() {
         return new CallQuality.Builder()
                 .setDownlinkCallQualityLevel(DOWNLINKCALLQUALITYLEVEL)
                 .setUplinkCallQualityLevel(UPLINKCALLQUALITYLEVEL)
@@ -76,7 +81,12 @@ public class CallQualityTest {
                 .build();
     }
 
-    static android.hardware.radio.ims.media.CallQuality createHalCallQuality() {
+    /**
+     * Creates a HAL {@link android.hardware.radio.ims.media.CallQuality} instance with predefined
+     * test values.
+     * @return A new {@link android.hardware.radio.ims.media.CallQuality} object.
+     */
+    public static android.hardware.radio.ims.media.CallQuality createHalCallQuality() {
         final android.hardware.radio.ims.media.CallQuality callQuality =
                 new android.hardware.radio.ims.media.CallQuality();
         callQuality.downlinkCallQualityLevel = DOWNLINKCALLQUALITYLEVEL;
@@ -113,7 +123,7 @@ public class CallQualityTest {
         assertThat(callQuality.getNumRtpPacketsTransmitted()).isEqualTo(NUMRTPPACKETSTRANSMITTED);
         assertThat(callQuality.getNumRtpPacketsReceived()).isEqualTo(NUMRTPPACKETSRECEIVED);
         assertThat(callQuality.getNumRtpPacketsTransmittedLost())
-            .isEqualTo(NUMRTPPACKETSTRANSMITTEDLOST);
+                .isEqualTo(NUMRTPPACKETSTRANSMITTEDLOST);
         assertThat(callQuality.getNumRtpPacketsNotReceived()).isEqualTo(NUMRTPPACKETSNOTRECEIVED);
         assertThat(callQuality.getAverageRelativeJitter()).isEqualTo(AVERAGERELATIVEJITTER);
         assertThat(callQuality.getMaxRelativeJitter()).isEqualTo(MAXRELATIVEJITTER);
