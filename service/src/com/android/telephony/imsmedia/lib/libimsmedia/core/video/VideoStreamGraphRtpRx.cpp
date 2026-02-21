@@ -286,3 +286,13 @@ bool VideoStreamGraphRtpRx::OnEvent(int32_t type, uint64_t param1, uint64_t para
 
     return false;
 }
+
+void VideoStreamGraphRtpRx::adjustDelay(const int32_t delayMs)
+{
+    BaseNode* node = findNode(kNodeIdVideoRenderer);
+
+    if (node != nullptr)
+    {
+        (reinterpret_cast<IVideoRendererNode*>(node))->AdjustDelay(delayMs);
+    }
+}

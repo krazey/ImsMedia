@@ -46,8 +46,10 @@ public class ImsMediaManager {
     @VisibleForTesting
     protected static final String MEDIA_SERVICE_CLASS =
             MEDIA_SERVICE_PACKAGE + ".ImsMediaController";
+    @VisibleForTesting
     private final Context mContext;
     private final OnConnectedCallback mOnConnectedCallback;
+    private ImsMediaManagerCallback mCallback;
     private final Executor mExecutor;
     private final ServiceConnection mConnection;
     private volatile IImsMedia mImsMedia;
@@ -64,6 +66,7 @@ public class ImsMediaManager {
      *
      * @param rtpSocket  local UDP socket to send and receive incoming RTP packets
      * @param rtcpSocket local UDP socket to send and receive incoming RTCP packets
+     * @param sessionType The type of media session to be opened.
      * @param rtpConfig  provides remote endpoint info and codec details.
      *                   This could be null initially and the application may update
      *                   this later using {@link ImsMediaSession#modifySession()}
@@ -72,7 +75,7 @@ public class ImsMediaManager {
      */
     public void openSession(@NonNull final DatagramSocket rtpSocket,
             @NonNull final DatagramSocket rtcpSocket,
-            @NonNull final @ImsMediaSession.SessionType int sessionType,
+            final @ImsMediaSession.SessionType int sessionType,
             @Nullable final RtpConfig rtpConfig,
             @NonNull final Executor executor,
             @NonNull final SessionCallback callback) {
@@ -83,7 +86,7 @@ public class ImsMediaManager {
                         ParcelFileDescriptor.fromDatagramSocket(rtcpSocket), sessionType,
                         rtpConfig, callback.getBinder());
             } catch (RemoteException e) {
-                Log.e(TAG, "Failed to openSession: " + e);
+                Log.e(TAG, "Failed to openSession", e);
                 // TODO throw exception or callback.onOpenSessionFailure()
             }
         }
@@ -101,7 +104,7 @@ public class ImsMediaManager {
             try {
                 mImsMedia.closeSession(session.getBinder());
             } catch (RemoteException e) {
-                Log.e(TAG, "Failed to closeSession: " + e);
+                Log.e(TAG, "Failed to closeSession", e);
             }
         }
     }
@@ -111,15 +114,23 @@ public class ImsMediaManager {
      * configurations and returns via IImsMediaCallback.
      *
      * @param videoConfigList array of video configuration for which sprop should be generated.
-     * @param callback Binder interface implemented by caller and called with array of generated
-     * sprop values.
+     * @param callback ImsMediaManagerCallback interface implemented by caller and called with
+     *                 array of generated sprop values.
      **/
-    public void generateVideoSprop(@NonNull VideoConfig[] videoConfigList, IBinder callback) {
+    public void generateVideoSprop(@NonNull VideoConfig[] videoConfigList,
+                                   @NonNull ImsMediaManagerCallback callback) {
         if (isConnected()) {
             try {
-                mImsMedia.generateVideoSprop(videoConfigList, callback);
+                mCallback = callback;
+                mImsMedia.generateVideoSprop(videoConfigList, new IImsMediaCallback.Stub() {
+                    @Override
+                    public void onVideoSpropResponse(String[] spropList) {
+                        mCallback.onVideoSpropResponse(spropList);
+                        mCallback = null;
+                    }
+                });
             } catch (RemoteException e) {
-                Log.e(TAG, "Failed to closeSession: " + e);
+                Log.e(TAG, "Failed to closeSession", e);
             }
         }
     }
@@ -133,9 +144,25 @@ public class ImsMediaManager {
             try {
                 mContext.unbindService(mConnection);
             } catch (IllegalArgumentException e) {
-                Log.e(TAG, "IllegalArgumentException: " + e.toString());
+                Log.e(TAG, "IllegalArgumentException", e);
             }
             mImsMedia = null;
+        }
+    }
+
+    /**
+     * Sets the test mode for the ImsMediaService.
+     *
+     * @param testMode The test mode to be set.
+     */
+    public void setTestMode(int testMode) {
+        Log.d(TAG, "setTestMode: " + testMode);
+        if (isConnected()) {
+            try {
+                mImsMedia.setTestMode(testMode);
+            } catch (RemoteException e) {
+                Log.e(TAG, "Failed to setTestMode", e);
+            }
         }
     }
 
@@ -153,6 +180,18 @@ public class ImsMediaManager {
          * Called by the ImsMedia framework when the service is disconnected.
          */
         void onDisconnected();
+    }
+
+    /**
+     * Interface to be implemented by application to received IImsMedia interface callbacks.
+     */
+    public interface ImsMediaManagerCallback {
+        /**
+         * @param spropList Array of payload type and generated video sprop pairs
+         *                  (payloadType:sprop)
+         *                  Example: 105:Z0LAFtoHgUaagQEBA8UKqA==,aM4NiA==
+         **/
+        void onVideoSpropResponse(String[] spropList);
     }
 
     public ImsMediaManager(@NonNull Context context, @NonNull Executor executor,

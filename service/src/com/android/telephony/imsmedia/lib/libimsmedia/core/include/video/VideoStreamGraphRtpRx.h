@@ -33,6 +33,15 @@ public:
     void setSurface(ANativeWindow* surface);
     virtual bool OnEvent(int32_t type, uint64_t param1, uint64_t param2);
 
+    /**
+     * @brief Adjust the delay in the jitter buffer to synchronize the video frame with the time of
+     *        audio timestamp
+     *
+     * @param delayMs The additional delay to the jitter buffer in milliseconds unit. The value is
+     *        always positive.
+     */
+    void adjustDelay(const int32_t delayMs);
+
 private:
     ANativeWindow* mSurface;
 };

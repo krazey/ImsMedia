@@ -49,7 +49,7 @@ public class ImsVideoSession implements ImsMediaSession {
         try {
             return mSession.getSessionId();
         } catch (RemoteException e) {
-            Log.e(TAG, "Failed to get session ID: " + e);
+            Log.e(TAG, "Failed to get session ID", e);
         }
 
         return -1;
@@ -62,7 +62,7 @@ public class ImsVideoSession implements ImsMediaSession {
         try {
             mSession.modifySession((VideoConfig) config);
         } catch (RemoteException e) {
-            Log.e(TAG, "Failed to modify session: " + e);
+            Log.e(TAG, "Failed to modify session", e);
         }
     }
 
@@ -76,7 +76,7 @@ public class ImsVideoSession implements ImsMediaSession {
         try {
             mSession.setPreviewSurface(surface);
         } catch (RemoteException e) {
-            Log.e(TAG, "Failed to set preview surface: " + e);
+            Log.e(TAG, "Failed to set preview surface", e);
         }
     }
 
@@ -90,7 +90,7 @@ public class ImsVideoSession implements ImsMediaSession {
         try {
             mSession.setDisplaySurface(surface);
         } catch (RemoteException e) {
-            Log.e(TAG, "Failed to set display surface: " + e);
+            Log.e(TAG, "Failed to set display surface", e);
         }
     }
 
@@ -101,7 +101,7 @@ public class ImsVideoSession implements ImsMediaSession {
         try {
             mSession.setMediaQualityThreshold(threshold);
         } catch (RemoteException e) {
-            Log.e(TAG, "Failed to set media quality threshold: " + e);
+            Log.e(TAG, "Failed to set media quality threshold", e);
         }
     }
 
@@ -114,7 +114,7 @@ public class ImsVideoSession implements ImsMediaSession {
         try {
             mSession.sendHeaderExtension(extensions);
         } catch (RemoteException e) {
-            Log.e(TAG, "Failed to send RTP header extension: " + e);
+            Log.e(TAG, "Failed to send RTP header extension", e);
         }
     }
 
@@ -126,7 +126,36 @@ public class ImsVideoSession implements ImsMediaSession {
         try {
             mSession.requestVideoDataUsage();
         } catch (RemoteException e) {
-            Log.e(TAG, "Failed to request video data usage: " + e);
+            Log.e(TAG, "Failed to request video data usage", e);
+        }
+    }
+
+    /**
+     * Request the current rtp reception statistics parameters for checking the current status of
+     * the rtp stream. It will trigger the notifyRtpReceptionStats() with the RtpReceptionStats.
+     *
+     * @param intervalMs The interval of the time in milliseconds of the rtp reception notification
+     */
+    public void requestRtpReceptionStats(int intervalMs) {
+        try {
+            mSession.requestRtpReceptionStats(intervalMs);
+        } catch (RemoteException e) {
+            Log.e(TAG, "Failed to query rtp reception statistics", e);
+        }
+    }
+
+    /**
+     * Adjust the delay in the jitter buffer to synchronize the video frame with the time of audio
+     * timestamp
+     *
+     * @param delayMs The delay to adjust the additional delay to the jitter buffer. The value is
+     * always positive.
+     */
+    public void adjustDelay(int delayMs) {
+        try {
+            mSession.adjustDelay(delayMs);
+        } catch (RemoteException e) {
+            Log.e(TAG, "Failed to apply delay to the session de-jitter buffer", e);
         }
     }
 }

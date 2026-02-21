@@ -17,6 +17,7 @@
 #include <VideoManager.h>
 #include <ImsMediaTrace.h>
 #include <ImsMediaNetworkUtil.h>
+#include <RtpReceptionStats.h>
 
 using namespace android;
 VideoManager* VideoManager::sManager;
@@ -165,6 +166,36 @@ void VideoManager::setMediaQualityThreshold(const int sessionId, MediaQualityThr
     }
 }
 
+void VideoManager::requestRtpReceptionStats(const int sessionId, const int intervalMs)
+{
+    auto session = mSessions.find(sessionId);
+
+    if (session != mSessions.end())
+    {
+        IMLOGI1("[requestRtpReceptionStats] sessionId[%d]", sessionId);
+        (session->second)->requestRtpReceptionStats(intervalMs);
+    }
+    else
+    {
+        IMLOGE1("[requestRtpReceptionStats] sessionId[%d] is not found", sessionId);
+    }
+}
+
+void VideoManager::adjustDelay(const int sessionId, const int delayMs)
+{
+    auto session = mSessions.find(sessionId);
+
+    if (session != mSessions.end())
+    {
+        IMLOGI1("[adjustDelay] sessionId[%d]", sessionId);
+        (session->second)->adjustDelay(delayMs);
+    }
+    else
+    {
+        IMLOGE1("[adjustDelay] sessionId[%d] is not found", sessionId);
+    }
+}
+
 void VideoManager::sendMessage(const int sessionId, const android::Parcel& parcel)
 {
     int nMsg = parcel.readInt32();
@@ -219,6 +250,11 @@ void VideoManager::sendMessage(const int sessionId, const android::Parcel& parce
                     "VIDEO_REQUEST_EVENT", nMsg, sessionId, reinterpret_cast<uint64_t>(threshold));
         }
         break;
+        case kVideoRequestRtpReceptionStats:
+        case kVideoAdjustDelay:
+            ImsMediaEventHandler::SendEvent(
+                    "VIDEO_REQUEST_EVENT", nMsg, sessionId, parcel.readInt32());
+            break;
         default:
             break;
     }
@@ -340,6 +376,12 @@ void VideoManager::RequestHandler::processEvent(
             }
         }
         break;
+        case kVideoRequestRtpReceptionStats:
+            sManager->requestRtpReceptionStats(static_cast<int>(sessionId), paramA);
+            break;
+        case kVideoAdjustDelay:
+            sManager->adjustDelay(static_cast<int>(sessionId), paramA);
+            break;
         case kRequestVideoCvoUpdate:
         case kRequestVideoBitrateChange:
         case kRequestVideoIdrFrame:
@@ -426,6 +468,19 @@ void VideoManager::ResponseHandler::processEvent(
             parcel.writeInt32(static_cast<int>(sessionId));
             sManager->sendResponse(sessionId, parcel);
             break;
+        case kVideoNotifyRtpReceptionStats:
+        {
+            parcel.writeInt32(event);
+            RtpReceptionStats* stats = reinterpret_cast<RtpReceptionStats*>(paramA);
+
+            if (stats != nullptr)
+            {
+                stats->writeToParcel(&parcel);
+                sManager->sendResponse(sessionId, parcel);
+                delete stats;
+            }
+        }
+        break;
         default:
             break;
     }

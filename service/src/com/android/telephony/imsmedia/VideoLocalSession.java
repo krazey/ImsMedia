@@ -34,7 +34,7 @@ public class VideoLocalSession {
     private int mSessionId;
     private long mNativeObject = 0;
 
-    /* Instantiates a new audio session based on AP RTP stack
+    /* Instantiates a new video session based on AP RTP stack
     *
     * @param sessionId : session identifier
     * @param nativeObject : jni object modifier for calling jni methods
@@ -141,6 +141,35 @@ public class VideoLocalSession {
         Log.d(TAG, "requestVideoDataUsage");
         Parcel parcel = Parcel.obtain();
         parcel.writeInt(VideoSession.CMD_REQUEST_VIDEO_DATA_USAGE);
+        sendRequest(mSessionId, parcel);
+    }
+
+    /**
+     * Queries the current rtp reception statistics parameters for checking the current status of
+     * the rtp stream. It will trigger the notifyRtpReceptionStats() with the RtpReceptionStats.
+     *
+     * @param intervalMs The interval of the time in milliseconds of the rtp reception notification
+     */
+    public void requestRtpReceptionStats(final int intervalMs) {
+        Log.d(TAG, "requestRtpReceptionStats: interval=" + intervalMs);
+        Parcel parcel = Parcel.obtain();
+        parcel.writeInt(VideoSession.CMD_REQUEST_RECEPTION_STATS);
+        parcel.writeInt(intervalMs);
+        sendRequest(mSessionId, parcel);
+    }
+
+    /**
+     * Adjust the delay in the jitter buffer to synchronize the video frame with the time of audio
+     * timestamp
+     *
+     * @param delayMs The delay to adjust the additional delay to the jitter buffer. The value is
+     * always positive.
+     */
+    public void adjustDelay(final int delayMs) {
+        Log.d(TAG, "adjustDelay: delay=" + delayMs);
+        Parcel parcel = Parcel.obtain();
+        parcel.writeInt(VideoSession.CMD_ADJUST_DELAY);
+        parcel.writeInt(delayMs);
         sendRequest(mSessionId, parcel);
     }
 }

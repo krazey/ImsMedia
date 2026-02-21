@@ -164,7 +164,7 @@ public class DeviceInfo implements Serializable {
         private InetAddress mInetAddress;
         private Set<Integer> mAudioCodecs = new HashSet<>(Arrays.asList(AudioConfig.CODEC_AMR,
                 AudioConfig.CODEC_AMR_WB, AudioConfig.CODEC_EVS, AudioConfig.CODEC_PCMA,
-                AudioConfig.CODEC_PCMU));
+                AudioConfig.CODEC_PCMU, AudioConfig.CODEC_L16));
         private Set<Integer> mAmrModes = new HashSet<>(Arrays.asList(AmrParams.AMR_MODE_0,
                 AmrParams.AMR_MODE_1, AmrParams.AMR_MODE_2, AmrParams.AMR_MODE_3,
                 AmrParams.AMR_MODE_4, AmrParams.AMR_MODE_5, AmrParams.AMR_MODE_6,

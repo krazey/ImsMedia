@@ -72,7 +72,7 @@ ImsMediaResult IVideoRendererNode::Start()
         VideoJitterBuffer* jitter = reinterpret_cast<VideoJitterBuffer*>(mJitterBuffer);
         jitter->SetCodecType(mCodecType);
         jitter->SetFramerate(mFramerate);
-        jitter->SetJitterBufferSize(15, 15, 25);
+        jitter->SetJitterBufferSize(200, 200, 400);
         jitter->StartTimer(mLossDuration / 1000, mLossRateThreshold);
     }
 
@@ -84,6 +84,7 @@ ImsMediaResult IVideoRendererNode::Start()
         mVideoRenderer->SetCodec(mCodecType);
         mVideoRenderer->SetResolution(mWidth, mHeight);
         mVideoRenderer->SetDeviceOrientation(mDeviceOrientation);
+        mVideoRenderer->SetCodecSprop(mCodecSprop);
         mVideoRenderer->SetSurface(mWindow);
 
         if (!mVideoRenderer->Start())
@@ -141,6 +142,7 @@ void IVideoRendererNode::SetConfig(void* config)
     mCvoValue = pConfig->getCvoValue();
     mDeviceOrientation = pConfig->getDeviceOrientationDegree();
     mFramerate = pConfig->getFramerate();
+    mCodecSprop = pConfig->getCodecSprop();
 }
 
 bool IVideoRendererNode::IsSameConfig(void* config)
@@ -155,7 +157,8 @@ bool IVideoRendererNode::IsSameConfig(void* config)
             mWidth == pConfig->getResolutionWidth() && mHeight == pConfig->getResolutionHeight() &&
             mCvoValue == pConfig->getCvoValue() &&
             mDeviceOrientation == pConfig->getDeviceOrientationDegree() &&
-            mSamplingRate == pConfig->getSamplingRateKHz());
+            mSamplingRate == pConfig->getSamplingRateKHz() &&
+            mCodecSprop == pConfig->getCodecSprop());
 }
 
 void IVideoRendererNode::ProcessData()
@@ -338,6 +341,14 @@ void IVideoRendererNode::UpdateSurface(ANativeWindow* window)
 {
     IMLOGD1("[UpdateSurface] surface[%p]", window);
     mWindow = window;
+}
+
+void IVideoRendererNode::AdjustDelay(const int32_t delayMs)
+{
+    if (mJitterBuffer != nullptr)
+    {
+        reinterpret_cast<VideoJitterBuffer*>(mJitterBuffer)->SetAdditionalDelay(delayMs);
+    }
 }
 
 void IVideoRendererNode::UpdateRoundTripTimeDelay(int32_t delay)

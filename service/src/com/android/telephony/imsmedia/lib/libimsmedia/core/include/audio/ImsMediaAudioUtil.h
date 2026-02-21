@@ -21,12 +21,11 @@
 #include <stdint.h>
 
 #define IMSAMR_FRAME_BYTES              34
-
 #define EVS_COMPACT_PRIMARY_PAYLOAD_NUM 13
 #define EVS_COMPACT_AMRWBIO_PAYLOAD_NUM 10
 #define EVS_COMPACT_PAYLOAD_MAX_NUM     32
-
 #define AUDIO_STOP_TIMEOUT              1000
+#define MAX_PCM_SIZE                    320
 
 enum kImsAudioFrameEntype
 {

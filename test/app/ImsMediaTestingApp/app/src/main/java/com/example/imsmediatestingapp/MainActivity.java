@@ -5,7 +5,6 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.SurfaceTexture;
 import android.hardware.radio.ims.media.AmrMode;
-import android.hardware.radio.ims.media.CodecType;
 import android.hardware.radio.ims.media.EvsBandwidth;
 import android.hardware.radio.ims.media.EvsMode;
 import android.media.AudioManager;
@@ -22,7 +21,6 @@ import android.telephony.imsmedia.AmrParams;
 import android.telephony.imsmedia.AudioConfig;
 import android.telephony.imsmedia.AudioSessionCallback;
 import android.telephony.imsmedia.EvsParams;
-import android.telephony.imsmedia.IImsMediaCallback;
 import android.telephony.imsmedia.ImsAudioSession;
 import android.telephony.imsmedia.ImsMediaManager;
 import android.telephony.imsmedia.ImsMediaSession;
@@ -138,13 +136,25 @@ public class MainActivity extends AppCompatActivity {
     private int mSelectedCvoValue = -1;
     private String mSelectedVideoResolution = "VGA_PR";
     private Set<Integer> mSelectedRtcpFbTypes = new HashSet<>();
+    /** Adaptive Multi-Rate */
+    public static final int CODEC_AMR = 1 << 0;
+    /** Adaptive Multi-Rate Wide Band */
+    public static final int CODEC_AMR_WB = 1 << 1;
+    /** Enhanced Voice Services */
+    public static final int CODEC_EVS = 1 << 2;
+    /** G.711 A-law i.e. Pulse Code Modulation using A-law */
+    public static final int CODEC_PCMA = 1 << 3;
+    /** G.711 μ-law i.e. Pulse Code Modulation using μ-law */
+    public static final int CODEC_PCMU = 1 << 4;
+    /** L16 is 16 bit Pulse Code Modulation */
+    public static final int CODEC_L16 = 1 << 5;
 
     // The order of these values determines the priority in which they would be
     // selected if there
     // is a common match between the two devices' selections during the handshake
     // process.
-    private static final int[] CODEC_ORDER = new int[] { CodecType.AMR, CodecType.AMR_WB,
-            CodecType.EVS, CodecType.PCMA, CodecType.PCMU };
+    public static final int[] CODEC_ORDER = new int[] { CODEC_AMR, CODEC_AMR_WB,
+            CODEC_EVS, CODEC_PCMA, CODEC_PCMU, CODEC_L16 };
     private static final int[] EVS_BANDWIDTH_ORDER = new int[] { EvsBandwidth.NONE,
             EvsBandwidth.NARROW_BAND, EvsBandwidth.WIDE_BAND, EvsBandwidth.SUPER_WIDE_BAND,
             EvsBandwidth.FULL_BAND };
@@ -214,11 +224,12 @@ public class MainActivity extends AppCompatActivity {
      * Integer value.
      */
     public enum CodecTypeEnum {
-        AMR(CodecType.AMR),
-        AMR_WB(CodecType.AMR_WB),
-        EVS(CodecType.EVS),
-        PCMA(CodecType.PCMA),
-        PCMU(CodecType.PCMU);
+        AMR(CODEC_AMR),
+        AMR_WB(CODEC_AMR_WB),
+        EVS(CODEC_EVS),
+        PCMA(CODEC_PCMA),
+        PCMU(CODEC_PCMU),
+        L16(CODEC_L16);
 
         private final int mValue;
 
@@ -822,7 +833,7 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         public void notifyRtpReceptionStats(final RtpReceptionStats stats) {
-            Log.d(TAG, "notifyRtpReceptionStats, RtpReceptionStats=" + stats);
+            Log.d(TAG, "notifyRtpReceptionStats, audio RtpReceptionStats=" + stats);
         }
     }
 
@@ -867,6 +878,8 @@ public class MainActivity extends AppCompatActivity {
                     mVideoSession.setDisplaySurface(mDisplaySurface);
                 }
             });
+
+            mVideoSession.requestRtpReceptionStats(3000);
         }
 
         @Override
@@ -883,6 +896,11 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void notifyBitrate(final int bitrate) {
             Log.d(TAG, "notifyBitrate - bitrate=" + bitrate);
+        }
+
+        @Override
+        public void notifyRtpReceptionStats(final RtpReceptionStats stats) {
+            Log.d(TAG, "notifyRtpReceptionStats, video RtpReceptionStats=" + stats);
         }
     }
 
@@ -1626,14 +1644,14 @@ public class MainActivity extends AppCompatActivity {
                 remoteDevice.getAudioCodecs(), CODEC_ORDER);
 
         switch (selectedCodec) {
-            case CodecType.AMR:
-            case CodecType.AMR_WB:
+            case CODEC_AMR:
+            case CODEC_AMR_WB:
                 int amrMode = determineCommonCodecSettings(localDevice.getAmrModes(),
                     remoteDevice.getAmrModes(), AMR_MODE_ORDER);
                 amrParams = createAmrParams(amrMode, false, 0);
                 break;
 
-            case CodecType.EVS:
+            case CODEC_EVS:
                 int evsMode = determineCommonCodecSettings(localDevice.getEvsModes(),
                         remoteDevice.getEvsModes(), EVS_MODE_ORDER);
                 int evsBand = determineCommonCodecSettings(localDevice.getEvsBandwidths(),
@@ -1642,8 +1660,13 @@ public class MainActivity extends AppCompatActivity {
                 amrParams = createAmrParams(0, false, 0);
                 break;
 
-            case -1:
-                return createAudioConfig(CodecType.AMR_WB,
+            case CODEC_PCMA:
+            case CODEC_PCMU:
+            case CODEC_L16:
+                break;
+
+            default:
+                return createAudioConfig(CODEC_AMR_WB,
                     createAmrParams(AmrMode.AMR_MODE_4, false, 0), null);
         }
 
@@ -1698,19 +1721,20 @@ public class MainActivity extends AppCompatActivity {
                 .build();
 
         switch (audioCodec) {
-            case CodecType.AMR:
-            case CodecType.AMR_WB:
+            case CODEC_AMR:
+            case CODEC_AMR_WB:
                 mAudioConfig = createAudioConfig(getRemoteAudioSocketAddress(),
                         getRemoteAudioRtcpConfig(), audioCodec, amrParams, mEvs);
                 break;
 
-            case CodecType.EVS:
+            case CODEC_EVS:
                 mAudioConfig = createAudioConfig(getRemoteAudioSocketAddress(),
                         getRemoteAudioRtcpConfig(), audioCodec, amrParams, evsParams);
                 break;
 
-            case CodecType.PCMA:
-            case CodecType.PCMU:
+            case CODEC_PCMA:
+            case CODEC_PCMU:
+            case CODEC_L16:
                 mAudioConfig = createAudioConfig(getRemoteAudioSocketAddress(),
                         getRemoteAudioRtcpConfig(), audioCodec, null, null);
                 break;
@@ -2024,8 +2048,8 @@ public class MainActivity extends AppCompatActivity {
         int audioCodec = mBottomSheetAudioCodecSettings.getAudioCodec();
 
         switch (audioCodec) {
-            case CodecType.AMR:
-            case CodecType.AMR_WB:
+            case CODEC_AMR:
+            case CODEC_AMR_WB:
 
                 evsParams = new EvsParams.Builder()
                 .setEvsbandwidth(EvsParams.EVS_BAND_NONE)
@@ -2043,7 +2067,7 @@ public class MainActivity extends AppCompatActivity {
                         config.getAmrParams().toString()));
                 break;
 
-            case CodecType.EVS:
+            case CODEC_EVS:
                 evsParams = createEvsParams(mBottomSheetAudioCodecSettings.getEvsBand(),
                     mBottomSheetAudioCodecSettings.getEvsMode());
                 amrParams = createAmrParams(0, false, 0);
@@ -2054,8 +2078,9 @@ public class MainActivity extends AppCompatActivity {
                         config.getEvsParams().toString()));
                 break;
 
-            case CodecType.PCMA:
-            case CodecType.PCMU:
+            case CODEC_PCMA:
+            case CODEC_PCMU:
+            case CODEC_L16:
                 config = createAudioConfig(getRemoteAudioSocketAddress(),
                         getRemoteAudioRtcpConfig(), audioCodec, null, null);
                 Log.d(TAG, String.format("AudioConfig switched to Codec: %s",
@@ -2691,7 +2716,8 @@ public class MainActivity extends AppCompatActivity {
         viewGroup.invalidate();
     }
 
-    private IImsMediaCallback.Stub mMediaUtilCallback = new IImsMediaCallback.Stub() {
+    private final ImsMediaManager.ImsMediaManagerCallback mMediaUtilCallback =
+            new ImsMediaManager.ImsMediaManagerCallback() {
         @Override
         public void onVideoSpropResponse(String[] spropList) {
             Log.d(TAG, "[GetSprop]onVideoSprop");
@@ -2724,7 +2750,7 @@ public class MainActivity extends AppCompatActivity {
         videoConfigList[0] = vcbuilder.build();
 
         try {
-            mImsMediaManager.generateVideoSprop(videoConfigList, mMediaUtilCallback.asBinder());
+            mImsMediaManager.generateVideoSprop(videoConfigList, mMediaUtilCallback);
         } catch (Exception e) {
             Log.d(TAG, e.toString());
         }
@@ -2747,15 +2773,17 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
-     * Send the parameter to adjust the audio delay
+     * Send the parameter to adjust the audio and video delay for test
      */
     public void adjustDelay(View btn) {
         if (mAudioSession != null) {
-            mDelay = (mDelay + 20) % 240;
-            if (mDelay < 60) {
-                mDelay = 60;
-            }
+            mDelay = (mDelay + 20) % 200;
             mAudioSession.adjustDelay(mDelay);
+        }
+
+        if (mVideoSession != null) {
+            mDelay = (mDelay + 20) % 200;
+            mVideoSession.adjustDelay(mDelay);
         }
     }
 }

@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-
 package {
     default_applicable_licenses: ["Android-Apache-2.0"],
 }
@@ -29,9 +28,9 @@ android_app {
         "android-support-annotations",
     ],
     static_libs: [
-       "android.hardware.radio.ims.media-V1-java",
-       "ImsMediaFramework",
-       "imsmedia-core",
+        "android.hardware.radio.ims.media-V2-java",
+        "ImsMediaFramework",
+        "imsmedia-core",
     ],
     optimize: {
         enabled: false,
@@ -44,5 +43,3 @@ android_app {
     privileged: true,
     certificate: "platform",
 }
-
-

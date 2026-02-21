@@ -78,6 +78,15 @@ public:
      */
     void SetPacketLossParam(uint32_t time, uint32_t rate);
 
+    /**
+     * @brief Adjust the delay in the jitter buffer to synchronize the video frame with the time of
+     *        audio timestamp
+     *
+     * @param delayMs The additional delay to the jitter buffer in milliseconds unit. The value is
+     *        always positive.
+     */
+    void AdjustDelay(const int32_t delayMs);
+
 private:
     bool hasStartingCode(uint8_t* buffer, uint32_t bufferSize);
     FrameType GetFrameType(uint8_t* buffer, uint32_t bufferSize);
@@ -110,6 +119,7 @@ private:
     uint32_t mLossRateThreshold;
     uint32_t mPrevTimestamp;
     uint32_t mCurrentFramerate;
+    String8 mCodecSprop;
 };
 
 #endif

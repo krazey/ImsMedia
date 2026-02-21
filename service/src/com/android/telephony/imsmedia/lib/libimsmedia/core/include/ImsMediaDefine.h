@@ -338,6 +338,8 @@ enum ImsMediaVideoMsgRequest
     kVideoSendRtpHeaderExtension,
     kVideoSetMediaQualityThreshold,
     kVideoRequestDataUsage,
+    kVideoRequestRtpReceptionStats,
+    kVideoAdjustDelay,
 };
 
 enum ImsMediaVideoMsgResponse
@@ -352,6 +354,7 @@ enum ImsMediaVideoMsgResponse
     kVideoBitrateInd,
     kVideoDataUsageInd,
     kVideoSessionClosed,
+    kVideoNotifyRtpReceptionStats,
 };
 
 enum ImsMediaTextMsgRequest
@@ -416,6 +419,7 @@ enum kAudioCodecType
     kAudioCodecPcmu,
     kAudioCodecPcma,
     kAudioCodecEvs,
+    kAudioCodecL16,
 };
 
 enum kVideoCodecType

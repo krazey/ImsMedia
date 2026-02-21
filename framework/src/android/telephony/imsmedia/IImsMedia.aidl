@@ -40,5 +40,7 @@ oneway interface IImsMedia {
     * configurations and returns via IImsMediaCallback.
     **/
     void generateVideoSprop(in VideoConfig[] videoConfigList, in IBinder callback);
+
+    void setTestMode(int testMode);
 }
 

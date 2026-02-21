@@ -174,6 +174,18 @@ public class VideoSessionCallback extends ImsMediaManager.SessionCallback {
             }
         }
 
+        @Override
+        public void notifyRtpReceptionStats(final RtpReceptionStats stats) {
+            if (mLocalCallback == null) return;
+
+            final long callingIdentity = Binder.clearCallingIdentity();
+            try {
+                mExecutor.execute(() -> mLocalCallback.notifyRtpReceptionStats(stats));
+            } finally {
+                restoreCallingIdentity(callingIdentity);
+            }
+        }
+
         private void setExecutor(final Executor executor) {
             mExecutor = executor;
         }
@@ -248,6 +260,16 @@ public class VideoSessionCallback extends ImsMediaManager.SessionCallback {
      * @param bytes bytes of send and received rtp data.
      */
     public void notifyVideoDataUsage(final long bytes) {
+        // Base Implementation
+    }
+
+    /**
+     * Notifies the rtp reception parameters periodically when the requestRtpReceptionStats() is
+     * triggered with the period
+     *
+     * @param stats The rtp reception parameters
+     */
+    public void notifyRtpReceptionStats(RtpReceptionStats stats) {
         // Base Implementation
     }
 }

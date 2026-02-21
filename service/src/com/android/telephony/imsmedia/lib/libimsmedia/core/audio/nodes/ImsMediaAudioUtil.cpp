@@ -171,6 +171,8 @@ int32_t ImsMediaAudioUtil::ConvertCodecType(int32_t type)
             return kAudioCodecPcma;
         case AudioConfig::CODEC_PCMU:
             return kAudioCodecPcmu;
+        case AudioConfig::CODEC_L16:
+            return kAudioCodecL16;
     }
 }
 

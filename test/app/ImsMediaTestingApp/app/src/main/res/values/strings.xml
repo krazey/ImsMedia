@@ -167,5 +167,6 @@
   <string name="codec_evs">CODEC_EVS</string>
   <string name="codec_pcma">CODEC_PCMA</string>
   <string name="codec_pcmu">CODEC_PCMU</string>
+  <string name="codec_l16">CODEC_L16</string>
 
 </resources>

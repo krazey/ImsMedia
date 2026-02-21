@@ -303,6 +303,20 @@ void* ImsMediaAudioSource::run()
                     }
                     size = 0;
                 }
+                else if (mCodecType == kAudioCodecL16)
+                {
+                    if (ptsUsec == 0)
+                    {
+                        ptsUsec = ImsMediaTimer::GetTimeInMicroSeconds() / 1000;
+                    }
+
+                    if (mCallback != nullptr)
+                    {
+                        mCallback->onDataFrame(
+                                (uint8_t*)buffer, (mBufferSize * 2), ptsUsec, evsFlags);
+                    }
+                    size = 0;
+                }
             }
         }
 

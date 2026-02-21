@@ -48,7 +48,7 @@ public class ImsAudioSession implements ImsMediaSession {
         try {
             return miSession.getSessionId();
         } catch (RemoteException e) {
-            Log.e(TAG, "Failed to get session ID: " + e);
+            Log.e(TAG, "Failed to get session ID", e);
         }
 
         return -1;
@@ -61,7 +61,7 @@ public class ImsAudioSession implements ImsMediaSession {
         try {
             miSession.modifySession((AudioConfig)config);
         } catch (RemoteException e) {
-            Log.e(TAG, "Failed to modify session: " + e);
+            Log.e(TAG, "Failed to modify session", e);
         }
     }
 
@@ -72,7 +72,7 @@ public class ImsAudioSession implements ImsMediaSession {
         try {
             miSession.setMediaQualityThreshold(threshold);
         } catch (RemoteException e) {
-            Log.e(TAG, "Failed to modify session: " + e);
+            Log.e(TAG, "Failed to modify session", e);
         }
     }
 
@@ -86,7 +86,7 @@ public class ImsAudioSession implements ImsMediaSession {
         try {
             miSession.addConfig(config);
         } catch (RemoteException e) {
-            Log.e(TAG, "Failed to add config: " + e);
+            Log.e(TAG, "Failed to add config", e);
         }
     }
 
@@ -101,7 +101,7 @@ public class ImsAudioSession implements ImsMediaSession {
         try {
             miSession.deleteConfig(config);
         } catch (RemoteException e) {
-            Log.e(TAG, "Failed to delete config: " + e);
+            Log.e(TAG, "Failed to delete config", e);
         }
     }
 
@@ -121,7 +121,7 @@ public class ImsAudioSession implements ImsMediaSession {
         try {
             miSession.confirmConfig(config);
         } catch (RemoteException e) {
-            Log.e(TAG, "Failed to confirm config: " + e);
+            Log.e(TAG, "Failed to confirm config", e);
         }
     }
 
@@ -135,7 +135,7 @@ public class ImsAudioSession implements ImsMediaSession {
         try {
             miSession.sendDtmf(dtmfDigit, duration);
         } catch (RemoteException e) {
-            Log.e(TAG, "Failed to send DTMF: " + e);
+            Log.e(TAG, "Failed to send DTMF", e);
         }
     }
 
@@ -150,7 +150,7 @@ public class ImsAudioSession implements ImsMediaSession {
         try {
             miSession.startDtmf(dtmfDigit);
         } catch (RemoteException e) {
-            Log.e(TAG, "Failed to start DTMF: " + e);
+            Log.e(TAG, "Failed to start DTMF", e);
         }
     }
 
@@ -162,7 +162,7 @@ public class ImsAudioSession implements ImsMediaSession {
         try {
             miSession.stopDtmf();
         } catch (RemoteException e) {
-            Log.e(TAG, "Failed to stop DTMF: " + e);
+            Log.e(TAG, "Failed to stop DTMF", e);
         }
     }
 
@@ -175,7 +175,7 @@ public class ImsAudioSession implements ImsMediaSession {
         try {
             miSession.sendHeaderExtension(extensions);
         } catch (RemoteException e) {
-            Log.e(TAG, "Failed to send RTP header extension: " + e);
+            Log.e(TAG, "Failed to send RTP header extension", e);
         }
     }
 
@@ -189,7 +189,7 @@ public class ImsAudioSession implements ImsMediaSession {
         try {
             miSession.requestRtpReceptionStats(intervalMs);
         } catch (RemoteException e) {
-            Log.e(TAG, "Failed to query rtp reception statistics: " + e);
+            Log.e(TAG, "Failed to query rtp reception statistics", e);
         }
     }
 
@@ -203,7 +203,7 @@ public class ImsAudioSession implements ImsMediaSession {
         try {
             miSession.adjustDelay(delayMs);
         } catch (RemoteException e) {
-            Log.e(TAG, "Failed to apply delay to the session de-jitter buffer: " + e);
+            Log.e(TAG, "Failed to apply delay to the session de-jitter buffer", e);
         }
     }
 }

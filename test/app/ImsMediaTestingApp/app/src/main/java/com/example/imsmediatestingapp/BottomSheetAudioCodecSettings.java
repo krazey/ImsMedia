@@ -6,9 +6,12 @@ import android.telephony.imsmedia.EvsParams;
 import android.view.View;
 import android.widget.AutoCompleteTextView;
 import android.widget.PopupMenu;
+
 import androidx.annotation.NonNull;
+
 import com.google.android.material.bottomsheet.BottomSheetDialog;
 import com.google.android.material.textfield.TextInputLayout;
+
 import java.util.EventListener;
 import java.util.Objects;
 
@@ -109,6 +112,7 @@ public class BottomSheetAudioCodecSettings extends BottomSheetDialog implements 
 
                 case R.id.pcmaCodecMenuItem:
                 case R.id.pcmuCodecMenuItem:
+                case R.id.l16CodecMenuItem:
                     evsBandDropdownLayout.setVisibility(View.GONE);
                     audioCodecModeDropdownLayout.setVisibility(View.GONE);
                     break;

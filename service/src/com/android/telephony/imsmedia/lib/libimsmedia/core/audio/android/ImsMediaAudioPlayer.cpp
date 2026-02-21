@@ -117,23 +117,23 @@ void ImsMediaAudioPlayer::ProcessCmr(const uint32_t cmr)
 bool ImsMediaAudioPlayer::Start()
 {
     char kMimeType[128] = {'\0'};
-
-    if (mCodecType == kAudioCodecAmr)
+    switch (mCodecType)
     {
-        sprintf(kMimeType, "audio/3gpp");
-    }
-    else if (mCodecType == kAudioCodecAmrWb)
-    {
-        sprintf(kMimeType, "audio/amr-wb");
-    }
-    else if (mCodecType == kAudioCodecEvs)
-    {
-        // TODO: Integration with libEVS is required.
-        sprintf(kMimeType, "audio/evs");
-    }
-    else
-    {
-        return false;
+        case kAudioCodecAmr:
+            sprintf(kMimeType, "audio/3gpp");
+            break;
+        case kAudioCodecAmrWb:
+            sprintf(kMimeType, "audio/amr-wb");
+            break;
+        case kAudioCodecEvs:
+            // TODO: Integration with libEVS is required.
+            sprintf(kMimeType, "audio/evs");
+            break;
+        case kAudioCodecL16:
+            sprintf(kMimeType, "audio/l16");
+            break;
+        default:
+            return false;
     }
 
     openAudioStream();
@@ -302,6 +302,12 @@ bool ImsMediaAudioPlayer::onDataFrame(uint8_t* buffer, uint32_t size, FrameType 
     {
         // TODO:Integration with libEVS is required.
         return decodeEvs(buffer, size);
+    }
+    else if (mCodecType == kAudioCodecL16)
+    {
+        memcpy(mBuffer, buffer, (MAX_PCM_SIZE * 2));
+        // call audio write
+        AAudioStream_write(mAudioStream, mBuffer, MAX_PCM_SIZE, 0);
     }
     return false;
 }

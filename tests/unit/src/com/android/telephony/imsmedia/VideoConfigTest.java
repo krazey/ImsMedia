@@ -60,6 +60,7 @@ public class VideoConfigTest {
     private static final int DEVICE_ORIENTATION = 0;
     private static final int RTCP_FB_TYPES =
             VideoConfig.RTPFB_NACK | VideoConfig.RTPFB_TMMBR | VideoConfig.RTPFB_TMMBN;
+    private static final String SPROP = "Z0LAFtoHgUaagQEBA8UKqA==,aM4NiA==";
 
     private static final RtcpConfig sRtcp = new RtcpConfig.Builder()
             .setCanonicalName(CANONICAL_NAME)
@@ -98,6 +99,7 @@ public class VideoConfigTest {
         assertThat(config.getDeviceOrientationDegree()).isEqualTo(DEVICE_ORIENTATION);
         assertThat(config.getCvoValue()).isEqualTo(CVO_VALUE);
         assertThat(config.getRtcpFbTypes()).isEqualTo(RTCP_FB_TYPES);
+        assertThat(config.getCodecSprop()).isEqualTo(SPROP);
     }
 
     @Test
@@ -148,6 +150,7 @@ public class VideoConfigTest {
                 .setDeviceOrientationDegree(DEVICE_ORIENTATION)
                 .setCvoValue(CVO_VALUE)
                 .setRtcpFbTypes(RTCP_FB_TYPES)
+                .setCodecSprop(SPROP)
                 .build();
 
         assertThat(config1).isNotEqualTo(config2);
@@ -181,6 +184,7 @@ public class VideoConfigTest {
                 .setDeviceOrientationDegree(DEVICE_ORIENTATION)
                 .setCvoValue(CVO_VALUE)
                 .setRtcpFbTypes(RTCP_FB_TYPES)
+                .setCodecSprop(SPROP)
                 .build();
     }
 }

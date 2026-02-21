@@ -30,7 +30,7 @@ android_library {
         "androidx.annotation_annotation",
     ],
     static_libs: [
-        "android.hardware.radio.ims.media-V1-java",
+        "android.hardware.radio.ims.media-V2-java",
     ],
     aidl: {
         include_dirs: [

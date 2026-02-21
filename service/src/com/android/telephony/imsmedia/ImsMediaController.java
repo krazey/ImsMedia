@@ -129,7 +129,8 @@ public class ImsMediaController extends Service {
                     Parcel parcel = Parcel.obtain();
                     config.writeToParcel(parcel, 0);
                     parcel.setDataPosition(0);
-                    spropList[idx] = JNIImsMediaService.generateSprop(parcel.marshall());
+                    spropList[idx] = config.getTxPayloadTypeNumber() + ":"
+                            + JNIImsMediaService.generateSprop(parcel.marshall());
                     parcel.recycle();
                     idx++;
                 }
@@ -137,6 +138,12 @@ public class ImsMediaController extends Service {
             } catch (Exception e) {
                 Log.e(TAG, "[SPROP] Error: " + e.toString());
             }
+        }
+
+        @Override
+        public void setTestMode(int testMode) {
+            // TODO Implement test mode
+            Log.d(TAG, "setTestMode: " + testMode);
         }
     }
 

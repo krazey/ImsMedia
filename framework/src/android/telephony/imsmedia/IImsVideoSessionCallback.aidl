@@ -16,10 +16,10 @@
 
 package android.telephony.imsmedia;
 
-import android.telephony.CallQuality;
 import android.telephony.imsmedia.VideoConfig;
 import android.telephony.ims.RtpHeaderExtension;
 import android.telephony.imsmedia.IImsVideoSession;
+import android.telephony.imsmedia.RtpReceptionStats;
 
 /**
  * See ImsVideoSessionCallback for more information.
@@ -37,4 +37,5 @@ oneway interface IImsVideoSessionCallback {
     void notifyMediaInactivity(int packetType);
     void notifyBitrate(int bitate);
     void notifyVideoDataUsage(long bytes);
+    void notifyRtpReceptionStats(in RtpReceptionStats stats);
 }

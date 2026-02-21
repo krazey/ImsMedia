@@ -83,6 +83,12 @@ public:
      */
     void StopTimer();
 
+    /**
+     * @brief Adjust buffering delay by adding the additional delay
+     * @param delayMs The delay to add
+     */
+    void SetAdditionalDelay(const int32_t delayMs);
+
 private:
     bool CheckHeader(uint8_t* pbBuffer);
     void CheckValidIDR(DataEntry* pIDREntry);
@@ -126,5 +132,6 @@ private:
     uint32_t mCountTimerExpired;
     hTimerHandler mTimer;
     std::mutex mMutexTimer;
+    int32_t mAdditionalDelay;
 };
 #endif

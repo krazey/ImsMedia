@@ -18,7 +18,7 @@ package android.telephony.imsmedia;
 
 interface IImsMediaCallback {
    /**
-    * Array of generated video sprop values are returned.
+    * @spropList Array of payload type and generated video sprop pairs is returned.
     **/
     void onVideoSpropResponse(in String[] spropList);
 }
