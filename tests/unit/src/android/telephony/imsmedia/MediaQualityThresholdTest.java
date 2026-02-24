@@ -14,12 +14,13 @@
  * limitations under the License.
  */
 
-package com.android.telephony.imsmedia;
+package android.telephony.imsmedia;
 
 import static com.google.common.truth.Truth.assertThat;
 
+import static org.junit.Assert.assertEquals;
+
 import android.os.Parcel;
-import android.telephony.imsmedia.MediaQualityThreshold;
 
 import androidx.test.runner.AndroidJUnit4;
 
@@ -70,6 +71,7 @@ public class MediaQualityThresholdTest {
         MediaQualityThreshold threshold2 = createMediaQualityThreshold();
 
         assertThat(threshold1).isEqualTo(threshold2);
+        assertThat(threshold1.hashCode()).isEqualTo(threshold2.hashCode());
     }
 
     @Test
@@ -128,9 +130,55 @@ public class MediaQualityThresholdTest {
                 .build();
 
         assertThat(threshold1).isNotEqualTo(threshold5);
+
+        int[] testPacketLossRate = { 2, 4 };
+        MediaQualityThreshold threshold6 = new MediaQualityThreshold.Builder()
+                .setRtpInactivityTimerMillis(RTP_TIMEOUT)
+                .setRtcpInactivityTimerMillis(RTCP_TIMEOUT)
+                .setRtpHysteresisTimeInMillis(RTP_HYSTERESIS_TIME)
+                .setRtpPacketLossDurationMillis(RTP_PACKET_LOSS_DURATION)
+                .setRtpPacketLossRate(testPacketLossRate)
+                .setRtpJitterMillis(JITTER_THRESHOLD)
+                .setNotifyCurrentStatus(NOTIFY_STATUS)
+                .setVideoBitrateBps(VIDEO_BITRATE_BPS)
+                .build();
+
+        assertThat(threshold1).isNotEqualTo(threshold6);
+
+        int[] testJitter = { 10, 20 };
+        MediaQualityThreshold threshold7 = new MediaQualityThreshold.Builder()
+                .setRtpInactivityTimerMillis(RTP_TIMEOUT)
+                .setRtcpInactivityTimerMillis(RTCP_TIMEOUT)
+                .setRtpHysteresisTimeInMillis(RTP_HYSTERESIS_TIME)
+                .setRtpPacketLossDurationMillis(RTP_PACKET_LOSS_DURATION)
+                .setRtpPacketLossRate(PACKET_LOSS_RATE)
+                .setRtpJitterMillis(testJitter)
+                .setNotifyCurrentStatus(NOTIFY_STATUS)
+                .setVideoBitrateBps(VIDEO_BITRATE_BPS)
+                .build();
+
+        assertThat(threshold1).isNotEqualTo(threshold7);
     }
 
-    static MediaQualityThreshold createMediaQualityThreshold() {
+    @SuppressWarnings("SelfAssertion")
+    @Test
+    public void testSpecialEqualsCases() {
+        MediaQualityThreshold threshold = createMediaQualityThreshold();
+        // Test equals with the same object reference
+        assertEquals(threshold, threshold);
+        // Test equals with null
+        assertThat(threshold.equals(null)).isFalse();
+        // Test equals with a different object type
+        assertThat(threshold.equals(new Object())).isFalse();
+    }
+
+    @Test
+    public void testDescribeContents() {
+        MediaQualityThreshold threshold = createMediaQualityThreshold();
+        assertThat(threshold.describeContents()).isEqualTo(0);
+    }
+
+    public static MediaQualityThreshold createMediaQualityThreshold() {
         return new MediaQualityThreshold.Builder()
                 .setRtpInactivityTimerMillis(RTP_TIMEOUT)
                 .setRtcpInactivityTimerMillis(RTCP_TIMEOUT)
@@ -143,7 +191,12 @@ public class MediaQualityThresholdTest {
                 .build();
     }
 
-    static MediaQualityThreshold createMediaQualityThresholdForHal() {
+    /**
+     * Creates a {@link MediaQualityThreshold} instance with default values for HAL testing.
+     * The video bitrate is set to 0, indicating it's not relevant for HAL-specific tests.
+     * @return A new {@link MediaQualityThreshold} instance.
+     */
+    public static MediaQualityThreshold createMediaQualityThresholdForHal() {
         return new MediaQualityThreshold.Builder()
                 .setRtpInactivityTimerMillis(RTP_TIMEOUT)
                 .setRtcpInactivityTimerMillis(RTCP_TIMEOUT)

@@ -33,14 +33,16 @@ import android.telephony.ims.RtpHeaderExtension;
 import android.telephony.imsmedia.IImsVideoSessionCallback;
 import android.telephony.imsmedia.ImsMediaSession;
 import android.telephony.imsmedia.MediaQualityThreshold;
+import android.telephony.imsmedia.MediaQualityThresholdTest;
 import android.telephony.imsmedia.RtpReceptionStats;
+import android.telephony.imsmedia.RtpReceptionStatsTest;
 import android.telephony.imsmedia.VideoConfig;
+import android.telephony.imsmedia.VideoConfigTest;
 import android.testing.AndroidTestingRunner;
 import android.testing.TestableLooper;
 import android.view.Surface;
 
 import com.android.telephony.imsmedia.Utils.OpenSessionParams;
-import com.android.telephony.imsmedia.tests.RtpReceptionStatsTest;
 
 import org.junit.After;
 import org.junit.Before;

@@ -14,12 +14,11 @@
  * limitations under the License.
  */
 
-package com.android.telephony.imsmedia;
+package android.telephony.imsmedia;
 
 import static com.google.common.truth.Truth.assertThat;
 
 import android.os.Parcel;
-import android.telephony.imsmedia.MediaQualityStatus;
 
 import androidx.test.runner.AndroidJUnit4;
 
@@ -33,7 +32,12 @@ public class MediaQualityStatusTest {
     private static final int RTP_PACKET_LOSS_RATE = 1;
     private static final int RTP_JITTER = 100;
 
-    static MediaQualityStatus createMediaQualityStatus() {
+    /**
+     * Create a {@link MediaQualityStatus} instance with default test values.
+     *
+     * @return A new {@link MediaQualityStatus} instance.
+     */
+    public static MediaQualityStatus createMediaQualityStatus() {
         return new MediaQualityStatus.Builder()
                 .setRtpInactivityTimeMillis(RTP_INACTIVITY_TIME)
                 .setRtcpInactivityTimeMillis(RTCP_INACTIVITY_TIME)

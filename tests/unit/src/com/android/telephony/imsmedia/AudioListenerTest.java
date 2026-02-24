@@ -28,14 +28,16 @@ import android.os.RemoteException;
 import android.telephony.CallQuality;
 import android.telephony.ims.RtpHeaderExtension;
 import android.telephony.imsmedia.AudioConfig;
+import android.telephony.imsmedia.AudioConfigTest;
+import android.telephony.imsmedia.CallQualityTest;
 import android.telephony.imsmedia.IImsAudioSessionCallback;
 import android.telephony.imsmedia.ImsMediaSession;
 import android.telephony.imsmedia.MediaQualityStatus;
+import android.telephony.imsmedia.MediaQualityStatusTest;
 import android.telephony.imsmedia.RtpReceptionStats;
+import android.telephony.imsmedia.RtpReceptionStatsTest;
 import android.testing.AndroidTestingRunner;
 import android.testing.TestableLooper;
-
-import com.android.telephony.imsmedia.tests.RtpReceptionStatsTest;
 
 import org.junit.After;
 import org.junit.Before;
