@@ -69,6 +69,15 @@ public class WakeLockManager {
     }
 
     /**
+     * Set the instance of WakeLockManager for testing.
+     * @param instance instance of WakeLockManager
+     */
+    @VisibleForTesting
+    public static void setInstance(WakeLockManager instance) {
+        sWakeLockManager = instance;
+    }
+
+    /**
      * Acquires wake lock by incrementing the reference counter of WakeLock.
      * WakeLockManager should be initialized before calling.
      */
@@ -167,8 +176,7 @@ public class WakeLockManager {
                 }
             }*/
         } catch (Exception e) {
-            Log.e(TAG, "Exception in manageWakeLockOnMediaDirectionUpdate:" + e.getMessage());
-            e.printStackTrace();
+            Log.e(TAG, "Exception in manageWakeLockOnMediaDirectionUpdate", e);
         }
     }
 

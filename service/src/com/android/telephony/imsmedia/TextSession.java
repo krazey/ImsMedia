@@ -188,7 +188,7 @@ public final class TextSession extends IImsTextSession.Stub implements IMediaSes
                     handleSessionClosed();
                     break;
                 case EVENT_MODIFY_SESSION_RESPONSE:
-                    handleModifySessionRespose((TextConfig) msg.obj, msg.arg1);
+                    handleModifySessionResponse((TextConfig) msg.obj, msg.arg1);
                     break;
                 case EVENT_MEDIA_INACTIVITY_IND:
                     handleNotifyMediaInactivityInd(msg.arg1);
@@ -231,7 +231,7 @@ public final class TextSession extends IImsTextSession.Stub implements IMediaSes
         try {
             mCallback.onOpenSessionSuccess(this);
         } catch (RemoteException e) {
-            Log.e(TAG, "Failed to notify openSuccess: " + e);
+            Log.e(TAG, "Failed to notify openSuccess: ", e);
         }
     }
 
@@ -239,7 +239,7 @@ public final class TextSession extends IImsTextSession.Stub implements IMediaSes
         try {
             mCallback.onOpenSessionFailure(error);
         } catch (RemoteException e) {
-            Log.e(TAG, "Failed to notify openFailure: " + e);
+            Log.e(TAG, "Failed to notify openFailure: ", e);
         }  finally {
             WakeLockManager.getInstance().manageWakeLockOnMediaDirectionUpdate(
                     mSessionId, RtpConfig.MEDIA_DIRECTION_NO_FLOW);
@@ -250,18 +250,18 @@ public final class TextSession extends IImsTextSession.Stub implements IMediaSes
         try {
             mCallback.onSessionClosed();
         }  catch (RemoteException e) {
-            Log.e(TAG, "Failed to notify SessionClosed: " + e);
+            Log.e(TAG, "Failed to notify SessionClosed: ", e);
         }
     }
 
-    private void handleModifySessionRespose(TextConfig config, int error) {
+    private void handleModifySessionResponse(TextConfig config, int error) {
         try {
             if (error != ImsMediaSession.RESULT_SUCCESS) {
                 Log.e(TAG, "modifySession failed with error: " + error);
             }
             mCallback.onModifySessionResponse(config, error);
         } catch (RemoteException e) {
-            Log.e(TAG, "Failed to notify modifySessionResponse: " + e);
+            Log.e(TAG, "Failed to notify modifySessionResponse: ", e);
         }
     }
 
@@ -269,15 +269,16 @@ public final class TextSession extends IImsTextSession.Stub implements IMediaSes
         try {
             mCallback.notifyMediaInactivity(packetType);
         } catch (RemoteException e) {
-            Log.e(TAG, "Failed to notify media timeout: " + e);
+            Log.e(TAG, "Failed to notify media timeout: ", e);
         }
     }
 
     private void handleRttReceived(String text) {
         try {
+            Log.dc(TAG, "handleRttReceived: ");
             mCallback.onRttReceived(text);
         } catch (RemoteException e) {
-            Log.e(TAG, "Failed to notify rtt received: " + e);
+            Log.e(TAG, "Failed to notify rtt received: ", e);
         }
     }
 }

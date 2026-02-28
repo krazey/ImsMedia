@@ -23,20 +23,24 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-public class WakeLockManagerTest {
+public class WakeLockManagerTest extends ImsMediaTest {
     private static final int TEST_SESSION_1_ID = 1;
     private static final int TEST_SESSION_2_ID = 2;
     private WakeLockManager mWakeLockManager;
 
     @Before
-    public void setUp() throws Exception {
+    @Override
+    public void setUp() {
+        super.setUp();
         mWakeLockManager = WakeLockManager.getInstance();
         assertThat(mWakeLockManager).isNotEqualTo(null);
     }
 
     @After
+    @Override
     public void tearDown() throws Exception {
         mWakeLockManager.cleanup();
+        super.tearDown();
     }
 
     @Test

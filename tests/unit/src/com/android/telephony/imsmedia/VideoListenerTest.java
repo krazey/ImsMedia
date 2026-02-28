@@ -50,6 +50,7 @@ public class VideoListenerTest extends ImsMediaTest {
     private static final int RESOLUTION_HEIGHT = 480;
     private static final long NATIVE_OBJECT = 1234L;
     private VideoListener mVideoListener;
+    private VideoSession mVideoSession;
     @Mock
     private VideoService mVideoService;
     @Mock
@@ -61,20 +62,22 @@ public class VideoListenerTest extends ImsMediaTest {
     private VideoConfig mVideoConfig;
 
     @Before
+    @Override
     public void setUp() {
+        mTestClass = VideoListenerTest.this;
+        super.setUp();
         MockitoAnnotations.initMocks(this);
-        VideoSession videoSession = new VideoSession(SESSION_ID, mMockIImsVideoSessionCallback,
+        mVideoSession = new VideoSession(SESSION_ID, mMockIImsVideoSessionCallback,
                 mVideoService, mMockVideoLocalSession, Looper.myLooper());
-        VideoSession.VideoSessionHandler handler = videoSession.getVideoSessionHandler();
+        VideoSession.VideoSessionHandler handler = mVideoSession.getVideoSessionHandler();
         mVideoListener = new VideoListener(handler);
         mVideoListener.setMediaCallback(mMockCallback);
         mVideoListener.setNativeObject(NATIVE_OBJECT);
         mVideoConfig = VideoConfigTest.createVideoConfig();
-        mTestClass = VideoListenerTest.this;
-        super.setUp();
     }
 
     @After
+    @Override
     public void tearDown() throws Exception {
         super.tearDown();
     }

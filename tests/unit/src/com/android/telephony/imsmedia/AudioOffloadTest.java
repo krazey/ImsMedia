@@ -74,7 +74,6 @@ public class AudioOffloadTest extends ImsMediaTest {
     private static final char DTMF_DIGIT = '7';
     private AudioSession audioSession;
     private AudioOffloadListener offloadListener;
-    private AudioSession.AudioSessionHandler handler;
     @Mock
     private IImsAudioSessionCallback callback;
     @Mock
@@ -85,21 +84,22 @@ public class AudioOffloadTest extends ImsMediaTest {
     private AudioOffloadService offloadService;
 
     @Before
+    @Override
     public void setUp() {
+        mTestClass = AudioOffloadTest.this;
+        super.setUp();
         MockitoAnnotations.initMocks(this);
         offloadService = spy(AudioOffloadService.getInstance());
         doReturn(imsMedia).when(offloadService).getIImsMedia();
         audioSession = new AudioSession(SESSION_ID, callback, null, null, offloadService,
                 Looper.myLooper());
-        handler = audioSession.getAudioSessionHandler();
         audioSession.setAudioOffload(true);
         offloadListener = audioSession.getOffloadListener();
         audioSession.onOpenSessionSuccess(imsMediaSession);
-        mTestClass = AudioOffloadTest.this;
-        super.setUp();
     }
 
     @After
+    @Override
     public void tearDown() throws Exception {
         super.tearDown();
     }
@@ -125,7 +125,7 @@ public class AudioOffloadTest extends ImsMediaTest {
 
         verify(offloadService, times(1)).openSession(eq(SESSION_ID), eq(params));
         try {
-            verify(imsMedia, times(1)).openSession(eq(SESSION_ID), any(), eq(null));
+            verify(imsMedia, times(1)).openSession(eq(SESSION_ID), any(), any());
         } catch (RemoteException e) {
             fail("Failed to invoke openSession:" + e);
         }

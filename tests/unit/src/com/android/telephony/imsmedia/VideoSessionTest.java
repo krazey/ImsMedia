@@ -84,24 +84,26 @@ public class VideoSessionTest extends ImsMediaTest {
     private VideoLocalSession mVideoLocalSession;
     @Mock
     private IImsVideoSessionCallback mCallback;
-    private TestableLooper mLooper;
 
     @Before
+    @Override
     public void setUp() {
+        mTestClass = VideoSessionTest.this;
+        super.setUp();
         MockitoAnnotations.initMocks(this);
         mVideoSession = new VideoSession(SESSION_ID, mCallback,
                 mVideoService, mVideoLocalSession, Looper.myLooper());
         mVideoListener = mVideoSession.getVideoListener();
         mHandler = mVideoSession.getVideoSessionHandler();
-        mTestClass = VideoSessionTest.this;
         mWakeLockManager = WakeLockManager.getInstance();
-        super.setUp();
     }
 
     @After
+    @Override
     public void tearDown() throws Exception {
-        super.tearDown();
+        processAllMessages();
         mWakeLockManager.cleanup();
+        super.tearDown();
     }
 
     private Parcel createParcel(int message, int result, VideoConfig config) {
@@ -116,7 +118,7 @@ public class VideoSessionTest extends ImsMediaTest {
     }
 
     @Test
-    public void testOpenSession() {
+    public void testOpenSessionWithoutVideoConfig() {
         DatagramSocket rtpSocket = null;
         DatagramSocket rtcpSocket = null;
 

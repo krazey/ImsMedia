@@ -249,7 +249,7 @@ public final class VideoSession extends IImsVideoSession.Stub implements IMediaS
                     handleSessionClosed();
                     break;
                 case EVENT_MODIFY_SESSION_RESPONSE:
-                    handleModifySessionRespose((VideoConfig) msg.obj, msg.arg1);
+                    handleModifySessionResponse((VideoConfig) msg.obj, msg.arg1);
                     break;
                 case EVENT_FIRST_MEDIA_PACKET_IND:
                     handleFirstMediaPacketInd((VideoConfig) msg.obj);
@@ -326,7 +326,7 @@ public final class VideoSession extends IImsVideoSession.Stub implements IMediaS
         try {
             mCallback.onOpenSessionSuccess(this);
         } catch (RemoteException e) {
-            Log.e(TAG, "Failed to notify openSuccess: " + e);
+            Log.e(TAG, "Failed to notify openSuccess: ", e);
         }
     }
 
@@ -334,7 +334,7 @@ public final class VideoSession extends IImsVideoSession.Stub implements IMediaS
         try {
             mCallback.onOpenSessionFailure(error);
         } catch (RemoteException e) {
-            Log.e(TAG, "Failed to notify openFailure: " + e);
+            Log.e(TAG, "Failed to notify openFailure: ", e);
         } finally {
             WakeLockManager.getInstance().manageWakeLockOnMediaDirectionUpdate(
                     mSessionId, RtpConfig.MEDIA_DIRECTION_NO_FLOW);
@@ -345,15 +345,15 @@ public final class VideoSession extends IImsVideoSession.Stub implements IMediaS
         try {
             mCallback.onSessionClosed();
         }  catch (RemoteException e) {
-            Log.e(TAG, "Failed to notify SessionClosed: " + e);
+            Log.e(TAG, "Failed to notify SessionClosed: ", e);
         }
     }
 
-    private void handleModifySessionRespose(VideoConfig config, int error) {
+    private void handleModifySessionResponse(VideoConfig config, int error) {
         try {
             mCallback.onModifySessionResponse(config, error);
         } catch (RemoteException e) {
-            Log.e(TAG, "Failed to notify modifySessionResponse: " + e);
+            Log.e(TAG, "Failed to notify modifySessionResponse: ", e);
         }
     }
 
@@ -361,7 +361,7 @@ public final class VideoSession extends IImsVideoSession.Stub implements IMediaS
         try {
             mCallback.onFirstMediaPacketReceived(config);
         } catch (RemoteException e) {
-            Log.e(TAG, "Failed to notify first media packet received indication: " + e);
+            Log.e(TAG, "Failed to notify first media packet received indication: ", e);
         }
     }
 
@@ -369,7 +369,7 @@ public final class VideoSession extends IImsVideoSession.Stub implements IMediaS
         try {
             mCallback.onPeerDimensionChanged(width, height);
         } catch (RemoteException e) {
-            Log.e(TAG, "Failed to notify dimension changed: " + e);
+            Log.e(TAG, "Failed to notify dimension changed: ", e);
         }
     }
 
@@ -377,7 +377,7 @@ public final class VideoSession extends IImsVideoSession.Stub implements IMediaS
         try {
             mCallback.onHeaderExtensionReceived(extensions);
         } catch (RemoteException e) {
-            Log.e(TAG, "Failed to notify RTP header extension: " + e);
+            Log.e(TAG, "Failed to notify RTP header extension: ", e);
         }
     }
 
@@ -385,7 +385,7 @@ public final class VideoSession extends IImsVideoSession.Stub implements IMediaS
         try {
             mCallback.notifyMediaInactivity(packetType);
         } catch (RemoteException e) {
-            Log.e(TAG, "Failed to notify media timeout: " + e);
+            Log.e(TAG, "Failed to notify media timeout: ", e);
         }
     }
 
@@ -393,7 +393,7 @@ public final class VideoSession extends IImsVideoSession.Stub implements IMediaS
         try {
             mCallback.notifyBitrate(percentage);
         } catch (RemoteException e) {
-            Log.e(TAG, "Failed to notify packet loss: " + e);
+            Log.e(TAG, "Failed to notify packet loss: ", e);
         }
     }
 
@@ -401,7 +401,7 @@ public final class VideoSession extends IImsVideoSession.Stub implements IMediaS
         try {
             mCallback.notifyVideoDataUsage(bytes);
         } catch (RemoteException e) {
-            Log.e(TAG, "Failed to notify video data usage: " + e);
+            Log.e(TAG, "Failed to notify video data usage: ", e);
         }
     }
 
@@ -409,7 +409,7 @@ public final class VideoSession extends IImsVideoSession.Stub implements IMediaS
         try {
             mCallback.notifyRtpReceptionStats(stats);
         }  catch (RemoteException e) {
-            Log.e(TAG, "Failed to notify rtp reception statistics: " + e);
+            Log.e(TAG, "Failed to notify rtp reception statistics: ", e);
         }
     }
 }

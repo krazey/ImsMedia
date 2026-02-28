@@ -79,21 +79,24 @@ public class AudioSessionTest extends ImsMediaTest {
     private IImsAudioSessionCallback callback;
 
     @Before
+    @Override
     public void setUp() {
+        mTestClass = AudioSessionTest.this;
+        super.setUp();
         MockitoAnnotations.initMocks(this);
         audioSession = new AudioSession(SESSION_ID, callback,
                 audioService, audioLocalSession, null, Looper.myLooper());
         audioListener = audioSession.getAudioListener();
         handler = audioSession.getAudioSessionHandler();
-        mTestClass = AudioSessionTest.this;
         mWakeLockManager = WakeLockManager.getInstance();
-        super.setUp();
     }
 
     @After
+    @Override
     public void tearDown() throws Exception {
-        super.tearDown();
+        processAllMessages();
         mWakeLockManager.cleanup();
+        super.tearDown();
     }
 
     private Parcel createParcel(int message, int result, AudioConfig config) {
@@ -108,7 +111,7 @@ public class AudioSessionTest extends ImsMediaTest {
     }
 
     @Test
-    public void testOpenSession() {
+    public void testOpenSessionWithoutAudioConfig() {
         DatagramSocket rtpSocket = null;
         DatagramSocket rtcpSocket = null;
 

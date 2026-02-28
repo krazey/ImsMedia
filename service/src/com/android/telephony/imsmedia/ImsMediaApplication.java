@@ -18,6 +18,8 @@ package com.android.telephony.imsmedia;
 import android.app.Application;
 import android.content.Context;
 
+import androidx.annotation.VisibleForTesting;
+
 import com.android.telephony.imsmedia.util.Log;
 
 /**
@@ -50,5 +52,14 @@ public class ImsMediaApplication extends Application {
      */
     public static Context getAppContext() {
         return sAppContext;
+    }
+
+    /**
+     * Static method to set application context for testing.
+     * @param context application context.
+     */
+    @VisibleForTesting
+    public static void setAppContext(Context context) {
+        sAppContext = context;
     }
 }

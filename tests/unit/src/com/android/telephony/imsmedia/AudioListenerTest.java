@@ -56,6 +56,7 @@ public class AudioListenerTest extends ImsMediaTest {
     private static final char DTMF_DIGIT = '7';
     private static final int DTMF_DURATION = 120;
     private AudioListener mAudioListener;
+    private AudioSession mAudioSession;
     @Mock
     private AudioService mAudioService;
     @Mock
@@ -67,19 +68,21 @@ public class AudioListenerTest extends ImsMediaTest {
     private AudioConfig mAudioConfig;
 
     @Before
+    @Override
     public void setUp() {
+        mTestClass = AudioListenerTest.this;
+        super.setUp();
         MockitoAnnotations.initMocks(this);
-        AudioSession audioSession = new AudioSession(SESSION_ID, mMockIImsAudioSessionCallback,
+        mAudioSession = new AudioSession(SESSION_ID, mMockIImsAudioSessionCallback,
                 mAudioService, mMockAudioLocalSession, null, Looper.myLooper());
-        AudioSession.AudioSessionHandler handler = audioSession.getAudioSessionHandler();
+        AudioSession.AudioSessionHandler handler = mAudioSession.getAudioSessionHandler();
         mAudioListener = new AudioListener(handler);
         mAudioListener.setMediaCallback(mMockCallback);
         mAudioConfig = AudioConfigTest.createAudioConfig();
-        mTestClass = AudioListenerTest.this;
-        super.setUp();
     }
 
     @After
+    @Override
     public void tearDown() throws Exception {
         super.tearDown();
     }

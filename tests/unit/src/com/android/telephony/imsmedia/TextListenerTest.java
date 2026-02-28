@@ -46,6 +46,7 @@ public class TextListenerTest extends ImsMediaTest {
     private static final String TEXT_STREAM = "Hello";
     private static final long NATIVE_OBJECT = 1234L;
     private TextListener mTextListener;
+    private TextSession mTextSession;
     @Mock
     private TextService mTextService;
     @Mock
@@ -57,20 +58,22 @@ public class TextListenerTest extends ImsMediaTest {
     private TextConfig mTextConfig;
 
     @Before
+    @Override
     public void setUp() {
+        mTestClass = TextListenerTest.this;
+        super.setUp();
         MockitoAnnotations.initMocks(this);
-        TextSession textSession = new TextSession(SESSION_ID, mMockIImsTextSessionCallback,
+        mTextSession = new TextSession(SESSION_ID, mMockIImsTextSessionCallback,
                 mTextService, mMockTextLocalSession, Looper.myLooper());
-        TextSession.TextSessionHandler handler = textSession.getTextSessionHandler();
+        TextSession.TextSessionHandler handler = mTextSession.getTextSessionHandler();
         mTextListener = new TextListener(handler);
         mTextListener.setMediaCallback(mMockCallback);
         mTextListener.setNativeObject(NATIVE_OBJECT);
         mTextConfig = TextConfigTest.createTextConfig();
-        mTestClass = TextListenerTest.this;
-        super.setUp();
     }
 
     @After
+    @Override
     public void tearDown() throws Exception {
         super.tearDown();
     }
