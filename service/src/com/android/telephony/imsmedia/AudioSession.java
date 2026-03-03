@@ -312,19 +312,19 @@ public final class AudioSession extends IImsAudioSession.Stub implements IMediaS
                     handleSessionClosed();
                     break;
                 case EVENT_MODIFY_SESSION_RESPONSE:
-                    handleModifySessionRespose((AudioConfig)msg.obj, msg.arg1);
+                    handleModifySessionResponse((AudioConfig) msg.obj, msg.arg1);
                     break;
                 case EVENT_ADD_CONFIG_RESPONSE:
-                    handleAddConfigResponse((AudioConfig)msg.obj, msg.arg1);
+                    handleAddConfigResponse((AudioConfig) msg.obj, msg.arg1);
                     break;
                 case EVENT_CONFIRM_CONFIG_RESPONSE:
-                    handleConfirmConfigResponse((AudioConfig)msg.obj, msg.arg1);
+                    handleConfirmConfigResponse((AudioConfig) msg.obj, msg.arg1);
                     break;
                 case EVENT_FIRST_MEDIA_PACKET_IND:
-                    handleFirstMediaPacketInd((AudioConfig)msg.obj);
+                    handleFirstMediaPacketInd((AudioConfig) msg.obj);
                     break;
                 case EVENT_RTP_HEADER_EXTENSION_IND:
-                    handleRtpHeaderExtensionInd((List<RtpHeaderExtension>)msg.obj);
+                    handleRtpHeaderExtensionInd((List<RtpHeaderExtension>) msg.obj);
                     break;
                 case EVENT_MEDIA_QUALITY_STATUS_IND:
                     handleNotifyMediaQualityStatus((MediaQualityStatus) msg.obj);
@@ -371,7 +371,7 @@ public final class AudioSession extends IImsAudioSession.Stub implements IMediaS
             try {
                 mHalSession.modifySession(Utils.convertToRtpConfig(config));
             } catch (RemoteException e) {
-                Log.e(TAG, "modifySession : " + e);
+                Log.e(TAG, "Exception occurred in modifySession", e);
             }
         } else {
             mLocalSession.modifySession(config);
@@ -383,7 +383,7 @@ public final class AudioSession extends IImsAudioSession.Stub implements IMediaS
             try {
                 mHalSession.modifySession(Utils.convertToRtpConfig(config));
             } catch (RemoteException e) {
-                Log.e(TAG, "addConfig : " + e);
+                Log.e(TAG, "Remote exception occurred in HAL modifySession.", e);
             }
         } else {
             mLocalSession.addConfig(config);
@@ -407,7 +407,7 @@ public final class AudioSession extends IImsAudioSession.Stub implements IMediaS
             try {
                 mHalSession.sendDtmf(digit, duration);
             } catch (RemoteException e) {
-                Log.e(TAG, "sendDtmf : " + e);
+                Log.e(TAG, "Exception occurred in HAL sendDtmf", e);
             }
         } else {
             mLocalSession.sendDtmf(digit, duration);
@@ -419,7 +419,7 @@ public final class AudioSession extends IImsAudioSession.Stub implements IMediaS
             try {
                 mHalSession.startDtmf(digit);
             } catch (RemoteException e) {
-                Log.e(TAG, "startDtmf : " + e);
+                Log.e(TAG, "Exception occurred in HAL startDtmf", e);
             }
         } else {
             mLocalSession.sendDtmf(digit, DTMF_DEFAULT_DURATION);
@@ -431,7 +431,7 @@ public final class AudioSession extends IImsAudioSession.Stub implements IMediaS
             try {
                 mHalSession.stopDtmf();
             } catch (RemoteException e) {
-                Log.e(TAG, "stopDtmf : " + e);
+                Log.e(TAG, "Exception occurred in HAL stopDtmf", e);
             }
         }
     }
@@ -444,7 +444,7 @@ public final class AudioSession extends IImsAudioSession.Stub implements IMediaS
                                 .collect(Collectors.toList());
                 mHalSession.sendHeaderExtension(halExtensions);
             } catch (RemoteException e) {
-                Log.e(TAG, "sendHeaderExtension : " + e);
+                Log.e(TAG, "Exception occurred in HAL sendHeaderExtension", e);
             }
         } else {
             mLocalSession.sendHeaderExtension(extensions);
@@ -456,7 +456,7 @@ public final class AudioSession extends IImsAudioSession.Stub implements IMediaS
             try {
                 mHalSession.setMediaQualityThreshold(Utils.convertMediaQualityThreshold(threshold));
             } catch (RemoteException e) {
-                Log.e(TAG, "setMediaQualityThreshold: " + e);
+                Log.e(TAG, "Exception occurred in HAL setMediaQualityThreshold", e);
             }
         } else {
             mLocalSession.setMediaQualityThreshold(threshold);
@@ -486,7 +486,7 @@ public final class AudioSession extends IImsAudioSession.Stub implements IMediaS
             try {
                 ((IImsMediaSession)session).setListener(mOffloadListener);
             } catch (RemoteException e) {
-                Log.e(TAG, "Failed to notify openSuccess: " + e);
+                Log.e(TAG, "Failed to notify openSuccess", e);
             }
             mHalSession = (IImsMediaSession) session;
         } else {
@@ -496,7 +496,7 @@ public final class AudioSession extends IImsAudioSession.Stub implements IMediaS
         try {
             mCallback.onOpenSessionSuccess(this);
         } catch (RemoteException e) {
-            Log.e(TAG, "Failed to notify openSuccess: " + e);
+            Log.e(TAG, "Failed to notify openSuccess", e);
         }
     }
 
@@ -515,18 +515,18 @@ public final class AudioSession extends IImsAudioSession.Stub implements IMediaS
         try {
             mCallback.onSessionClosed();
         }  catch (RemoteException e) {
-            Log.e(TAG, "Failed to notify SessionClosed: " + e);
+            Log.e(TAG, "Failed to notify SessionClosed", e);
         }
     }
 
-    private void handleModifySessionRespose(AudioConfig config, int error) {
+    private void handleModifySessionResponse(AudioConfig config, int error) {
         try {
             if (error != ImsMediaSession.RESULT_SUCCESS) {
                 Log.e(TAG, "modifySession failed with error: " + error);
             }
             mCallback.onModifySessionResponse(config, error);
         }  catch (RemoteException e) {
-            Log.e(TAG, "Failed to notify modifySessionResponse: " + e);
+            Log.e(TAG, "Failed to notify modifySessionResponse", e);
         }
     }
 
@@ -534,7 +534,7 @@ public final class AudioSession extends IImsAudioSession.Stub implements IMediaS
         try {
             mCallback.onAddConfigResponse(config, error);
         }  catch (RemoteException e) {
-            Log.e(TAG, "Failed to notify onAddConfigResponse: " + e);
+            Log.e(TAG, "Failed to notify onAddConfigResponse", e);
         }
     }
 
@@ -542,7 +542,7 @@ public final class AudioSession extends IImsAudioSession.Stub implements IMediaS
         try {
             mCallback.onConfirmConfigResponse(config, error);
         }  catch (RemoteException e) {
-            Log.e(TAG, "Failed to notify onConfirmConfigResponse: " + e);
+            Log.e(TAG, "Failed to notify onConfirmConfigResponse", e);
         }
     }
 
@@ -550,7 +550,7 @@ public final class AudioSession extends IImsAudioSession.Stub implements IMediaS
         try {
             mCallback.onFirstMediaPacketReceived(config);
         }  catch (RemoteException e) {
-            Log.e(TAG, "Failed to notify first media packet received indication: " + e);
+            Log.e(TAG, "Failed to notify first media packet received indication", e);
         }
     }
 
@@ -558,7 +558,7 @@ public final class AudioSession extends IImsAudioSession.Stub implements IMediaS
         try {
             mCallback.onHeaderExtensionReceived(extensions);
         }  catch (RemoteException e) {
-            Log.e(TAG, "Failed to notify RTP header extension: " + e);
+            Log.e(TAG, "Failed to notify RTP header extension", e);
         }
     }
 
@@ -566,7 +566,7 @@ public final class AudioSession extends IImsAudioSession.Stub implements IMediaS
         try {
             mCallback.notifyMediaQualityStatus(status);
         }  catch (RemoteException e) {
-            Log.e(TAG, "Failed to notify media quality status: " + e);
+            Log.e(TAG, "Failed to notify media quality status", e);
         }
     }
 
@@ -574,7 +574,7 @@ public final class AudioSession extends IImsAudioSession.Stub implements IMediaS
         try {
             mCallback.triggerAnbrQuery(config);
         }  catch (RemoteException e) {
-            Log.e(TAG, "Failed to trigger ANBR query: " + e);
+            Log.e(TAG, "Failed to trigger ANBR query", e);
         }
     }
 
@@ -582,7 +582,7 @@ public final class AudioSession extends IImsAudioSession.Stub implements IMediaS
         try {
             mCallback.onDtmfReceived(dtmfDigit, durationMs);
         }  catch (RemoteException e) {
-            Log.e(TAG, "Failed to Dtmf received: " + e);
+            Log.e(TAG, "Failed to Dtmf received", e);
         }
     }
 
@@ -590,7 +590,7 @@ public final class AudioSession extends IImsAudioSession.Stub implements IMediaS
         try {
             mCallback.onCallQualityChanged(callQuality);
         }  catch (RemoteException e) {
-            Log.e(TAG, "Failed to notify call quality changed indication: " + e);
+            Log.e(TAG, "Failed to notify call quality changed indication", e);
         }
     }
 
@@ -598,7 +598,7 @@ public final class AudioSession extends IImsAudioSession.Stub implements IMediaS
         try {
             mCallback.notifyRtpReceptionStats(stats);
         }  catch (RemoteException e) {
-            Log.e(TAG, "Failed to notify rtp reception statistics: " + e);
+            Log.e(TAG, "Failed to notify rtp reception statistics", e);
         }
     }
 }

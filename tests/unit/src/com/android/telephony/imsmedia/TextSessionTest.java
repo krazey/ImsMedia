@@ -69,21 +69,24 @@ public class TextSessionTest extends ImsMediaTest {
     private IImsTextSessionCallback mCallback;
 
     @Before
+    @Override
     public void setUp() {
+        mTestClass = TextSessionTest.this;
+        super.setUp();
         MockitoAnnotations.initMocks(this);
         mTextSession = new TextSession(SESSION_ID, mCallback, mTextService, mTextLocalSession,
                 Looper.myLooper());
         mTextListener = mTextSession.getTextListener();
         mHandler = mTextSession.getTextSessionHandler();
-        mTestClass = TextSessionTest.this;
         mWakeLockManager = WakeLockManager.getInstance();
-        super.setUp();
     }
 
     @After
+    @Override
     public void tearDown() throws Exception {
-        super.tearDown();
+        processAllMessages();
         mWakeLockManager.cleanup();
+        super.tearDown();
     }
 
     private Parcel createParcel(int message, int result, TextConfig config) {
@@ -98,7 +101,7 @@ public class TextSessionTest extends ImsMediaTest {
     }
 
     @Test
-    public void testOpenSession() {
+    public void testOpenSessionWithoutVideoConfig() {
         DatagramSocket rtpSocket = null;
         DatagramSocket rtcpSocket = null;
 

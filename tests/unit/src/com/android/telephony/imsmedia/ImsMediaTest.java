@@ -20,42 +20,43 @@ import static org.junit.Assert.fail;
 
 import android.testing.TestableLooper;
 
-import org.junit.After;
-import org.junit.Before;
+import androidx.test.platform.app.InstrumentationRegistry;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public class ImsMediaTest {
+public abstract class ImsMediaTest {
     protected List<TestableLooper> mTestableLoopers = new ArrayList<>();
     protected TestableLooper mTestableLooper;
     protected Object mTestClass;
 
-    @Before
-    public void setUp() {
+    protected void setUp() {
+        ImsMediaApplication.setAppContext(
+                InstrumentationRegistry.getInstrumentation().getTargetContext());
         mTestableLooper = TestableLooper.get(mTestClass);
         if (mTestableLooper != null) {
             monitorTestableLooper(mTestableLooper);
         }
     }
 
-    @After
-    public void tearDown() throws Exception {
-        if (!mTestableLoopers.isEmpty()) {
-            for (TestableLooper looper : mTestableLoopers) {
-                looper.getLooper().quit();
-            }
-        }
-        // Unmonitor TestableLooper for ImsMediaTest class
+    protected void tearDown() throws Exception {
+        ImsMediaApplication.setAppContext(null);
+        WakeLockManager.setInstance(null);
+        // Unmonitor the main TestableLooper so it is not quit or destroyed, as it is
+        // managed by the TestableLooper runner.
         if (mTestableLooper != null) {
             unmonitorTestableLooper(mTestableLooper);
         }
-        // Destroy all newly created TestableLoopers so they can be reused
-        for (TestableLooper looper : mTestableLoopers) {
-            looper.destroy();
+
+        // Quit and destroy any other TestableLoopers that were created during the test.
+        if (!mTestableLoopers.isEmpty()) {
+            for (TestableLooper looper : mTestableLoopers) {
+                looper.getLooper().quit();
+                looper.destroy();
+            }
+            mTestableLoopers.clear();
         }
         TestableLooper.remove(mTestClass);
-
     }
 
     private void monitorTestableLooper(TestableLooper looper) {
