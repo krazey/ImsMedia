@@ -16,6 +16,8 @@
 
 #include <AudioConfig.h>
 
+#include <string>
+
 namespace android
 {
 
@@ -25,19 +27,19 @@ namespace telephony
 namespace imsmedia
 {
 
-const android::String8 kClassNameAmrParams("android.telephony.imsmedia.AmrParams");
-const android::String8 kClassNameEvsParams("android.telephony.imsmedia.EvsParams");
+const std::string kClassNameAmrParams("android.telephony.imsmedia.AmrParams");
+const std::string kClassNameEvsParams("android.telephony.imsmedia.EvsParams");
 
 AudioConfig::AudioConfig() :
         RtpConfig(RtpConfig::TYPE_AUDIO)
 {
-    pTimeMillis = 0;
-    maxPtimeMillis = 0;
-    dtxEnabled = false;
-    codecType = 0;
+    mPTimeMillis = 0;
+    mMaxPTimeMillis = 0;
+    mDtxEnabled = false;
+    mCodecType = 0;
     mDtmfTxPayloadTypeNumber = 0;
     mDtmfRxPayloadTypeNumber = 0;
-    dtmfsamplingRateKHz = 0;
+    mDtmfSamplingRateKHz = 0;
 }
 
 AudioConfig::AudioConfig(AudioConfig* config) :
@@ -45,30 +47,30 @@ AudioConfig::AudioConfig(AudioConfig* config) :
 {
     if (config != nullptr)
     {
-        pTimeMillis = config->pTimeMillis;
-        maxPtimeMillis = config->maxPtimeMillis;
-        dtxEnabled = config->dtxEnabled;
-        codecType = config->codecType;
+        mPTimeMillis = config->mPTimeMillis;
+        mMaxPTimeMillis = config->mMaxPTimeMillis;
+        mDtxEnabled = config->mDtxEnabled;
+        mCodecType = config->mCodecType;
         mDtmfTxPayloadTypeNumber = config->mDtmfTxPayloadTypeNumber;
         mDtmfRxPayloadTypeNumber = config->mDtmfRxPayloadTypeNumber;
-        dtmfsamplingRateKHz = config->dtmfsamplingRateKHz;
-        amrParams = config->amrParams;
-        evsParams = config->evsParams;
+        mDtmfSamplingRateKHz = config->mDtmfSamplingRateKHz;
+        mAmrParams = config->mAmrParams;
+        mEvsParams = config->mEvsParams;
     }
 }
 
 AudioConfig::AudioConfig(const AudioConfig& config) :
-        RtpConfig(config)
+        RtpConfig(config),
+        mAmrParams(config.mAmrParams),
+        mEvsParams(config.mEvsParams)
 {
-    pTimeMillis = config.pTimeMillis;
-    maxPtimeMillis = config.maxPtimeMillis;
-    dtxEnabled = config.dtxEnabled;
-    codecType = config.codecType;
+    mPTimeMillis = config.mPTimeMillis;
+    mMaxPTimeMillis = config.mMaxPTimeMillis;
+    mDtxEnabled = config.mDtxEnabled;
+    mCodecType = config.mCodecType;
     mDtmfTxPayloadTypeNumber = config.mDtmfTxPayloadTypeNumber;
     mDtmfRxPayloadTypeNumber = config.mDtmfRxPayloadTypeNumber;
-    dtmfsamplingRateKHz = config.dtmfsamplingRateKHz;
-    amrParams = config.amrParams;
-    evsParams = config.evsParams;
+    mDtmfSamplingRateKHz = config.mDtmfSamplingRateKHz;
 }
 
 AudioConfig::~AudioConfig() {}
@@ -78,39 +80,39 @@ AudioConfig& AudioConfig::operator=(const AudioConfig& config)
     if (this != &config)
     {
         RtpConfig::operator=(config);
-        pTimeMillis = config.pTimeMillis;
-        maxPtimeMillis = config.maxPtimeMillis;
-        dtxEnabled = config.dtxEnabled;
-        codecType = config.codecType;
+        mPTimeMillis = config.mPTimeMillis;
+        mMaxPTimeMillis = config.mMaxPTimeMillis;
+        mDtxEnabled = config.mDtxEnabled;
+        mCodecType = config.mCodecType;
         mDtmfTxPayloadTypeNumber = config.mDtmfTxPayloadTypeNumber;
         mDtmfRxPayloadTypeNumber = config.mDtmfRxPayloadTypeNumber;
-        dtmfsamplingRateKHz = config.dtmfsamplingRateKHz;
-        amrParams = config.amrParams;
-        evsParams = config.evsParams;
+        mDtmfSamplingRateKHz = config.mDtmfSamplingRateKHz;
+        mAmrParams = config.mAmrParams;
+        mEvsParams = config.mEvsParams;
     }
     return *this;
 }
 
 bool AudioConfig::operator==(const AudioConfig& config) const
 {
-    return (RtpConfig::operator==(config) && this->pTimeMillis == config.pTimeMillis &&
-            this->maxPtimeMillis == config.maxPtimeMillis &&
-            this->dtxEnabled == config.dtxEnabled && this->codecType == config.codecType &&
+    return (RtpConfig::operator==(config) && this->mPTimeMillis == config.mPTimeMillis &&
+            this->mMaxPTimeMillis == config.mMaxPTimeMillis &&
+            this->mDtxEnabled == config.mDtxEnabled && this->mCodecType == config.mCodecType &&
             this->mDtmfTxPayloadTypeNumber == config.mDtmfTxPayloadTypeNumber &&
             this->mDtmfRxPayloadTypeNumber == config.mDtmfRxPayloadTypeNumber &&
-            this->dtmfsamplingRateKHz == config.dtmfsamplingRateKHz &&
-            this->amrParams == config.amrParams && this->evsParams == config.evsParams);
+            this->mDtmfSamplingRateKHz == config.mDtmfSamplingRateKHz &&
+            this->mAmrParams == config.mAmrParams && this->mEvsParams == config.mEvsParams);
 }
 
 bool AudioConfig::operator!=(const AudioConfig& config) const
 {
-    return (RtpConfig::operator!=(config) || this->pTimeMillis != config.pTimeMillis ||
-            this->maxPtimeMillis != config.maxPtimeMillis ||
-            this->dtxEnabled != config.dtxEnabled || this->codecType != config.codecType ||
+    return (RtpConfig::operator!=(config) || this->mPTimeMillis != config.mPTimeMillis ||
+            this->mMaxPTimeMillis != config.mMaxPTimeMillis ||
+            this->mDtxEnabled != config.mDtxEnabled || this->mCodecType != config.mCodecType ||
             this->mDtmfTxPayloadTypeNumber != config.mDtmfTxPayloadTypeNumber ||
             this->mDtmfRxPayloadTypeNumber != config.mDtmfRxPayloadTypeNumber ||
-            this->dtmfsamplingRateKHz != config.dtmfsamplingRateKHz ||
-            this->amrParams != config.amrParams || this->evsParams != config.evsParams);
+            this->mDtmfSamplingRateKHz != config.mDtmfSamplingRateKHz ||
+            this->mAmrParams != config.mAmrParams || this->mEvsParams != config.mEvsParams);
 }
 
 status_t AudioConfig::writeToParcel(Parcel* out) const
@@ -127,27 +129,27 @@ status_t AudioConfig::writeToParcel(Parcel* out) const
         return err;
     }
 
-    err = out->writeByte(pTimeMillis);
+    err = out->writeByte(mPTimeMillis);
     if (err != NO_ERROR)
     {
         return err;
     }
 
-    err = out->writeInt32(maxPtimeMillis);
+    err = out->writeInt32(mMaxPTimeMillis);
     if (err != NO_ERROR)
     {
         return err;
     }
 
     int32_t value = 0;
-    dtxEnabled ? value = 1 : value = 0;
+    mDtxEnabled ? value = 1 : value = 0;
     err = out->writeInt32(value);
     if (err != NO_ERROR)
     {
         return err;
     }
 
-    err = out->writeInt32(codecType);
+    err = out->writeInt32(mCodecType);
     if (err != NO_ERROR)
     {
         return err;
@@ -165,35 +167,33 @@ status_t AudioConfig::writeToParcel(Parcel* out) const
         return err;
     }
 
-    err = out->writeByte(dtmfsamplingRateKHz);
+    err = out->writeByte(mDtmfSamplingRateKHz);
     if (err != NO_ERROR)
     {
         return err;
     }
 
-    String16 classNameAmr(kClassNameAmrParams);
+    String16 classNameAmr(kClassNameAmrParams.c_str());
     err = out->writeString16(classNameAmr);
     if (err != NO_ERROR)
     {
         return err;
     }
 
-    // err = out->writeParcelable(amrParams);
-    err = amrParams.writeToParcel(out);
+    err = mAmrParams.writeToParcel(out);
     if (err != NO_ERROR)
     {
         return err;
     }
 
-    String16 classNameEvs(kClassNameEvsParams);
+    String16 classNameEvs(kClassNameEvsParams.c_str());
     err = out->writeString16(classNameEvs);
     if (err != NO_ERROR)
     {
         return err;
     }
 
-    // err = out->writeParcelable(evsParams);
-    err = evsParams.writeToParcel(out);
+    err = mEvsParams.writeToParcel(out);
     if (err != NO_ERROR)
     {
         return err;
@@ -216,13 +216,13 @@ status_t AudioConfig::readFromParcel(const Parcel* in)
         return err;
     }
 
-    err = in->readByte(&pTimeMillis);
+    err = in->readByte(&mPTimeMillis);
     if (err != NO_ERROR)
     {
         return err;
     }
 
-    err = in->readInt32(&maxPtimeMillis);
+    err = in->readInt32(&mMaxPTimeMillis);
     if (err != NO_ERROR)
     {
         return err;
@@ -235,9 +235,9 @@ status_t AudioConfig::readFromParcel(const Parcel* in)
         return err;
     }
 
-    value == 0 ? dtxEnabled = false : dtxEnabled = true;
+    value == 0 ? mDtxEnabled = false : mDtxEnabled = true;
 
-    err = in->readInt32(&codecType);
+    err = in->readInt32(&mCodecType);
     if (err != NO_ERROR)
     {
         return err;
@@ -255,7 +255,7 @@ status_t AudioConfig::readFromParcel(const Parcel* in)
         return err;
     }
 
-    err = in->readByte(&dtmfsamplingRateKHz);
+    err = in->readByte(&mDtmfSamplingRateKHz);
     if (err != NO_ERROR)
     {
         return err;
@@ -267,15 +267,15 @@ status_t AudioConfig::readFromParcel(const Parcel* in)
     if (err == NO_ERROR)
     {
         // read AmrParams
-        err = amrParams.readFromParcel(in);
-        if ((codecType == CODEC_AMR || codecType == CODEC_AMR_WB) && err != NO_ERROR)
+        err = mAmrParams.readFromParcel(in);
+        if ((mCodecType == CODEC_AMR || mCodecType == CODEC_AMR_WB) && err != NO_ERROR)
         {
             return err;
         }
     }
     else if (err == UNEXPECTED_NULL)
     {
-        amrParams.setDefaultAmrParams();
+        mAmrParams.setDefaultAmrParams();
     }
     else
     {
@@ -286,15 +286,15 @@ status_t AudioConfig::readFromParcel(const Parcel* in)
     if (err == NO_ERROR)
     {
         // read EvsParams
-        err = evsParams.readFromParcel(in);
-        if (codecType == CODEC_EVS && err != NO_ERROR)
+        err = mEvsParams.readFromParcel(in);
+        if (mCodecType == CODEC_EVS && err != NO_ERROR)
         {
             return err;
         }
     }
     else if (err == UNEXPECTED_NULL)
     {
-        evsParams.setDefaultEvsParams();
+        mEvsParams.setDefaultEvsParams();
     }
     else
     {
@@ -304,44 +304,44 @@ status_t AudioConfig::readFromParcel(const Parcel* in)
     return NO_ERROR;
 }
 
-void AudioConfig::setPtimeMillis(const int8_t ptime)
+void AudioConfig::setPTimeMillis(const int8_t ptime)
 {
-    pTimeMillis = ptime;
+    mPTimeMillis = ptime;
 }
 
-int8_t AudioConfig::getPtimeMillis()
+int8_t AudioConfig::getPTimeMillis()
 {
-    return pTimeMillis;
+    return mPTimeMillis;
 }
 
-void AudioConfig::setMaxPtimeMillis(const int32_t maxPtime)
+void AudioConfig::setMaxPTimeMillis(const int32_t maxPtime)
 {
-    maxPtimeMillis = maxPtime;
+    mMaxPTimeMillis = maxPtime;
 }
 
-int32_t AudioConfig::getMaxPtimeMillis()
+int32_t AudioConfig::getMaxPTimeMillis()
 {
-    return maxPtimeMillis;
+    return mMaxPTimeMillis;
 }
 
 void AudioConfig::setDtxEnabled(const bool enable)
 {
-    dtxEnabled = enable;
+    mDtxEnabled = enable;
 }
 
 bool AudioConfig::getDtxEnabled()
 {
-    return dtxEnabled;
+    return mDtxEnabled;
 }
 
 void AudioConfig::setCodecType(const int32_t type)
 {
-    codecType = type;
+    mCodecType = type;
 }
 
 int32_t AudioConfig::getCodecType()
 {
-    return codecType;
+    return mCodecType;
 }
 
 void AudioConfig::setTxDtmfPayloadTypeNumber(const int8_t num)
@@ -364,34 +364,34 @@ int8_t AudioConfig::getRxDtmfPayloadTypeNumber()
     return mDtmfRxPayloadTypeNumber;
 }
 
-void AudioConfig::setDtmfsamplingRateKHz(const int8_t sampling)
+void AudioConfig::setDtmfSamplingRateKHz(const int8_t sampling)
 {
-    dtmfsamplingRateKHz = sampling;
+    mDtmfSamplingRateKHz = sampling;
 }
 
-int8_t AudioConfig::getDtmfsamplingRateKHz()
+int8_t AudioConfig::getDtmfSamplingRateKHz()
 {
-    return dtmfsamplingRateKHz;
+    return mDtmfSamplingRateKHz;
 }
 
 void AudioConfig::setAmrParams(const AmrParams& param)
 {
-    amrParams = param;
+    mAmrParams = param;
 }
 
 AmrParams AudioConfig::getAmrParams()
 {
-    return amrParams;
+    return mAmrParams;
 }
 
 void AudioConfig::setEvsParams(const EvsParams& param)
 {
-    evsParams = param;
+    mEvsParams = param;
 }
 
 EvsParams AudioConfig::getEvsParams()
 {
-    return evsParams;
+    return mEvsParams;
 }
 
 }  // namespace imsmedia

@@ -77,7 +77,7 @@ void ImsMediaVideoRenderer::SetSurface(ANativeWindow* window)
     mWindow = window;
 }
 
-void ImsMediaVideoRenderer::SetCodecSprop(String8& sprop)
+void ImsMediaVideoRenderer::SetCodecSprop(const std::string& sprop)
 {
     IMLOGD1("[SetCodecSprop] sprop[%s]", sprop.c_str());
     mSpropValue = sprop;

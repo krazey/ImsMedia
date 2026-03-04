@@ -14,13 +14,17 @@
  * limitations under the License.
  */
 
-#include <VideoConfig.h>
 #include <gtest/gtest.h>
 
+#include <VideoConfig.h>
+
 using namespace android::telephony::imsmedia;
+using namespace android;
+
 // RtpConfig
 const int32_t kMediaDirection = RtpConfig::MEDIA_DIRECTION_NO_FLOW;
-const android::String8 kRemoteAddress("0.0.0.0");
+const int32_t kAccessNetwork = 5;  // IWLAN
+const std::string kRemoteAddress("0.0.0.0");
 const int32_t kRemotePort = 1000;
 const int32_t kMtu = 1500;
 const int8_t kDscp = 0;
@@ -29,7 +33,7 @@ const int8_t kTxPayload = 102;
 const int8_t kSamplingRate = 90;
 
 // RtcpConfig
-const android::String8 kCanonicalName("name");
+const std::string kCanonicalName("name");
 const int32_t kTransmitPort = 1001;
 const int32_t kIntervalSec = 1500;
 const int32_t kRtcpXrBlockTypes = RtcpConfig::FLAG_RTCPXR_STATISTICS_SUMMARY_REPORT_BLOCK |
@@ -48,7 +52,7 @@ const int32_t kCameraId = 0;
 const int32_t kCameraZoom = 10;
 const int32_t kResolutionWidth = DEFAULT_RESOLUTION_WIDTH;
 const int32_t kResolutionHeight = DEFAULT_RESOLUTION_HEIGHT;
-const android::String8 kPauseImagePath("data/user_de/0/com.android.telephony.imsmedia/test.jpg");
+const std::string kPauseImagePath("data/user_de/0/com.android.telephony.imsmedia/test.jpg");
 const int32_t kDeviceOrientationDegree = 0;
 const int32_t kCvoValue = 1;
 const int32_t kRtcpFbTypes = VideoConfig::RTP_FB_NONE;
@@ -72,6 +76,7 @@ protected:
         rtcp.setIntervalSec(kIntervalSec);
         rtcp.setRtcpXrBlockTypes(kRtcpXrBlockTypes);
         config1.setMediaDirection(kMediaDirection);
+        config1.setAccessNetwork(kAccessNetwork);
         config1.setRemoteAddress(kRemoteAddress);
         config1.setRemotePort(kRemotePort);
         config1.setRtcpConfig(rtcp);
@@ -133,13 +138,13 @@ TEST_F(VideoConfigTest, TestGetterSetter)
 TEST_F(VideoConfigTest, TestParcel)
 {
     android::Parcel parcel;
-    status_t err = config1.writeToParcel(&parcel);
-    EXPECT_EQ(err, NO_ERROR);
+    EXPECT_EQ(config1.writeToParcel(nullptr), BAD_VALUE);
+    EXPECT_EQ(config1.writeToParcel(&parcel), NO_ERROR);
     parcel.setDataPosition(0);
 
     VideoConfig configTest;
-    err = configTest.readFromParcel(&parcel);
-    EXPECT_EQ(err, NO_ERROR);
+    EXPECT_EQ(configTest.readFromParcel(nullptr), BAD_VALUE);
+    EXPECT_EQ(configTest.readFromParcel(&parcel), NO_ERROR);
     EXPECT_EQ(configTest, config1);
 }
 
@@ -152,11 +157,16 @@ TEST_F(VideoConfigTest, TestAssign)
     VideoConfig* testConfig2 = new VideoConfig(config1);
     EXPECT_EQ(config1, *testConfig2);
     delete testConfig2;
+
+    VideoConfig* testConfig3 = new VideoConfig(&config1);
+    EXPECT_EQ(config1, *testConfig3);
+    delete testConfig3;
 }
 
 TEST_F(VideoConfigTest, TestEqual)
 {
     config2.setMediaDirection(kMediaDirection);
+    config2.setAccessNetwork(kAccessNetwork);
     config2.setRemoteAddress(kRemoteAddress);
     config2.setRemotePort(kRemotePort);
     config2.setRtcpConfig(rtcp);
@@ -187,6 +197,7 @@ TEST_F(VideoConfigTest, TestEqual)
 TEST_F(VideoConfigTest, TestNotEqual)
 {
     config2.setMediaDirection(kMediaDirection);
+    config2.setAccessNetwork(kAccessNetwork);
     config2.setRemoteAddress(kRemoteAddress);
     config2.setRemotePort(2000);
     config2.setRtcpConfig(rtcp);
@@ -213,6 +224,7 @@ TEST_F(VideoConfigTest, TestNotEqual)
     config2.setRtcpFbType(kRtcpFbTypes);
 
     config3.setMediaDirection(kMediaDirection);
+    config3.setAccessNetwork(kAccessNetwork);
     config3.setRemoteAddress(kRemoteAddress);
     config3.setRemotePort(kRemotePort);
     config3.setRtcpConfig(rtcp);
@@ -223,7 +235,7 @@ TEST_F(VideoConfigTest, TestNotEqual)
     config3.setSamplingRateKHz(kSamplingRate);
     config3.setVideoMode(kVideoMode);
     config3.setCodecType(kCodecType);
-    config3.setFramerate(20);
+    config3.setFramerate(kFramerate);
     config3.setBitrate(kBitrate);
     config3.setCodecProfile(kCodecProfile);
     config3.setCodecLevel(kCodecLevel);
@@ -236,7 +248,7 @@ TEST_F(VideoConfigTest, TestNotEqual)
     config3.setPauseImagePath(kPauseImagePath);
     config3.setDeviceOrientationDegree(kDeviceOrientationDegree);
     config3.setCvoValue(kCvoValue);
-    config3.setRtcpFbType(kRtcpFbTypes);
+    config3.setRtcpFbType(VideoConfig::RTP_FB_TMMBR);
 
     EXPECT_NE(config2, config1);
     EXPECT_NE(config3, config1);

@@ -14,16 +14,19 @@
  * limitations under the License.
  */
 
-#include <gtest/gtest.h>
 #include <condition_variable>
 #include <mutex>
-#include <RtcpConfig.h>
+#include <string>
+
+#include <gtest/gtest.h>
+
 #include <AudioConfig.h>
-#include <VideoConfig.h>
-#include <TextConfig.h>
-#include <RtcpDecoderNode.h>
 #include <ImsMediaVideoUtil.h>
 #include <ImsMediaTrace.h>
+#include <RtcpConfig.h>
+#include <RtcpDecoderNode.h>
+#include <TextConfig.h>
+#include <VideoConfig.h>
 
 using namespace android::telephony::imsmedia;
 using namespace android;
@@ -32,7 +35,7 @@ namespace
 {
 // RtpConfig
 const int32_t kMediaDirection = RtpConfig::MEDIA_DIRECTION_SEND_RECEIVE;
-const String8 kRemoteAddress("127.0.0.1");
+const std::string kRemoteAddress("127.0.0.1");
 const int32_t kRemotePort = 10000;
 const int8_t kDscp = 0;
 const int8_t kRxPayload = 96;
@@ -40,7 +43,7 @@ const int8_t kTxPayload = 96;
 const int8_t kSamplingRate = 16;
 
 // RtcpConfig
-const String8 kCanonicalName("name");
+const std::string kCanonicalName("name");
 const int32_t kTransmitPort = 10001;
 const int32_t RTCP_INTERVAL = 1;
 const int32_t kIntervalSec = RTCP_INTERVAL;

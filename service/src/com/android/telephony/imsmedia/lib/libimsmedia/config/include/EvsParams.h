@@ -95,7 +95,7 @@ public:
     };
 
     EvsParams();
-    EvsParams(EvsParams& params);
+    EvsParams(const EvsParams& params);
     virtual ~EvsParams();
     EvsParams& operator=(const EvsParams& param);
     bool operator==(const EvsParams& param) const;
@@ -141,13 +141,6 @@ private:
      * 3GPP TS 26.445 section A.3. Allowed values are -1, 0 and 1.
      */
     int8_t codecModeRequest;
-
-    // Default EvsParams
-    const int32_t kBandwidth = EvsParams::EVS_BAND_NONE;
-    const int32_t kEvsMode = 0;
-    const int8_t kChannelAwareMode = 0;
-    const bool kUseHeaderFullOnly = false;
-    const int8_t kcodecModeRequest = 0;
 };
 
 }  // namespace imsmedia

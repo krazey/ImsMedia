@@ -15,19 +15,19 @@
  */
 
 #include <gtest/gtest.h>
+
 #include <AudioConfig.h>
-#include <VideoConfig.h>
-#include <TextConfig.h>
 #include <RtpEncoderNode.h>
 #include <RtpDecoderNode.h>
-#include <string.h>
+#include <TextConfig.h>
+#include <VideoConfig.h>
 
 using namespace android::telephony::imsmedia;
 using namespace android;
 
 // RtpConfig
 const int32_t kMediaDirection = RtpConfig::MEDIA_DIRECTION_SEND_RECEIVE;
-const String8 kRemoteAddress("127.0.0.1");
+const std::string kRemoteAddress("127.0.0.1");
 const int32_t kRemotePort = 10000;
 const int8_t kDscp = 0;
 const int8_t kRxPayload = 96;
@@ -35,18 +35,18 @@ const int8_t kTxPayload = 96;
 const int8_t kSamplingRate = 16;
 
 // RtcpConfig
-const String8 kCanonicalName("name");
+const std::string kCanonicalName("name");
 const int32_t kTransmitPort = 10001;
 const int32_t kIntervalSec = 5;
 const int32_t kRtcpXrBlockTypes = 0;
 
 // AudioConfig
 const int8_t kPTimeMillis = 20;
-const int32_t kMaxPtimeMillis = 100;
+const int32_t kMaxPTimeMillis = 100;
 const int8_t kcodecModeRequest = 15;
 const bool kDtxEnabled = true;
 const int8_t kDtmfPayloadTypeNumber = 103;
-const int8_t kDtmfsamplingRateKHz = 16;
+const int8_t kDtmfSamplingRateKHz = 16;
 
 // AmrParam
 const int32_t kAmrMode = AmrParams::AMR_MODE_6;
@@ -72,7 +72,7 @@ const int32_t kCameraId = 0;
 const int32_t kCameraZoom = 10;
 const int32_t kResolutionWidth = DEFAULT_RESOLUTION_WIDTH;
 const int32_t kResolutionHeight = DEFAULT_RESOLUTION_HEIGHT;
-const android::String8 kPauseImagePath("data/user_de/0/com.android.telephony.imsmedia/test.jpg");
+const std::string kPauseImagePath("data/user_de/0/com.android.telephony.imsmedia/test.jpg");
 const int32_t kDeviceOrientationDegree = 0;
 const int32_t kCvoValue = 1;
 const int32_t kRtcpFbTypes = VideoConfig::RTP_FB_NONE;
@@ -220,13 +220,13 @@ public:
         encoder = new RtpEncoderNode(&callback);
         encoder->SetMediaType(type);
         encoder->SetConfig(config);
-        encoder->SetLocalAddress(RtpAddress(kRemoteAddress, kRemotePort));
+        encoder->SetLocalAddress(RtpAddress(kRemoteAddress.c_str(), kRemotePort));
         nodes.push_back(encoder);
 
         decoder = new RtpDecoderNode(&callback);
         decoder->SetMediaType(type);
         decoder->SetConfig(config);
-        encoder->SetLocalAddress(RtpAddress(kRemoteAddress, kRemotePort));
+        encoder->SetLocalAddress(RtpAddress(kRemoteAddress.c_str(), kRemotePort));
         nodes.push_back(decoder);
         encoder->ConnectRearNode(decoder);
 
@@ -257,13 +257,13 @@ public:
         audioConfig.setRxPayloadTypeNumber(kRxPayload);
         audioConfig.setTxPayloadTypeNumber(kTxPayload);
         audioConfig.setSamplingRateKHz(kSamplingRate);
-        audioConfig.setPtimeMillis(kPTimeMillis);
-        audioConfig.setMaxPtimeMillis(kMaxPtimeMillis);
+        audioConfig.setPTimeMillis(kPTimeMillis);
+        audioConfig.setMaxPTimeMillis(kMaxPTimeMillis);
         audioConfig.setDtxEnabled(kDtxEnabled);
         audioConfig.setCodecType(AudioConfig::CODEC_AMR);
         audioConfig.setTxDtmfPayloadTypeNumber(kDtmfPayloadTypeNumber);
         audioConfig.setRxDtmfPayloadTypeNumber(kDtmfPayloadTypeNumber);
-        audioConfig.setDtmfsamplingRateKHz(kDtmfsamplingRateKHz);
+        audioConfig.setDtmfSamplingRateKHz(kDtmfSamplingRateKHz);
         audioConfig.setAmrParams(amr);
         audioConfig.setEvsParams(evs);
 

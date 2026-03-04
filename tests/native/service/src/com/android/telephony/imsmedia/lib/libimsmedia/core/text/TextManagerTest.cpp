@@ -32,7 +32,7 @@ namespace
 {
 // RtpConfig
 const int32_t kMediaDirection = RtpConfig::MEDIA_DIRECTION_SEND_RECEIVE;
-const android::String8 kRemoteAddress("127.0.0.1");
+const std::string kRemoteAddress("127.0.0.1");
 const int32_t kRemotePort = 10000;
 const int8_t kDscp = 0;
 const int8_t kRxPayload = 100;
@@ -40,7 +40,7 @@ const int8_t kTxPayload = 100;
 const int8_t kSamplingRate = 8;
 
 // RtcpConfig
-const android::String8 kCanonicalName("name");
+const std::string kCanonicalName("name");
 const int32_t kTransmitPort = 10001;
 const int32_t kIntervalSec = 3;
 const int32_t kRtcpXrBlockTypes = 0;

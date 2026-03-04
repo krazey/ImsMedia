@@ -23,7 +23,7 @@ using namespace android::telephony::imsmedia;
 
 // RtpConfig
 const int32_t kMediaDirection = RtpConfig::MEDIA_DIRECTION_SEND_RECEIVE;
-const android::String8 kRemoteAddress("127.0.0.1");
+const std::string kRemoteAddress("127.0.0.1");
 const int32_t kRemotePort = 10000;
 const int8_t kDscp = 0;
 const int8_t kRxPayload = 96;
@@ -34,7 +34,7 @@ const int32_t kAnbrMUplinkMode = 1;
 const int32_t kAnbrMDownlinkMode = 2;
 
 // RtcpConfig
-const android::String8 kCanonicalName("name");
+const std::string kCanonicalName("name");
 const int32_t kTransmitPort = 1001;
 const int32_t kIntervalSec = 5;
 const int32_t kRtcpXrBlockTypes = RtcpConfig::FLAG_RTCPXR_STATISTICS_SUMMARY_REPORT_BLOCK |
@@ -47,7 +47,7 @@ const bool kDtxEnabled = true;
 const int32_t kCodecType = AudioConfig::CODEC_AMR_WB;
 const int8_t kDtmfTxPayloadTypeNumber = 100;
 const int8_t kDtmfRxPayloadTypeNumber = 101;
-const int8_t kDtmfsamplingRateKHz = 16;
+const int8_t kDtmfSamplingRateKHz = 16;
 
 // AmrParam
 const int32_t kAmrMode = 8;
@@ -111,13 +111,13 @@ protected:
         config.setTxPayloadTypeNumber(kTxPayload);
         config.setSamplingRateKHz(kSamplingRate);
         config.setAnbrMode(anbr);
-        config.setPtimeMillis(kPTimeMillis);
-        config.setMaxPtimeMillis(kMaxPtimeMillis);
+        config.setPTimeMillis(kPTimeMillis);
+        config.setMaxPTimeMillis(kMaxPtimeMillis);
         config.setDtxEnabled(kDtxEnabled);
         config.setCodecType(kCodecType);
         config.setTxDtmfPayloadTypeNumber(kDtmfTxPayloadTypeNumber);
         config.setRxDtmfPayloadTypeNumber(kDtmfRxPayloadTypeNumber);
-        config.setDtmfsamplingRateKHz(kDtmfsamplingRateKHz);
+        config.setDtmfSamplingRateKHz(kDtmfSamplingRateKHz);
         config.setAmrParams(amr);
         config.setEvsParams(evs);
 
@@ -167,7 +167,7 @@ TEST_F(AudioSessionTest, testStartGraphFail)
     EXPECT_EQ(session->getState(), kSessionStateOpened);
 
     session->setLocalEndPoint(socketRtpFd, socketRtcpFd);
-    config.setRemoteAddress(android::String8(""));
+    config.setRemoteAddress("");
     EXPECT_EQ(session->startGraph(&config), RESULT_INVALID_PARAM);
     EXPECT_EQ(session->getState(), kSessionStateOpened);
 }

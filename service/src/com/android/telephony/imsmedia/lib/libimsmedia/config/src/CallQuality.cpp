@@ -160,6 +160,11 @@ bool CallQuality::operator!=(const CallQuality& quality) const
 
 status_t CallQuality::writeToParcel(Parcel* out) const
 {
+    if (out == nullptr)
+    {
+        return BAD_VALUE;
+    }
+
     status_t err;
     err = out->writeInt32(mDownlinkCallQualityLevel);
     if (err != NO_ERROR)
@@ -296,6 +301,11 @@ status_t CallQuality::writeToParcel(Parcel* out) const
 
 status_t CallQuality::readFromParcel(const Parcel* in)
 {
+    if (in == nullptr)
+    {
+        return BAD_VALUE;
+    }
+
     status_t err;
     err = in->readInt32(&mDownlinkCallQualityLevel);
     if (err != NO_ERROR)

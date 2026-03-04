@@ -28,14 +28,14 @@ namespace imsmedia
 /** Native representation of android.telephony.imsmedia.EvsParams */
 EvsParams::EvsParams()
 {
-    this->evsBandwidth = 0;
-    this->evsMode = 0;
-    this->channelAwareMode = 0;
+    this->evsBandwidth = EvsParams::EVS_BAND_NONE;
+    this->evsMode = EvsParams::EVS_MODE_0;
+    this->channelAwareMode = -1;
     this->useHeaderFullOnly = false;
-    this->codecModeRequest = 0;
+    this->codecModeRequest = -1;
 }
 
-EvsParams::EvsParams(EvsParams& params)
+EvsParams::EvsParams(const EvsParams& params)
 {
     this->evsBandwidth = params.evsBandwidth;
     this->evsMode = params.evsMode;
@@ -214,11 +214,11 @@ int8_t EvsParams::getCodecModeRequest()
 
 void EvsParams::setDefaultEvsParams()
 {
-    evsBandwidth = kBandwidth;
-    evsMode = kEvsMode;
-    channelAwareMode = kChannelAwareMode;
-    useHeaderFullOnly = kUseHeaderFullOnly;
-    codecModeRequest = kcodecModeRequest;
+    evsBandwidth = EvsParams::EVS_BAND_NONE;
+    evsMode = EvsParams::EVS_MODE_0;
+    channelAwareMode = -1;
+    useHeaderFullOnly = false;
+    codecModeRequest = -1;
 }
 
 }  // namespace imsmedia

@@ -119,7 +119,7 @@ private:
     uint32_t mLossRateThreshold;
     uint32_t mPrevTimestamp;
     uint32_t mCurrentFramerate;
-    String8 mCodecSprop;
+    std::string mCodecSprop;
 };
 
 #endif

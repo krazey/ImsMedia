@@ -19,6 +19,7 @@
 #include <gtest/gtest.h>
 
 using namespace android::telephony::imsmedia;
+using namespace android;
 
 const int32_t kDownlinkCallQualityLevel = 0;
 const int32_t kUplinkCallQualityLevel = 0;
@@ -78,15 +79,40 @@ protected:
     virtual void TearDown() override {}
 };
 
-TEST_F(CallQualityTest, TestGetterSetter) {}
+TEST_F(CallQualityTest, TestGetterSetter)
+{
+    EXPECT_EQ(quality1.getDownlinkCallQualityLevel(), kDownlinkCallQualityLevel);
+    EXPECT_EQ(quality1.getUplinkCallQualityLevel(), kUplinkCallQualityLevel);
+    EXPECT_EQ(quality1.getCallDuration(), kCallDuration);
+    EXPECT_EQ(quality1.getNumRtpPacketsTransmitted(), kNumRtpPacketsTransmitted);
+    EXPECT_EQ(quality1.getNumRtpPacketsReceived(), kNumRtpPacketsReceived);
+    EXPECT_EQ(quality1.getNumRtpPacketsTransmittedLost(), kNumRtpPacketsTransmittedLost);
+    EXPECT_EQ(quality1.getNumRtpPacketsNotReceived(), kNumRtpPacketsNotReceived);
+    EXPECT_EQ(quality1.getAverageRelativeJitter(), kAverageRelativeJitter);
+    EXPECT_EQ(quality1.getMaxRelativeJitter(), kMaxRelativeJitter);
+    EXPECT_EQ(quality1.getAverageRoundTripTime(), kAverageRoundTripTime);
+    EXPECT_EQ(quality1.getCodecType(), kCodecType);
+    EXPECT_EQ(quality1.getRtpInactivityDetected(), kRtpInactivityDetected);
+    EXPECT_EQ(quality1.getRxSilenceDetected(), kRxSilenceDetected);
+    EXPECT_EQ(quality1.getTxSilenceDetected(), kTxSilenceDetected);
+    EXPECT_EQ(quality1.getNumVoiceFrames(), kNumVoiceFrames);
+    EXPECT_EQ(quality1.getNumNoDataFrames(), kNumNoDataFrames);
+    EXPECT_EQ(quality1.getNumDroppedRtpPackets(), kNumDroppedRtpPackets);
+    EXPECT_EQ(quality1.getMinPlayoutDelayMillis(), kMinPlayoutDelayMillis);
+    EXPECT_EQ(quality1.getMaxPlayoutDelayMillis(), kMaxPlayoutDelayMillis);
+    EXPECT_EQ(quality1.getNumRtpSidPacketsReceived(), kNumRtpSidPacketsReceived);
+    EXPECT_EQ(quality1.getNumRtpDuplicatePackets(), kNumRtpDuplicatePackets);
+}
 
 TEST_F(CallQualityTest, TestParcel)
 {
     android::Parcel parcel;
+    EXPECT_EQ(quality1.writeToParcel(nullptr), BAD_VALUE);
     quality1.writeToParcel(&parcel);
     parcel.setDataPosition(0);
 
     CallQuality testQuality;
+    EXPECT_EQ(testQuality.readFromParcel(nullptr), BAD_VALUE);
     testQuality.readFromParcel(&parcel);
     EXPECT_EQ(testQuality, quality1);
 }
@@ -159,7 +185,7 @@ TEST_F(CallQualityTest, TestNotEqual)
     quality3.setAverageRelativeJitter(kAverageRelativeJitter);
     quality3.setMaxRelativeJitter(kMaxRelativeJitter);
     quality3.setAverageRoundTripTime(kAverageRoundTripTime);
-    quality3.setCodecType(AudioConfig::CODEC_AMR);
+    quality3.setCodecType(kCodecType);
     quality3.setRtpInactivityDetected(kRtpInactivityDetected);
     quality3.setRxSilenceDetected(kRxSilenceDetected);
     quality3.setTxSilenceDetected(kTxSilenceDetected);
@@ -169,6 +195,6 @@ TEST_F(CallQualityTest, TestNotEqual)
     quality3.setMinPlayoutDelayMillis(kMinPlayoutDelayMillis);
     quality3.setMaxPlayoutDelayMillis(kMaxPlayoutDelayMillis);
     quality3.setNumRtpSidPacketsReceived(kNumRtpSidPacketsReceived);
-    quality3.setNumRtpDuplicatePackets(kNumRtpDuplicatePackets);
+    quality3.setNumRtpDuplicatePackets(2);
     EXPECT_NE(quality3, quality1);
 }

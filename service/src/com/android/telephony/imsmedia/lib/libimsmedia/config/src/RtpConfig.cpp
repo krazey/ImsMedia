@@ -25,9 +25,9 @@ namespace telephony
 namespace imsmedia
 {
 
-const android::String8 kClassNameRtcpConfig("android.telephony.imsmedia.RtcpConfig");
-const android::String8 kClassNameRtpContextParams("android.telephony.imsmedia.RtpContextParams");
-const android::String8 kClassNameAnbrMode("android.telephony.imsmedia.AnbrMode");
+const std::string kClassNameRtcpConfig("android.telephony.imsmedia.RtcpConfig");
+const std::string kClassNameRtpContextParams("android.telephony.imsmedia.RtpContextParams");
+const std::string kClassNameAnbrMode("android.telephony.imsmedia.AnbrMode");
 
 /** Native representation of android.telephony.imsmedia.RtpConfig */
 RtpConfig::RtpConfig(int32_t mediaType) :
@@ -45,40 +45,40 @@ RtpConfig::RtpConfig(int32_t mediaType) :
 
 RtpConfig::~RtpConfig() {}
 
-RtpConfig::RtpConfig(RtpConfig* config)
+RtpConfig::RtpConfig(RtpConfig* config) :
+        type(config->type),
+        direction(config->direction),
+        accessNetwork(config->accessNetwork),
+        remoteAddress(config->remoteAddress),
+        remotePort(config->remotePort),
+        rtcpConfig(config->rtcpConfig),
+        dscp(config->dscp),
+        rxPayloadTypeNumber(config->rxPayloadTypeNumber),
+        txPayloadTypeNumber(config->txPayloadTypeNumber),
+        samplingRateKHz(config->samplingRateKHz),
+        rtpContextParams(config->rtpContextParams),
+        anbrMode(config->anbrMode)
 {
     if (config == nullptr)
     {
         return;
     }
-    type = config->type;
-    direction = config->direction;
-    accessNetwork = config->accessNetwork;
-    remoteAddress = String8(config->remoteAddress.c_str());
-    remotePort = config->remotePort;
-    rtcpConfig = config->rtcpConfig;
-    dscp = config->dscp;
-    rxPayloadTypeNumber = config->rxPayloadTypeNumber;
-    txPayloadTypeNumber = config->txPayloadTypeNumber;
-    samplingRateKHz = config->samplingRateKHz;
-    rtpContextParams = config->rtpContextParams;
-    anbrMode = config->anbrMode;
 }
 
-RtpConfig::RtpConfig(const RtpConfig& config)
+RtpConfig::RtpConfig(const RtpConfig& config) :
+        remoteAddress(config.remoteAddress.c_str()),
+        rtcpConfig(config.rtcpConfig),
+        rtpContextParams(config.rtpContextParams),
+        anbrMode(config.anbrMode)
 {
     type = config.type;
     direction = config.direction;
     accessNetwork = config.accessNetwork;
-    remoteAddress = String8(config.remoteAddress.c_str());
     remotePort = config.remotePort;
-    rtcpConfig = config.rtcpConfig;
     dscp = config.dscp;
     rxPayloadTypeNumber = config.rxPayloadTypeNumber;
     txPayloadTypeNumber = config.txPayloadTypeNumber;
     samplingRateKHz = config.samplingRateKHz;
-    rtpContextParams = config.rtpContextParams;
-    anbrMode = config.anbrMode;
 }
 
 RtpConfig& RtpConfig::operator=(const RtpConfig& config)
@@ -88,7 +88,7 @@ RtpConfig& RtpConfig::operator=(const RtpConfig& config)
         type = config.type;
         direction = config.direction;
         accessNetwork = config.accessNetwork;
-        remoteAddress = String8(config.remoteAddress.c_str());
+        remoteAddress = config.remoteAddress;
         remotePort = config.remotePort;
         rtcpConfig = config.rtcpConfig;
         dscp = config.dscp;
@@ -151,7 +151,7 @@ status_t RtpConfig::writeToParcel(Parcel* out) const
         return err;
     }
 
-    String16 address(remoteAddress);
+    String16 address(remoteAddress.c_str());
     err = out->writeString16(address);
     if (err != NO_ERROR)
     {
@@ -164,7 +164,7 @@ status_t RtpConfig::writeToParcel(Parcel* out) const
         return err;
     }
 
-    String16 className(kClassNameRtcpConfig);
+    String16 className(kClassNameRtcpConfig.c_str());
     err = out->writeString16(className);
     if (err != NO_ERROR)
     {
@@ -201,7 +201,7 @@ status_t RtpConfig::writeToParcel(Parcel* out) const
         return err;
     }
 
-    String16 classNameRtpContextParams(kClassNameRtpContextParams);
+    String16 classNameRtpContextParams(kClassNameRtpContextParams.c_str());
     err = out->writeString16(classNameRtpContextParams);
     if (err != NO_ERROR)
     {
@@ -214,7 +214,7 @@ status_t RtpConfig::writeToParcel(Parcel* out) const
         return err;
     }
 
-    String16 classNameAnbr(kClassNameAnbrMode);
+    String16 classNameAnbr(kClassNameAnbrMode.c_str());
     err = out->writeString16(classNameAnbr);
     if (err != NO_ERROR)
     {
@@ -232,13 +232,7 @@ status_t RtpConfig::writeToParcel(Parcel* out) const
 
 status_t RtpConfig::readFromParcel(const Parcel* in)
 {
-    status_t err;
-    if (in == nullptr)
-    {
-        return BAD_VALUE;
-    }
-
-    err = in->readInt32(&type);
+    status_t err = in->readInt32(&type);
     if (err != NO_ERROR)
     {
         return err;
@@ -260,11 +254,11 @@ status_t RtpConfig::readFromParcel(const Parcel* in)
     err = in->readString16(&address);
     if (err == UNEXPECTED_NULL)
     {
-        remoteAddress = String8("");
+        remoteAddress = "";
     }
     else if (err == NO_ERROR)
     {
-        remoteAddress = String8(address.c_str());
+        remoteAddress = String8(address).c_str();
     }
     else
     {
@@ -325,6 +319,10 @@ status_t RtpConfig::readFromParcel(const Parcel* in)
     if (err == NO_ERROR)
     {
         err = rtpContextParams.readFromParcel(in);
+        if (err != NO_ERROR)
+        {
+            return err;
+        }
     }
     else if (err == UNEXPECTED_NULL)
     {
@@ -378,12 +376,12 @@ int32_t RtpConfig::getAccessNetwork()
     return accessNetwork;
 }
 
-void RtpConfig::setRemoteAddress(const String8& address)
+void RtpConfig::setRemoteAddress(const std::string& address)
 {
     this->remoteAddress = address;
 }
 
-String8 RtpConfig::getRemoteAddress()
+std::string RtpConfig::getRemoteAddress()
 {
     return remoteAddress;
 }
@@ -448,12 +446,12 @@ int8_t RtpConfig::getSamplingRateKHz()
     return samplingRateKHz;
 }
 
-RtpContextParams RtpConfig::getRtpContextParams()
+const RtpContextParams& RtpConfig::getRtpContextParams()
 {
     return rtpContextParams;
 }
 
-void RtpConfig::setRtpContextParams(RtpContextParams& rtpContextParams)
+void RtpConfig::setRtpContextParams(const RtpContextParams& rtpContextParams)
 {
     this->rtpContextParams = rtpContextParams;
 }

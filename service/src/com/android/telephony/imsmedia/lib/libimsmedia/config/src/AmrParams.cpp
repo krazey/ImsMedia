@@ -33,7 +33,7 @@ AmrParams::AmrParams()
     maxRedundancyMillis = 0;
 }
 
-AmrParams::AmrParams(AmrParams& param)
+AmrParams::AmrParams(const AmrParams& param)
 {
     this->amrMode = param.amrMode;
     this->octetAligned = param.octetAligned;
@@ -159,9 +159,9 @@ int32_t AmrParams::getMaxRedundancyMillis()
 
 void AmrParams::setDefaultAmrParams()
 {
-    amrMode = kAmrMode;
-    octetAligned = kOctetAligned;
-    maxRedundancyMillis = kMaxRedundancyMillis;
+    amrMode = 0;
+    octetAligned = false;
+    maxRedundancyMillis = 0;
 }
 
 }  // namespace imsmedia

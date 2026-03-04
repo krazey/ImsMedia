@@ -37,14 +37,14 @@ MediaQualityThreshold::MediaQualityThreshold()
     mVideoBitrateBps = 0;
 }
 
-MediaQualityThreshold::MediaQualityThreshold(const MediaQualityThreshold& threshold)
+MediaQualityThreshold::MediaQualityThreshold(const MediaQualityThreshold& threshold) :
+        mRtpInactivityTimerMillis(threshold.mRtpInactivityTimerMillis),
+        mRtpPacketLossRate(threshold.mRtpPacketLossRate),
+        mRtpJitterMillis(threshold.mRtpJitterMillis)
 {
-    mRtpInactivityTimerMillis = threshold.mRtpInactivityTimerMillis;
     mRtcpInactivityTimerMillis = threshold.mRtcpInactivityTimerMillis;
     mRtpHysteresisTimeInMillis = threshold.mRtpHysteresisTimeInMillis;
     mRtpPacketLossDurationMillis = threshold.mRtpPacketLossDurationMillis;
-    mRtpPacketLossRate = threshold.mRtpPacketLossRate;
-    mRtpJitterMillis = threshold.mRtpJitterMillis;
     mNotifyCurrentStatus = threshold.mNotifyCurrentStatus;
     mVideoBitrateBps = threshold.mVideoBitrateBps;
 }
@@ -159,12 +159,12 @@ status_t MediaQualityThreshold::readFromParcel(const Parcel* in)
     return NO_ERROR;
 }
 
-void MediaQualityThreshold::setRtpInactivityTimerMillis(std::vector<int32_t> time)
+void MediaQualityThreshold::setRtpInactivityTimerMillis(const std::vector<int32_t>& time)
 {
     mRtpInactivityTimerMillis = time;
 }
 
-std::vector<int32_t> MediaQualityThreshold::getRtpInactivityTimerMillis() const
+const std::vector<int32_t>& MediaQualityThreshold::getRtpInactivityTimerMillis() const
 {
     return mRtpInactivityTimerMillis;
 }
@@ -199,22 +199,22 @@ int32_t MediaQualityThreshold::getRtpPacketLossDurationMillis() const
     return mRtpPacketLossDurationMillis;
 }
 
-void MediaQualityThreshold::setRtpPacketLossRate(std::vector<int32_t> rate)
+void MediaQualityThreshold::setRtpPacketLossRate(const std::vector<int32_t>& rate)
 {
     mRtpPacketLossRate = rate;
 }
 
-std::vector<int32_t> MediaQualityThreshold::getRtpPacketLossRate() const
+const std::vector<int32_t>& MediaQualityThreshold::getRtpPacketLossRate() const
 {
     return mRtpPacketLossRate;
 }
 
-void MediaQualityThreshold::setRtpJitterMillis(std::vector<int32_t> jitter)
+void MediaQualityThreshold::setRtpJitterMillis(const std::vector<int32_t>& jitter)
 {
     mRtpJitterMillis = jitter;
 }
 
-std::vector<int32_t> MediaQualityThreshold::getRtpJitterMillis() const
+const std::vector<int32_t>& MediaQualityThreshold::getRtpJitterMillis() const
 {
     return mRtpJitterMillis;
 }

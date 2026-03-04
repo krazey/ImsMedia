@@ -195,7 +195,7 @@ void RtpEncoderNode::SetConfig(void* config)
         mRtpPayloadRx = pConfig->getRxPayloadTypeNumber();
         mRtpTxDtmfPayload = pConfig->getTxDtmfPayloadTypeNumber();
         mRtpRxDtmfPayload = pConfig->getRxDtmfPayloadTypeNumber();
-        mDtmfSamplingRate = pConfig->getDtmfsamplingRateKHz();
+        mDtmfSamplingRate = pConfig->getDtmfSamplingRateKHz();
 
         RtpContextParams rtpContextParams = pConfig->getRtpContextParams();
 
@@ -254,7 +254,7 @@ bool RtpEncoderNode::IsSameConfig(void* config)
                 mRtpPayloadRx == pConfig->getRxPayloadTypeNumber() &&
                 mRtpTxDtmfPayload == pConfig->getTxDtmfPayloadTypeNumber() &&
                 mRtpRxDtmfPayload == pConfig->getRxDtmfPayloadTypeNumber() &&
-                mDtmfSamplingRate == pConfig->getDtmfsamplingRateKHz());
+                mDtmfSamplingRate == pConfig->getDtmfSamplingRateKHz());
     }
     else if (mMediaType == IMS_MEDIA_VIDEO)
     {

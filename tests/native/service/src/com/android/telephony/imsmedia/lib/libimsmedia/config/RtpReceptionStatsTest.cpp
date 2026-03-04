@@ -18,6 +18,7 @@
 #include <gtest/gtest.h>
 
 using namespace android::telephony::imsmedia;
+using namespace android;
 
 TEST(RtpReceptionStatsTest, TestDefaultValues)
 {
@@ -87,13 +88,13 @@ TEST(RtpReceptionStatsTest, TestGetterSetters)
 TEST(RtpReceptionStatsTest, TestParcel)
 {
     RtpReceptionStats stats1(100, 200, 300, 400, 500);
-    android::Parcel parcel;
-    EXPECT_EQ(stats1.writeToParcel(nullptr), android::BAD_VALUE);
-    stats1.writeToParcel(&parcel);
+    Parcel parcel;
+    EXPECT_EQ(stats1.writeToParcel(nullptr), BAD_VALUE);
+    EXPECT_EQ(stats1.writeToParcel(&parcel), NO_ERROR);
     parcel.setDataPosition(0);
 
     RtpReceptionStats stats2;
-    EXPECT_EQ(stats2.readFromParcel(nullptr), android::BAD_VALUE);
-    stats2.readFromParcel(&parcel);
+    EXPECT_EQ(stats2.readFromParcel(nullptr), BAD_VALUE);
+    EXPECT_EQ(stats2.readFromParcel(&parcel), NO_ERROR);
     EXPECT_EQ(stats1, stats2);
 }

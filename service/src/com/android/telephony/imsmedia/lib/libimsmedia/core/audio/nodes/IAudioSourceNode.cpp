@@ -150,7 +150,7 @@ void IAudioSourceNode::SetConfig(void* config)
 
     mMediaDirection = pConfig->getMediaDirection();
     mSamplingRate = pConfig->getSamplingRateKHz();
-    mPtime = pConfig->getPtimeMillis();
+    mPtime = pConfig->getPTimeMillis();
     mIsDtxEnabled = pConfig->getDtxEnabled();
 }
 

@@ -14,13 +14,17 @@
  * limitations under the License.
  */
 
-#include <AudioConfig.h>
 #include <gtest/gtest.h>
 
+#include <AudioConfig.h>
+
 using namespace android::telephony::imsmedia;
+using namespace android;
+
 // RtpConfig
 const int32_t kMediaDirection = RtpConfig::MEDIA_DIRECTION_NO_FLOW;
-const android::String8 kRemoteAddress("0.0.0.0");
+const int32_t kAccessNetwork = 5;  // IWLAN
+const std::string kRemoteAddress("0.0.0.0");
 const int32_t kRemotePort = 1000;
 const int8_t kDscp = 0;
 const int8_t kRxPayload = 96;
@@ -31,7 +35,7 @@ const int32_t kAnbrMUplinkMode = 1;
 const int32_t kAnbrMDownlinkMode = 2;
 
 // RtcpConfig
-const android::String8 kCanonicalName("name");
+const std::string kCanonicalName("name");
 const int32_t kTransmitPort = 1001;
 const int32_t kIntervalSec = 1500;
 const int32_t kRtcpXrBlockTypes = RtcpConfig::FLAG_RTCPXR_STATISTICS_SUMMARY_REPORT_BLOCK |
@@ -39,12 +43,12 @@ const int32_t kRtcpXrBlockTypes = RtcpConfig::FLAG_RTCPXR_STATISTICS_SUMMARY_REP
 
 // AudioConfig
 const int8_t kPTimeMillis = 20;
-const int32_t kMaxPtimeMillis = 100;
+const int32_t kMaxPTimeMillis = 100;
 const int8_t kcodecModeRequest = 15;
 const bool kDtxEnabled = true;
 const int32_t kCodecType = AudioConfig::CODEC_AMR_WB;
 const int8_t kDtmfPayloadTypeNumber = 100;
-const int8_t kDtmfsamplingRateKHz = 16;
+const int8_t kDtmfSamplingRateKHz = 16;
 
 // AmrParam
 const int32_t kAmrMode = 8;
@@ -90,6 +94,7 @@ protected:
         anbr.setAnbrDownlinkCodecMode(kAnbrMDownlinkMode);
 
         config1.setMediaDirection(kMediaDirection);
+        config1.setAccessNetwork(kAccessNetwork);
         config1.setRemoteAddress(kRemoteAddress);
         config1.setRemotePort(kRemotePort);
         config1.setRtcpConfig(rtcp);
@@ -98,13 +103,13 @@ protected:
         config1.setTxPayloadTypeNumber(kTxPayload);
         config1.setSamplingRateKHz(kSamplingRate);
         config1.setAnbrMode(anbr);
-        config1.setPtimeMillis(kPTimeMillis);
-        config1.setMaxPtimeMillis(kMaxPtimeMillis);
+        config1.setPTimeMillis(kPTimeMillis);
+        config1.setMaxPTimeMillis(kMaxPTimeMillis);
         config1.setDtxEnabled(kDtxEnabled);
         config1.setCodecType(kCodecType);
         config1.setTxDtmfPayloadTypeNumber(kDtmfPayloadTypeNumber);
         config1.setRxDtmfPayloadTypeNumber(kDtmfPayloadTypeNumber);
-        config1.setDtmfsamplingRateKHz(kDtmfsamplingRateKHz);
+        config1.setDtmfSamplingRateKHz(kDtmfSamplingRateKHz);
         config1.setAmrParams(amr);
         config1.setEvsParams(evs);
     }
@@ -114,13 +119,22 @@ protected:
 
 TEST_F(AudioConfigTest, TestGetterSetter)
 {
-    EXPECT_EQ(config1.getPtimeMillis(), kPTimeMillis);
-    EXPECT_EQ(config1.getMaxPtimeMillis(), kMaxPtimeMillis);
+    EXPECT_EQ(config1.getMediaDirection(), kMediaDirection);
+    EXPECT_EQ(config1.getAccessNetwork(), kAccessNetwork);
+    EXPECT_EQ(config1.getRemoteAddress(), kRemoteAddress);
+    EXPECT_EQ(config1.getRemotePort(), kRemotePort);
+    EXPECT_EQ(config1.getDscp(), kDscp);
+    EXPECT_EQ(config1.getRxPayloadTypeNumber(), kRxPayload);
+    EXPECT_EQ(config1.getTxPayloadTypeNumber(), kTxPayload);
+    EXPECT_EQ(config1.getSamplingRateKHz(), kSamplingRate);
+    EXPECT_EQ(config1.getAnbrMode(), anbr);
+    EXPECT_EQ(config1.getPTimeMillis(), kPTimeMillis);
+    EXPECT_EQ(config1.getMaxPTimeMillis(), kMaxPTimeMillis);
     EXPECT_EQ(config1.getDtxEnabled(), kDtxEnabled);
     EXPECT_EQ(config1.getCodecType(), kCodecType);
     EXPECT_EQ(config1.getTxDtmfPayloadTypeNumber(), kDtmfPayloadTypeNumber);
     EXPECT_EQ(config1.getRxDtmfPayloadTypeNumber(), kDtmfPayloadTypeNumber);
-    EXPECT_EQ(config1.getDtmfsamplingRateKHz(), kDtmfsamplingRateKHz);
+    EXPECT_EQ(config1.getDtmfSamplingRateKHz(), kDtmfSamplingRateKHz);
     EXPECT_EQ(config1.getAmrParams(), amr);
     EXPECT_EQ(config1.getEvsParams(), evs);
 }
@@ -128,11 +142,13 @@ TEST_F(AudioConfigTest, TestGetterSetter)
 TEST_F(AudioConfigTest, TestParcel)
 {
     android::Parcel parcel;
-    config1.writeToParcel(&parcel);
+    EXPECT_EQ(config1.writeToParcel(nullptr), BAD_VALUE);
+    EXPECT_EQ(config1.writeToParcel(&parcel), NO_ERROR);
     parcel.setDataPosition(0);
 
     AudioConfig configTest;
-    configTest.readFromParcel(&parcel);
+    EXPECT_EQ(configTest.readFromParcel(nullptr), BAD_VALUE);
+    EXPECT_EQ(configTest.readFromParcel(&parcel), NO_ERROR);
     EXPECT_EQ(configTest, config1);
 }
 
@@ -150,6 +166,7 @@ TEST_F(AudioConfigTest, TestAssign)
 TEST_F(AudioConfigTest, TestEqual)
 {
     config2.setMediaDirection(kMediaDirection);
+    config2.setAccessNetwork(kAccessNetwork);
     config2.setRemoteAddress(kRemoteAddress);
     config2.setRemotePort(kRemotePort);
     config2.setRtcpConfig(rtcp);
@@ -158,13 +175,13 @@ TEST_F(AudioConfigTest, TestEqual)
     config2.setTxPayloadTypeNumber(kTxPayload);
     config2.setSamplingRateKHz(kSamplingRate);
     config2.setAnbrMode(anbr);
-    config2.setPtimeMillis(kPTimeMillis);
-    config2.setMaxPtimeMillis(kMaxPtimeMillis);
+    config2.setPTimeMillis(kPTimeMillis);
+    config2.setMaxPTimeMillis(kMaxPTimeMillis);
     config2.setDtxEnabled(kDtxEnabled);
     config2.setCodecType(kCodecType);
     config2.setTxDtmfPayloadTypeNumber(kDtmfPayloadTypeNumber);
     config2.setRxDtmfPayloadTypeNumber(kDtmfPayloadTypeNumber);
-    config2.setDtmfsamplingRateKHz(kDtmfsamplingRateKHz);
+    config2.setDtmfSamplingRateKHz(kDtmfSamplingRateKHz);
     config2.setAmrParams(amr);
     config2.setEvsParams(evs);
     EXPECT_EQ(config2, config1);
@@ -173,6 +190,7 @@ TEST_F(AudioConfigTest, TestEqual)
 TEST_F(AudioConfigTest, TestNotEqual)
 {
     config2.setMediaDirection(kMediaDirection);
+    config2.setAccessNetwork(kAccessNetwork);
     config2.setRemoteAddress(kRemoteAddress);
     config2.setRemotePort(2000);
     config2.setRtcpConfig(rtcp);
@@ -181,17 +199,18 @@ TEST_F(AudioConfigTest, TestNotEqual)
     config2.setTxPayloadTypeNumber(kTxPayload);
     config2.setSamplingRateKHz(kSamplingRate);
     config2.setAnbrMode(anbr);
-    config2.setPtimeMillis(kPTimeMillis);
-    config2.setMaxPtimeMillis(kMaxPtimeMillis);
+    config2.setPTimeMillis(kPTimeMillis);
+    config2.setMaxPTimeMillis(kMaxPTimeMillis);
     config2.setDtxEnabled(kDtxEnabled);
     config2.setCodecType(kCodecType);
     config2.setTxDtmfPayloadTypeNumber(kDtmfPayloadTypeNumber);
     config2.setRxDtmfPayloadTypeNumber(kDtmfPayloadTypeNumber);
-    config2.setDtmfsamplingRateKHz(kDtmfsamplingRateKHz);
+    config2.setDtmfSamplingRateKHz(kDtmfSamplingRateKHz);
     config2.setAmrParams(amr);
     config2.setEvsParams(evs);
 
     config3.setMediaDirection(kMediaDirection);
+    config3.setAccessNetwork(kAccessNetwork);
     config3.setRemoteAddress(kRemoteAddress);
     config3.setRemotePort(kRemotePort);
     config3.setRtcpConfig(rtcp);
@@ -200,13 +219,13 @@ TEST_F(AudioConfigTest, TestNotEqual)
     config3.setTxPayloadTypeNumber(kTxPayload);
     config3.setSamplingRateKHz(kSamplingRate);
     config3.setAnbrMode(anbr);
-    config3.setPtimeMillis(kPTimeMillis);
-    config3.setMaxPtimeMillis(kMaxPtimeMillis);
-    config3.setDtxEnabled(false);
+    config3.setPTimeMillis(kPTimeMillis);
+    config3.setMaxPTimeMillis(kMaxPTimeMillis);
+    config3.setDtxEnabled(kCodecType);
     config3.setCodecType(kCodecType);
     config3.setTxDtmfPayloadTypeNumber(kDtmfPayloadTypeNumber);
     config3.setRxDtmfPayloadTypeNumber(kDtmfPayloadTypeNumber);
-    config3.setDtmfsamplingRateKHz(kDtmfsamplingRateKHz);
+    config3.setDtmfSamplingRateKHz(8);
     config3.setAmrParams(amr);
     config3.setEvsParams(evs);
 
@@ -220,6 +239,7 @@ TEST_F(AudioConfigTest, TestParcelWithoutRtcp)
     AudioConfig configWrite;
 
     configWrite.setMediaDirection(kMediaDirection);
+    configWrite.setAccessNetwork(kAccessNetwork);
     configWrite.setRemoteAddress(kRemoteAddress);
     configWrite.setRemotePort(kRemotePort);
     configWrite.setDscp(kDscp);
@@ -227,13 +247,13 @@ TEST_F(AudioConfigTest, TestParcelWithoutRtcp)
     configWrite.setTxPayloadTypeNumber(kTxPayload);
     configWrite.setSamplingRateKHz(kSamplingRate);
     configWrite.setAnbrMode(anbr);
-    configWrite.setPtimeMillis(kPTimeMillis);
-    configWrite.setMaxPtimeMillis(kMaxPtimeMillis);
+    configWrite.setPTimeMillis(kPTimeMillis);
+    configWrite.setMaxPTimeMillis(kMaxPTimeMillis);
     configWrite.setDtxEnabled(kDtxEnabled);
     configWrite.setCodecType(kCodecType);
     configWrite.setTxDtmfPayloadTypeNumber(kDtmfPayloadTypeNumber);
     configWrite.setRxDtmfPayloadTypeNumber(kDtmfPayloadTypeNumber);
-    configWrite.setDtmfsamplingRateKHz(kDtmfsamplingRateKHz);
+    configWrite.setDtmfSamplingRateKHz(kDtmfSamplingRateKHz);
     configWrite.setAmrParams(amr);
     configWrite.setEvsParams(evs);
     configWrite.writeToParcel(&parcel);
@@ -255,6 +275,7 @@ TEST_F(AudioConfigTest, TestParcelWithoutAmrParams)
     AudioConfig configWrite;
 
     configWrite.setMediaDirection(kMediaDirection);
+    configWrite.setAccessNetwork(kAccessNetwork);
     configWrite.setRemoteAddress(kRemoteAddress);
     configWrite.setRemotePort(kRemotePort);
     configWrite.setRtcpConfig(rtcp);
@@ -263,13 +284,13 @@ TEST_F(AudioConfigTest, TestParcelWithoutAmrParams)
     configWrite.setTxPayloadTypeNumber(kTxPayload);
     configWrite.setSamplingRateKHz(kSamplingRate);
     configWrite.setAnbrMode(anbr);
-    configWrite.setPtimeMillis(kPTimeMillis);
-    configWrite.setMaxPtimeMillis(kMaxPtimeMillis);
+    configWrite.setPTimeMillis(kPTimeMillis);
+    configWrite.setMaxPTimeMillis(kMaxPTimeMillis);
     configWrite.setDtxEnabled(kDtxEnabled);
     configWrite.setCodecType(kCodecType);
     configWrite.setTxDtmfPayloadTypeNumber(kDtmfPayloadTypeNumber);
     configWrite.setRxDtmfPayloadTypeNumber(kDtmfPayloadTypeNumber);
-    configWrite.setDtmfsamplingRateKHz(kDtmfsamplingRateKHz);
+    configWrite.setDtmfSamplingRateKHz(kDtmfSamplingRateKHz);
     configWrite.setEvsParams(evs);
     configWrite.writeToParcel(&parcel);
     parcel.setDataPosition(0);
@@ -289,6 +310,7 @@ TEST_F(AudioConfigTest, TestParcelWithoutEvsParams)
     AudioConfig configWrite;
 
     configWrite.setMediaDirection(kMediaDirection);
+    configWrite.setAccessNetwork(kAccessNetwork);
     configWrite.setRemoteAddress(kRemoteAddress);
     configWrite.setRemotePort(kRemotePort);
     configWrite.setRtcpConfig(rtcp);
@@ -297,13 +319,13 @@ TEST_F(AudioConfigTest, TestParcelWithoutEvsParams)
     configWrite.setTxPayloadTypeNumber(kTxPayload);
     configWrite.setSamplingRateKHz(kSamplingRate);
     configWrite.setAnbrMode(anbr);
-    configWrite.setPtimeMillis(kPTimeMillis);
-    configWrite.setMaxPtimeMillis(kMaxPtimeMillis);
+    configWrite.setPTimeMillis(kPTimeMillis);
+    configWrite.setMaxPTimeMillis(kMaxPTimeMillis);
     configWrite.setDtxEnabled(kDtxEnabled);
     configWrite.setCodecType(kCodecType);
     configWrite.setTxDtmfPayloadTypeNumber(kDtmfPayloadTypeNumber);
     configWrite.setRxDtmfPayloadTypeNumber(kDtmfPayloadTypeNumber);
-    configWrite.setDtmfsamplingRateKHz(kDtmfsamplingRateKHz);
+    configWrite.setDtmfSamplingRateKHz(kDtmfSamplingRateKHz);
     configWrite.setAmrParams(amr);
     configWrite.writeToParcel(&parcel);
     parcel.setDataPosition(0);
@@ -313,8 +335,8 @@ TEST_F(AudioConfigTest, TestParcelWithoutEvsParams)
 
     EXPECT_EQ(configRead, configWrite);
     EXPECT_EQ(configRead.getEvsParams().getEvsBandwidth(), EvsParams::EVS_BAND_NONE);
-    EXPECT_EQ(configRead.getEvsParams().getEvsMode(), 0);
-    EXPECT_EQ(configRead.getEvsParams().getChannelAwareMode(), 0);
+    EXPECT_EQ(configRead.getEvsParams().getEvsMode(), EvsParams::EVS_MODE_0);
+    EXPECT_EQ(configRead.getEvsParams().getChannelAwareMode(), -1);
     EXPECT_EQ(configRead.getEvsParams().getUseHeaderFullOnly(), false);
-    EXPECT_EQ(configRead.getEvsParams().getCodecModeRequest(), 0);
+    EXPECT_EQ(configRead.getEvsParams().getCodecModeRequest(), -1);
 }

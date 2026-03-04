@@ -72,7 +72,7 @@ public:
     void SetResolution(uint32_t width, uint32_t height);
     void SetDeviceOrientation(uint32_t orientation);
     void SetSurface(ANativeWindow* window);
-    void SetCodecSprop(android::String8& sprop);
+    void SetCodecSprop(const std::string& sprop);
     bool Start();
     void Stop();
     void OnDataFrame(uint8_t* data, uint32_t size, uint32_t timestamp, bool isConfigFrame);
@@ -94,7 +94,7 @@ private:
     uint32_t mFarOrientationDegree;
     uint32_t mNearOrientationDegree;
     bool mStopped;
-    android::String8 mSpropValue;
+    std::string mSpropValue;
 };
 
 #endif  // IMSMEDIA_VIDEO_RENDERER_H_INCLUDED

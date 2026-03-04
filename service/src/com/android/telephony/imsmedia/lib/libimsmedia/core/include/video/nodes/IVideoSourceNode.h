@@ -72,7 +72,7 @@ protected:
     uint32_t mBitrate;
     int8_t mSamplingRate;
     uint32_t mIntraInterval;
-    android::String8 mImagePath;
+    std::string mImagePath;
     uint32_t mDeviceOrientation;
     ANativeWindow* mWindow;
     int32_t mMinBitrateThreshold;

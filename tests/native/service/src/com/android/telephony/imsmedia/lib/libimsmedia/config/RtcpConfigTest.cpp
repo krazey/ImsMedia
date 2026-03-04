@@ -14,12 +14,14 @@
  * limitations under the License.
  */
 
-#include <RtcpConfig.h>
 #include <gtest/gtest.h>
 
-using namespace android::telephony::imsmedia;
+#include <RtcpConfig.h>
 
-const android::String8 kCanonicalName("name");
+using namespace android::telephony::imsmedia;
+using namespace android;
+
+const std::string kCanonicalName("name");
 const int32_t kTransmitPort = 1000;
 const int32_t kIntervalSec = 1500;
 const int32_t kRtcpXrBlockTypes = RtcpConfig::FLAG_RTCPXR_STATISTICS_SUMMARY_REPORT_BLOCK |
@@ -48,11 +50,13 @@ TEST(RtcpConfigTest, TestParcel)
     rtcp->setRtcpXrBlockTypes(kRtcpXrBlockTypes);
 
     android::Parcel parcel;
-    rtcp->writeToParcel(&parcel);
+    EXPECT_EQ(rtcp->writeToParcel(nullptr), BAD_VALUE);
+    EXPECT_EQ(rtcp->writeToParcel(&parcel), NO_ERROR);
     parcel.setDataPosition(0);
 
     RtcpConfig* rtcp2 = new RtcpConfig();
-    rtcp2->readFromParcel(&parcel);
+    EXPECT_EQ(rtcp2->readFromParcel(nullptr), BAD_VALUE);
+    EXPECT_EQ(rtcp2->readFromParcel(&parcel), NO_ERROR);
     EXPECT_EQ(*rtcp2, *rtcp);
 
     delete rtcp;
@@ -99,7 +103,7 @@ TEST(RtcpConfigTest, TestNotEqual)
     rtcp->setRtcpXrBlockTypes(kRtcpXrBlockTypes);
 
     RtcpConfig* rtcp2 = new RtcpConfig();
-    android::String8 name("name2");
+    std::string name("name2");
     rtcp2->setCanonicalName(name);
     rtcp2->setTransmitPort(kTransmitPort);
     rtcp2->setIntervalSec(kIntervalSec);
@@ -117,4 +121,13 @@ TEST(RtcpConfigTest, TestNotEqual)
     delete rtcp;
     delete rtcp2;
     delete rtcp3;
+}
+
+TEST(RtcpConfigTest, TestDefaultConfig)
+{
+    RtcpConfig rtcp;
+    rtcp.setDefaultRtcpConfig();
+
+    RtcpConfig rtcp2;
+    EXPECT_EQ(rtcp, rtcp2);
 }
