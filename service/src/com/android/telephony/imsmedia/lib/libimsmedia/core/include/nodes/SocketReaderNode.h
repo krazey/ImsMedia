@@ -19,7 +19,7 @@
 
 #include <BaseNode.h>
 #include <ISocket.h>
-#include <mutex>
+#include <ImsMediaMutex.h>
 
 class SocketReaderNode : public BaseNode, public ISocketListener
 {
@@ -70,7 +70,7 @@ protected:
     RtpAddress mLocalAddress;
     RtpAddress mPeerAddress;
     bool mSocketOpened;
-    std::mutex mMutex;
+    ImsMediaMutex mMutex;
     uint8_t mBuffer[DEFAULT_MTU];
     bool mReceiveTtl;
 };

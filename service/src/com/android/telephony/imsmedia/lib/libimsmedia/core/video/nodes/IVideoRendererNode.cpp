@@ -77,7 +77,7 @@ ImsMediaResult IVideoRendererNode::Start()
     }
 
     Reset();
-    std::lock_guard<std::mutex> guard(mMutex);
+    ImsMediaMutex::Autolock lock(mMutex);
 
     if (mVideoRenderer)
     {
@@ -101,7 +101,7 @@ ImsMediaResult IVideoRendererNode::Start()
 void IVideoRendererNode::Stop()
 {
     IMLOGD0("[Stop]");
-    std::lock_guard<std::mutex> guard(mMutex);
+    ImsMediaMutex::Autolock lock(mMutex);
 
     if (mVideoRenderer)
     {
@@ -163,7 +163,7 @@ bool IVideoRendererNode::IsSameConfig(void* config)
 
 void IVideoRendererNode::ProcessData()
 {
-    std::lock_guard<std::mutex> guard(mMutex);
+    ImsMediaMutex::Autolock lock(mMutex);
     uint8_t* data = nullptr;
     uint32_t dataSize = 0;
     uint32_t prevTimestamp = 0;

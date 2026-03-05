@@ -19,7 +19,7 @@
 #include <stdlib.h>
 
 using NODE_ID_PAIR = std::pair<kBaseNodeId, const char*>;
-static std::vector<NODE_ID_PAIR> vectorNodeId{
+static std::vector<NODE_ID_PAIR> gVectorNodeId{
         std::make_pair(kNodeIdUnknown, "NodeUnknown"),
         std::make_pair(kNodeIdSocketWriter, "SocketWriter"),
         std::make_pair(kNodeIdSocketReader, "SocketReader"),
@@ -195,7 +195,7 @@ const char* BaseNode::GetNodeName()
 {
     typedef typename std::vector<std::pair<kBaseNodeId, const char*>>::iterator iterator;
 
-    for (iterator it = vectorNodeId.begin(); it != vectorNodeId.end(); ++it)
+    for (iterator it = gVectorNodeId.begin(); it != gVectorNodeId.end(); ++it)
     {
         if (it->first == GetNodeId())
         {

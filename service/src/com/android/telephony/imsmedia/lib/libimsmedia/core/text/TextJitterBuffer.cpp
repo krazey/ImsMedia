@@ -40,7 +40,7 @@ void TextJitterBuffer::Add(ImsMediaSubType subtype, uint8_t* buffer, uint32_t si
             "[Add] seq[%u], mark[%u], TS[%u], size[%u], lastPlayedSeq[%u], arrivalTime[%u]", seqNum,
             mark, timestamp, size, mLastPlayedSeqNum, arrivalTime);
 
-    std::lock_guard<std::mutex> guard(mMutex);
+    ImsMediaMutex::Autolock lock(mMutex);
 
     if (mFirstFrameReceived && USHORT_SEQ_ROUND_COMPARE(mLastPlayedSeqNum, seqNum))
     {
@@ -108,7 +108,7 @@ bool TextJitterBuffer::Get(ImsMediaSubType* subtype, uint8_t** data, uint32_t* d
         uint32_t* timestamp, bool* mark, uint32_t* seqNum, uint32_t /*currentTime*/,
         ImsMediaSubType* /*pDataType*/)
 {
-    std::lock_guard<std::mutex> guard(mMutex);
+    ImsMediaMutex::Autolock lock(mMutex);
     DataEntry* pEntry;
 
     if (mDataQueue.Get(&pEntry) == true && pEntry != nullptr)
@@ -156,7 +156,7 @@ bool TextJitterBuffer::Get(ImsMediaSubType* subtype, uint8_t** data, uint32_t* d
 void TextJitterBuffer::Delete()
 {
     DataEntry* pEntry;
-    std::lock_guard<std::mutex> guard(mMutex);
+    ImsMediaMutex::Autolock lock(mMutex);
     mDataQueue.Get(&pEntry);
 
     if (pEntry == nullptr)

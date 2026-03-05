@@ -21,7 +21,6 @@
 #include <BaseJitterBuffer.h>
 #include <ImsMediaVideoUtil.h>
 #include <ImsMediaTimer.h>
-#include <mutex>
 #include <list>
 
 class VideoJitterBuffer : public BaseJitterBuffer
@@ -131,7 +130,6 @@ private:
     uint32_t mLossRateThreshold;
     uint32_t mCountTimerExpired;
     hTimerHandler mTimer;
-    std::mutex mMutexTimer;
     int32_t mAdditionalDelay;
 };
 #endif

@@ -22,7 +22,7 @@
 #include <ImsMediaTimer.h>
 #include <ImsMediaVideoUtil.h>
 #include <ImsMediaBitWriter.h>
-#include <mutex>
+#include <ImsMediaMutex.h>
 
 #define BLOCK_LENGTH_STATISTICS   40
 #define BLOCK_LENGTH_VOIP_METRICS 36
@@ -98,7 +98,7 @@ private:
     int32_t mRtcpXrCounter;
     int32_t mRtcpFbTypes;
     hTimerHandler mTimer;
-    std::mutex mMutexTimer;
+    ImsMediaMutex mMutexTimer;
     uint32_t mLastTimeSentPli;
     uint32_t mLastTimeSentFir;
     ImsMediaBitWriter mBitWriter;

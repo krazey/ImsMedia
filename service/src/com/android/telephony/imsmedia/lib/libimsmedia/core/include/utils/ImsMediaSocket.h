@@ -22,7 +22,7 @@
 #include <ISocket.h>
 #include <stdint.h>
 #include <list>
-#include <mutex>
+#include <ImsMediaMutex.h>
 
 class ImsMediaSocket : public ISocket
 {
@@ -124,11 +124,11 @@ private:
     static std::list<ImsMediaSocket*> slistSocket;
     static std::list<ImsMediaSocket*> slistRxSocket;
     static int32_t sRxSocketCount;
-    static bool mSocketListUpdated;
-    static bool mTerminateMonitor;
-    static std::mutex sMutexRxSocket;
-    static std::mutex sMutexSocketList;
-    static ImsMediaCondition mConditionExit;
+    static bool sSocketListUpdated;
+    static bool sTerminateMonitor;
+    static ImsMediaMutex sMutexRxSocket;
+    static ImsMediaMutex sMutexSocketList;
+    static ImsMediaCondition sConditionExit;
     int32_t mSocketFd;
     int32_t mRefCount;
     ISocketListener* mListener;

@@ -775,7 +775,7 @@ void MediaQualityAnalyzer::SendEvent(uint32_t event, uint64_t paramA, uint64_t p
 void MediaQualityAnalyzer::AddEvent(uint32_t event, uint64_t paramA, uint64_t paramB)
 {
     IMLOGD_PACKET2(IM_PACKET_LOG_RTP, "[AddEvent] event[%d], size[%d]", event, mListevent.size());
-    std::lock_guard<std::mutex> guard(mEventMutex);
+    ImsMediaMutex::Autolock lock(mEventMutex);
     mListevent.push_back(event);
     mListParamA.push_back(paramA);
     mListParamB.push_back(paramB);

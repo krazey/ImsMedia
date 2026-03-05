@@ -38,7 +38,7 @@ void StreamScheduler::RegisterNode(BaseNode* pNode)
     if (pNode != nullptr)
     {
         IMLOGD2("[RegisterNode] [%p], node[%s]", this, pNode->GetNodeName());
-        std::lock_guard<std::mutex> guard(mMutex);
+        ImsMediaMutex::Autolock lock(mMutex);
         mListRegisteredNode.push_back(pNode);
     }
 }
@@ -48,7 +48,7 @@ void StreamScheduler::DeRegisterNode(BaseNode* pNode)
     if (pNode != nullptr)
     {
         IMLOGD2("[DeRegisterNode] [%p], node[%s]", this, pNode->GetNodeName());
-        std::lock_guard<std::mutex> guard(mMutex);
+        ImsMediaMutex::Autolock lock(mMutex);
         mListRegisteredNode.remove(pNode);
     }
 }

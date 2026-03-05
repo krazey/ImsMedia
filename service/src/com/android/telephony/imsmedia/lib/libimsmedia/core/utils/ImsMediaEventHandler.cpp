@@ -19,8 +19,8 @@
 #include <string.h>
 #include <string>
 
-std::list<ImsMediaEventHandler*> ImsMediaEventHandler::gListEventHandler;
-std::mutex ImsMediaEventHandler::mMutex;
+std::list<ImsMediaEventHandler*> ImsMediaEventHandler::sListEventHandler;
+ImsMediaMutex ImsMediaEventHandler::sMutex;
 
 ImsMediaEventHandler::ImsMediaEventHandler() {}
 
@@ -30,7 +30,7 @@ void ImsMediaEventHandler::Init(const char* strName)
 {
     strncpy(mName, strName, MAX_EVENTHANDLER_NAME);
     mbTerminate = false;
-    gListEventHandler.push_back(this);
+    sListEventHandler.push_back(this);
     IMLOGD1("[Init] %s", mName);
     StartThread("ImsMediaEventHandler");
 }
@@ -38,9 +38,9 @@ void ImsMediaEventHandler::Init(const char* strName)
 void ImsMediaEventHandler::Deinit()
 {
     IMLOGD2("[Deinit] %s, queue size[%d]", mName, mListevent.size());
-    std::lock_guard<std::mutex> guard(mMutexEvent);
+    ImsMediaMutex::Autolock lock(mMutexEvent);
     StopThread();
-    gListEventHandler.remove(this);
+    sListEventHandler.remove(this);
     mListevent.clear();
     mListParamA.clear();
     mListParamB.clear();
@@ -61,7 +61,7 @@ void ImsMediaEventHandler::SendEvent(const char* strEventHandlerName, uint32_t e
     IMLOGD5("[SendEvent] Name[%s], event[%d], paramA[%p], paramB[%p], paramC[%p]",
             strEventHandlerName, event, paramA, paramB, paramC);
 
-    for (auto& i : gListEventHandler)
+    for (auto& i : sListEventHandler)
     {
         if (i != nullptr && strcmp(i->getName(), strEventHandlerName) == 0)
         {
@@ -78,7 +78,7 @@ char* ImsMediaEventHandler::getName()
 void ImsMediaEventHandler::AddEvent(
         uint32_t event, uint64_t paramA, uint64_t paramB, uint64_t paramC)
 {
-    std::lock_guard<std::mutex> guard(mMutexEvent);
+    ImsMediaMutex::Autolock lock(mMutexEvent);
     IMLOGD3("[AddEvent] %s, event[%d], size[%d]", mName, event, mListevent.size());
     mListevent.push_back(event);
     mListParamA.push_back(paramA);

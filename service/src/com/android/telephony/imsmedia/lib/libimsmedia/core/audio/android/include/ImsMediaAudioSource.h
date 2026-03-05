@@ -19,7 +19,7 @@
 
 #include <ImsMediaDefine.h>
 #include <ImsMediaAudioDefine.h>
-#include <mutex>
+#include <ImsMediaMutex.h>
 #include <IImsMediaThread.h>
 #include <ImsMediaCondition.h>
 #include <IFrameCallback.h>
@@ -149,7 +149,7 @@ private:
     void dequeueOutputBuffer();
     static void audioErrorCallback(AAudioStream* stream, void* userData, aaudio_result_t error);
 
-    std::mutex mMutexUplink;
+    ImsMediaMutex mMutexUplink;
     IFrameCallback* mCallback;
     AAudioStream* mAudioStream;
     AMediaCodec* mCodec;

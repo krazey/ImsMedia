@@ -80,7 +80,7 @@ void AudioJitterBuffer::Reset()
 void AudioJitterBuffer::ClearBuffer()
 {
     IMLOGD0("[ClearBuffer]");
-    std::lock_guard<std::mutex> guard(mMutex);
+    ImsMediaMutex::Autolock lock(mMutex);
     DataEntry* entry = nullptr;
 
     while (mDataQueue.Get(&entry))
@@ -158,7 +158,7 @@ void AudioJitterBuffer::Add(ImsMediaSubType subtype, uint8_t* pbBuffer, uint32_t
 
     if (subtype == MEDIASUBTYPE_REFRESHED)
     {
-        std::lock_guard<std::mutex> guard(mMutex);
+        ImsMediaMutex::Autolock lock(mMutex);
         mSsrc = nBufferSize;
         mTimeStarted = arrivalTime;
         mJitterAnalyzer.Reset();
@@ -200,7 +200,7 @@ void AudioJitterBuffer::Add(ImsMediaSubType subtype, uint8_t* pbBuffer, uint32_t
     packet->timestamp = nTimestamp;
     mCallback->SendEvent(kCollectPacketInfo, kStreamRtpRx, reinterpret_cast<uint64_t>(packet));
 
-    std::lock_guard<std::mutex> guard(mMutex);
+    ImsMediaMutex::Autolock lock(mMutex);
 
     IMLOGD_PACKET8(IM_PACKET_LOG_JITTER,
             "[Add] seq=%d, mark=%d, TS=%d, size=%d, jitter=%d, queue=%d, playingDiff=%d, "
@@ -269,7 +269,7 @@ bool AudioJitterBuffer::Get(ImsMediaSubType* psubtype, uint8_t** ppData, uint32_
         uint32_t* pnTimestamp, bool* pbMark, uint32_t* pnSeqNum, uint32_t currentTime,
         ImsMediaSubType* pDataType)
 {
-    std::lock_guard<std::mutex> guard(mMutex);
+    ImsMediaMutex::Autolock lock(mMutex);
 
     IMLOGD_PACKET1(IM_PACKET_LOG_JITTER, "[Get] time diff=%d", currentTime - mPrevGetTime);
     mPrevGetTime = currentTime;
@@ -760,7 +760,7 @@ bool AudioJitterBuffer::GetNextFrameFirstByte(uint32_t nextSeq, uint8_t* nextFra
 bool AudioJitterBuffer::GetRedundantFrame(uint32_t lostSeq, uint8_t** ppData, uint32_t* pnDataSize,
         bool* hasNextFrame, uint8_t* nextFrameFirstByte)
 {
-    std::lock_guard<std::mutex> guard(mMutex);
+    ImsMediaMutex::Autolock lock(mMutex);
     DataEntry* pEntry = nullptr;
 
     if (!mDtxPlayed &&
@@ -780,7 +780,7 @@ bool AudioJitterBuffer::GetRedundantFrame(uint32_t lostSeq, uint8_t** ppData, ui
 
 void AudioJitterBuffer::SetAdditionalDelay(const int32_t delayMs)
 {
-    std::lock_guard<std::mutex> guard(mMutex);
+    ImsMediaMutex::Autolock lock(mMutex);
 
     if (!mWaiting && mFirstFrameReceived)
     {

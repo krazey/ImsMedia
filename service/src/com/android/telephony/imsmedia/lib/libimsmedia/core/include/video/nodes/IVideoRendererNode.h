@@ -24,7 +24,7 @@
 #include <ImsMediaVideoRenderer.h>
 #include <ImsMediaVideoUtil.h>
 #include <android/native_window.h>
-#include <mutex>
+#include <ImsMediaMutex.h>
 
 #define USE_JITTER_BUFFER  // off this definition ONLY for test purpose.
 #define DEMON_NTP2MSEC 65.55
@@ -102,7 +102,7 @@ private:
     std::unique_ptr<ImsMediaVideoRenderer> mVideoRenderer;
     ANativeWindow* mWindow;
     ImsMediaCondition mCondition;
-    std::mutex mMutex;
+    ImsMediaMutex mMutex;
     int32_t mCodecType;
     uint32_t mWidth;
     uint32_t mHeight;

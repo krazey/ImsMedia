@@ -21,7 +21,7 @@
 #include <aaudio/AAudio.h>
 #include <media/NdkMediaCodec.h>
 #include <media/NdkMediaFormat.h>
-#include <mutex>
+#include <ImsMediaMutex.h>
 
 using android::sp;
 
@@ -167,7 +167,7 @@ private:
     int32_t mEvsChAwOffset;
     kEvsBandwidth mEvsBandwidth;
     uint16_t mBuffer[PCM_BUFFER_SIZE];
-    std::mutex mMutex;
+    ImsMediaMutex mMutex;
     int32_t mEvsBitRate;
     kRtpPayloadHeaderMode mEvsCodecHeaderMode;
     bool mIsFirstFrame;

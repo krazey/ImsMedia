@@ -16,6 +16,7 @@
 
 #include <ImsMediaTimer.h>
 #include <ImsMediaTrace.h>
+#include <ImsMediaMutex.h>
 #include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -25,7 +26,6 @@
 #include <thread>
 #include <utils/Atomic.h>
 #include <limits.h>
-#include <mutex>
 #include <list>
 #include <algorithm>
 
@@ -37,28 +37,28 @@ struct TimerInstance
     void* mUserData;
     bool mTerminateThread;
     uint32_t mStartTimeMillisecond;
-    std::mutex mMutex;
+    ImsMediaMutex mMutex;
 };
 
-static std::mutex gMutexList;
+static ImsMediaMutex gMutexList;
 static std::list<TimerInstance*> gTimerList;
 static std::uint64_t gStartTime = 0;
 
 static void AddTimerToList(TimerInstance* timer)
 {
-    std::lock_guard<std::mutex> guard(gMutexList);
+    ImsMediaMutex::Autolock lock(gMutexList);
     gTimerList.push_back(timer);
 }
 
 static void DeleteTimerFromList(TimerInstance* timer)
 {
-    std::lock_guard<std::mutex> guard(gMutexList);
+    ImsMediaMutex::Autolock lock(gMutexList);
     gTimerList.remove(timer);
 }
 
 static bool IsValidTimer(const TimerInstance* timer)
 {
-    std::lock_guard<std::mutex> guard(gMutexList);
+    ImsMediaMutex::Autolock lock(gMutexList);
 
     if (gTimerList.empty())
     {
@@ -118,7 +118,7 @@ static void* ImsMediaTimer_run(void* arg)
             }
 
             {  // Critical section
-                std::lock_guard<std::mutex> guard(timer->mMutex);
+                ImsMediaMutex::Autolock lock(timer->mMutex);
                 if (timer->mTerminateThread)
                 {
                     break;
@@ -191,7 +191,7 @@ bool ImsMediaTimer::TimerStop(hTimerHandler hTimer, void** puserData)
     }
 
     {
-        std::lock_guard<std::mutex> guard(timer->mMutex);
+        ImsMediaMutex::Autolock lock(timer->mMutex);
         IMLOGD1("[TimerStop] mutex taken timer[%x]", timer);
 
         timer->mTerminateThread = true;

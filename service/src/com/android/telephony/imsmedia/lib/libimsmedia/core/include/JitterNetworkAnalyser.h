@@ -17,10 +17,10 @@
 #ifndef JITTERNETWORKANALYSER_H_INCLUDED
 #define JITTERNETWORKANALYSER_H_INCLUDED
 
+#include <ImsMediaMutex.h>
 #include <stdint.h>
 #include <list>
 #include <map>
-#include <mutex>
 
 enum NETWORK_STATUS
 {
@@ -70,7 +70,7 @@ private:
     double CalculateDeviation(double* pMean);
     int32_t GetMaxJitterValue();
 
-    std::mutex mMutex;
+    ImsMediaMutex mMutex;
     uint32_t mMinJitterBufferSize;
     uint32_t mMaxJitterBufferSize;
     uint32_t mPrevTimestamp;

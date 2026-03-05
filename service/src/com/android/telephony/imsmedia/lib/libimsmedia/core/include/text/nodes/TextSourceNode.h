@@ -18,7 +18,7 @@
 #define TEXT_SOURCE_NODE_H_INCLUDED
 
 #include <BaseNode.h>
-#include <mutex>
+#include <ImsMediaMutex.h>
 
 /**
  * @brief This class describes an interface between depacketization module
@@ -53,7 +53,7 @@ private:
     int32_t mTimeLastSent;
     int32_t mBitrate;
     bool mSentBOM;
-    std::mutex mMutex;
+    ImsMediaMutex mMutex;
     /* set the max payload to send one time, 10 character per one buffing time */
     uint8_t mPayload[MAX_RTT_LEN / 3];
 };
