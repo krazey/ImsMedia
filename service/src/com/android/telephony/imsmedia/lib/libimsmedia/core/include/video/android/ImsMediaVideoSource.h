@@ -17,6 +17,7 @@
 #ifndef IMSMEDIA_VIDEO_SOURCE_H_INCLUDED
 #define IMSMEDIA_VIDEO_SOURCE_H_INCLUDED
 
+#include <string>
 #include <ImsMediaVideoUtil.h>
 #include <ImsMediaDefine.h>
 #include <android/native_window.h>
@@ -81,7 +82,7 @@ public:
     /**
      * @brief Set the pause image path stored
      */
-    void SetImagePath(const android::String8& path);
+    void SetImagePath(const std::string& path);
 
     /**
      * @brief Set the Codec configuration parameter, this method should be called before calling
@@ -172,7 +173,7 @@ private:
     uint32_t mFramerate;
     uint32_t mBitrate;
     uint32_t mIntraInterval;
-    android::String8 mImagePath;
+    std::string mImagePath;
     int32_t mDeviceOrientation;
     uint64_t mTimestamp;
     uint64_t mPrevTimestamp;

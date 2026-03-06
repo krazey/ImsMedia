@@ -40,7 +40,7 @@ class AnbrMode : public Parcelable
 {
 public:
     AnbrMode();
-    AnbrMode(AnbrMode& param);
+    AnbrMode(const AnbrMode& param);
     virtual ~AnbrMode();
     AnbrMode& operator=(const AnbrMode& param);
     bool operator==(const AnbrMode& param) const;
@@ -55,14 +55,10 @@ public:
 
 private:
     /** The codec mode of the current activated code in EvsParams and AmrParams */
-    int32_t anbrUplinkMode;
+    int32_t mAnbrUplinkMode;
 
     /** The codec mode of the current activated code in EvsParams and AmrParams */
-    int32_t anbrDownlinkMode;
-
-    // Default AnbrMode
-    const int32_t kAnbrUplinkMode = 0;
-    const int32_t kAnbrDownlinkMode = 0;
+    int32_t mAnbrDownlinkMode;
 };
 
 }  // namespace imsmedia

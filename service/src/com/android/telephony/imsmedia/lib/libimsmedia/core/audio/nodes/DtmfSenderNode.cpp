@@ -67,7 +67,7 @@ void DtmfSenderNode::SetConfig(void* config)
 
     if (pConfig != nullptr)
     {
-        mPtime = pConfig->getPtimeMillis();
+        mPtime = pConfig->getPTimeMillis();
     }
 }
 
@@ -79,7 +79,7 @@ bool DtmfSenderNode::IsSameConfig(void* config)
     }
 
     AudioConfig* pConfig = reinterpret_cast<AudioConfig*>(config);
-    return (mPtime == pConfig->getPtimeMillis());
+    return (mPtime == pConfig->getPTimeMillis());
 }
 
 void DtmfSenderNode::ProcessData()

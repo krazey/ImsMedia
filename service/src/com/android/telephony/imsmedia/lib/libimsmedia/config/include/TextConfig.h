@@ -50,14 +50,14 @@ public:
     };
 
     TextConfig();
-    TextConfig(TextConfig* config);
-    TextConfig(TextConfig& config);
-    virtual ~TextConfig();
+    explicit TextConfig(TextConfig* config);
+    TextConfig(const TextConfig& config);
+    virtual ~TextConfig() override;
     TextConfig& operator=(const TextConfig& config);
     bool operator==(const TextConfig& config) const;
     bool operator!=(const TextConfig& config) const;
-    virtual status_t writeToParcel(Parcel* out) const;
-    virtual status_t readFromParcel(const Parcel* in);
+    virtual status_t writeToParcel(Parcel* out) const override;
+    virtual status_t readFromParcel(const Parcel* in) override;
     void setCodecType(const int32_t codec);
     int32_t getCodecType();
     void setBitrate(const int32_t bitrate);

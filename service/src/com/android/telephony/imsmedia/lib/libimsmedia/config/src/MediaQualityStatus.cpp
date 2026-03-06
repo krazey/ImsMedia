@@ -74,19 +74,71 @@ bool MediaQualityStatus::operator!=(const MediaQualityStatus& status) const
 
 status_t MediaQualityStatus::writeToParcel(Parcel* out) const
 {
-    out->writeInt32(mRtpInactivityTimeMillis);
-    out->writeInt32(mRtcpInactivityTimeMillis);
-    out->writeInt32(mRtpPacketLossRate);
-    out->writeInt32(mRtpJitterMillis);
+    if (out == nullptr)
+    {
+        return BAD_VALUE;
+    }
+
+    status_t err;
+    err = out->writeInt32(mRtpInactivityTimeMillis);
+    if (err != NO_ERROR)
+    {
+        return err;
+    }
+
+    err = out->writeInt32(mRtcpInactivityTimeMillis);
+    if (err != NO_ERROR)
+    {
+        return err;
+    }
+
+    err = out->writeInt32(mRtpPacketLossRate);
+    if (err != NO_ERROR)
+    {
+        return err;
+    }
+
+    err = out->writeInt32(mRtpJitterMillis);
+    if (err != NO_ERROR)
+    {
+        return err;
+    }
+
     return NO_ERROR;
 }
 
 status_t MediaQualityStatus::readFromParcel(const Parcel* in)
 {
-    in->readInt32(&mRtpInactivityTimeMillis);
-    in->readInt32(&mRtcpInactivityTimeMillis);
-    in->readInt32(&mRtpPacketLossRate);
-    in->readInt32(&mRtpJitterMillis);
+    if (in == nullptr)
+    {
+        return BAD_VALUE;
+    }
+
+    status_t err;
+    err = in->readInt32(&mRtpInactivityTimeMillis);
+    if (err != NO_ERROR)
+    {
+        return err;
+    }
+
+    err = in->readInt32(&mRtcpInactivityTimeMillis);
+    if (err != NO_ERROR)
+    {
+        return err;
+    }
+
+    err = in->readInt32(&mRtpPacketLossRate);
+    if (err != NO_ERROR)
+    {
+        return err;
+    }
+
+    err = in->readInt32(&mRtpJitterMillis);
+    if (err != NO_ERROR)
+    {
+        return err;
+    }
+
     return NO_ERROR;
 }
 

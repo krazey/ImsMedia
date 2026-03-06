@@ -14,13 +14,16 @@
  * limitations under the License.
  */
 
-#include <TextConfig.h>
 #include <gtest/gtest.h>
 
+#include <TextConfig.h>
+
 using namespace android::telephony::imsmedia;
+using namespace android;
+
 // RtpConfig
 const int32_t kMediaDirection = RtpConfig::MEDIA_DIRECTION_NO_FLOW;
-const android::String8 kRemoteAddress("0.0.0.0");
+const std::string kRemoteAddress("0.0.0.0");
 const int32_t kRemotePort = 10000;
 const int8_t kDscp = 0;
 const int8_t kRxPayload = 100;
@@ -28,7 +31,7 @@ const int8_t kTxPayload = 100;
 const int8_t kSamplingRate = 8;
 
 // RtcpConfig
-const android::String8 kCanonicalName("name");
+const std::string kCanonicalName("name");
 const int32_t kTransmitPort = 10001;
 const int32_t kIntervalSec = 3;
 const int32_t kRtcpXrBlockTypes = 0;
@@ -86,11 +89,13 @@ TEST_F(TextConfigTest, TestGetterSetter)
 TEST_F(TextConfigTest, TestParcel)
 {
     android::Parcel parcel;
-    config1.writeToParcel(&parcel);
+    EXPECT_EQ(config1.writeToParcel(nullptr), BAD_VALUE);
+    EXPECT_EQ(config1.writeToParcel(&parcel), NO_ERROR);
     parcel.setDataPosition(0);
 
     TextConfig configTest;
-    configTest.readFromParcel(&parcel);
+    EXPECT_EQ(configTest.readFromParcel(nullptr), BAD_VALUE);
+    EXPECT_EQ(configTest.readFromParcel(&parcel), NO_ERROR);
     EXPECT_EQ(configTest, config1);
 }
 
@@ -135,9 +140,9 @@ TEST_F(TextConfigTest, TestNotEqual)
     config2.setSamplingRateKHz(kSamplingRate);
     config2.setCodecType(kCodecType);
     config2.setBitrate(kBitrate);
-    config2.setRedundantPayload(103);
+    config2.setRedundantPayload(kRedundantPayload);
     config2.setRedundantLevel(kRedundantLevel);
-    config2.setKeepRedundantLevel(kKeepRedundantLevel);
+    config2.setKeepRedundantLevel(false);
 
     EXPECT_NE(config2, config1);
 }

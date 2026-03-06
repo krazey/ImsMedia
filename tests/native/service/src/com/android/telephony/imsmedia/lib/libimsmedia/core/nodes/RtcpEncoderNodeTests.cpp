@@ -31,7 +31,7 @@ namespace
 {
 // RtpConfig
 const int32_t kMediaDirection = RtpConfig::MEDIA_DIRECTION_SEND_RECEIVE;
-const String8 kRemoteAddress("127.0.0.1");
+const std::string kRemoteAddress("127.0.0.1");
 const int32_t kRemotePort = 10000;
 const int8_t kDscp = 0;
 const int8_t kRxPayload = 96;
@@ -39,7 +39,7 @@ const int8_t kTxPayload = 96;
 const int8_t kSamplingRate = 16;
 
 // RtcpConfig
-const String8 kCanonicalName("name");
+const std::string kCanonicalName("name");
 const int32_t kTransmitPort = 10001;
 const int32_t RTCP_INTERVAL = 1;
 const int32_t kIntervalSec = RTCP_INTERVAL;
@@ -58,7 +58,7 @@ const int32_t kCameraId = 0;
 const int32_t kCameraZoom = 10;
 const int32_t kResolutionWidth = DEFAULT_RESOLUTION_WIDTH;
 const int32_t kResolutionHeight = DEFAULT_RESOLUTION_HEIGHT;
-const android::String8 kPauseImagePath("data/user_de/0/com.android.telephony.imsmedia/test.jpg");
+const std::string kPauseImagePath("data/user_de/0/com.android.telephony.imsmedia/test.jpg");
 const int32_t kDeviceOrientationDegree = 0;
 const int32_t kCvoValue = 1;
 const int32_t kRtcpFbTypes = VideoConfig::RTP_FB_NONE;

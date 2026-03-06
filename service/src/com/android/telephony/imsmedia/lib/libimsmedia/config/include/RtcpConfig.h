@@ -17,10 +17,12 @@
 #ifndef RTCPCONFIG_H
 #define RTCPCONFIG_H
 
+#include <stdint.h>
+#include <string>
+
 #include <binder/Parcel.h>
 #include <binder/Parcelable.h>
 #include <binder/Status.h>
-#include <stdint.h>
 
 namespace android
 {
@@ -83,11 +85,6 @@ public:
         FLAG_RTCPXR_VOIP_METRICS_REPORT_BLOCK = 1 << 6,
     };
 
-    // Default RtcpConfig
-    const int32_t kTransmitPort = 0;
-    const int32_t kIntervalSec = 0;
-    const int32_t kRtcpXrBlockTypes = FLAG_RTCPXR_NONE;
-
     RtcpConfig();
     RtcpConfig(const RtcpConfig& config);
     virtual ~RtcpConfig();
@@ -96,8 +93,8 @@ public:
     bool operator!=(const RtcpConfig& config) const;
     virtual status_t writeToParcel(Parcel* parcel) const;
     virtual status_t readFromParcel(const Parcel* in);
-    void setCanonicalName(const String8& name);
-    String8 getCanonicalName();
+    void setCanonicalName(const std::string& name);
+    std::string getCanonicalName();
     void setTransmitPort(const int32_t port);
     int32_t getTransmitPort();
     void setIntervalSec(const int32_t interval);
@@ -108,7 +105,7 @@ public:
 
 private:
     /** Canonical name that will be sent to all session participants */
-    String8 canonicalName;
+    std::string canonicalName;
 
     /** UDP port number for sending outgoing RTCP packets */
     int32_t transmitPort;

@@ -58,18 +58,18 @@ public:
     };
 
     AudioConfig();
-    AudioConfig(AudioConfig* config);
+    explicit AudioConfig(AudioConfig* config);
     AudioConfig(const AudioConfig& config);
-    virtual ~AudioConfig();
+    virtual ~AudioConfig() override;
     AudioConfig& operator=(const AudioConfig& config);
     bool operator==(const AudioConfig& config) const;
     bool operator!=(const AudioConfig& config) const;
-    virtual status_t writeToParcel(Parcel* parcel) const;
-    virtual status_t readFromParcel(const Parcel* in);
-    void setPtimeMillis(const int8_t ptime);
-    int8_t getPtimeMillis();
-    void setMaxPtimeMillis(const int32_t maxPtime);
-    int32_t getMaxPtimeMillis();
+    virtual status_t writeToParcel(Parcel* parcel) const override;
+    virtual status_t readFromParcel(const Parcel* in) override;
+    void setPTimeMillis(const int8_t ptime);
+    int8_t getPTimeMillis();
+    void setMaxPTimeMillis(const int32_t maxPtime);
+    int32_t getMaxPTimeMillis();
     void setDtxEnabled(const bool enable);
     bool getDtxEnabled();
     void setCodecType(const int32_t type);
@@ -78,8 +78,8 @@ public:
     void setRxDtmfPayloadTypeNumber(const int8_t num);
     int8_t getTxDtmfPayloadTypeNumber();
     int8_t getRxDtmfPayloadTypeNumber();
-    void setDtmfsamplingRateKHz(const int8_t sampling);
-    int8_t getDtmfsamplingRateKHz();
+    void setDtmfSamplingRateKHz(const int8_t sampling);
+    int8_t getDtmfSamplingRateKHz();
     void setAmrParams(const AmrParams& param);
     AmrParams getAmrParams();
     void setEvsParams(const EvsParams& param);
@@ -90,20 +90,20 @@ protected:
      * @brief Recommended length of time in milliseconds represented by the media
      * in each packet, see RFC 4566
      */
-    int8_t pTimeMillis;
+    int8_t mPTimeMillis;
     /**
      * @brief Maximum amount of media that can be encapsulated in each packet
      * represented in milliseconds, see RFC 4566
      */
-    int32_t maxPtimeMillis;
+    int32_t mMaxPTimeMillis;
     /**
      * @brief Whether discontinuous transmission is enabled or not
      */
-    bool dtxEnabled;
+    bool mDtxEnabled;
     /**
      * @brief Audio codec type
      */
-    int32_t codecType;
+    int32_t mCodecType;
     /**
      * @brief Dynamic payload type number to be used for DTMF RTP packets. The values is
      * in the range from 96 to 127 chosen during the session establishment. The PT
@@ -120,15 +120,15 @@ protected:
     /**
      * @brief Sampling rate for DTMF tone in kHz
      */
-    int8_t dtmfsamplingRateKHz;
+    int8_t mDtmfSamplingRateKHz;
     /**
      * @brief Negotiated AMR codec parameters
      */
-    AmrParams amrParams;
+    AmrParams mAmrParams;
     /**
      * @brief Negotiated EVS codec parameters
      */
-    EvsParams evsParams;
+    EvsParams mEvsParams;
 };
 
 }  // namespace imsmedia

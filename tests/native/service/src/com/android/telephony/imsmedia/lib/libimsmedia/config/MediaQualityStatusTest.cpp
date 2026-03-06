@@ -18,6 +18,7 @@
 #include <gtest/gtest.h>
 
 using namespace android::telephony::imsmedia;
+using namespace android;
 
 const int32_t kRtpInactivityTimeMillis = 10000;
 const int32_t kRtcpInactivityTimeMillis = 10000;
@@ -52,11 +53,13 @@ TEST_F(MediaQualityStatusTest, TestGetterSetter)
 TEST_F(MediaQualityStatusTest, TestParcel)
 {
     android::Parcel parcel;
-    status.writeToParcel(&parcel);
+    EXPECT_EQ(status.writeToParcel(nullptr), BAD_VALUE);
+    EXPECT_EQ(status.writeToParcel(&parcel), NO_ERROR);
     parcel.setDataPosition(0);
 
     MediaQualityStatus testThreshold;
-    testThreshold.readFromParcel(&parcel);
+    EXPECT_EQ(testThreshold.readFromParcel(nullptr), BAD_VALUE);
+    EXPECT_EQ(testThreshold.readFromParcel(&parcel), NO_ERROR);
     EXPECT_EQ(testThreshold, status);
 }
 
@@ -84,13 +87,26 @@ TEST_F(MediaQualityStatusTest, TestNotEqual)
     status2.setRtcpInactivityTimeMillis(kRtcpInactivityTimeMillis);
     status2.setRtpPacketLossRate(kRtpPacketLossRate);
     status2.setRtpJitterMillis(kRtpJitterMillis);
+    EXPECT_NE(status, status2);
 
     MediaQualityStatus status3;
     status3.setRtpInactivityTimeMillis(kRtpInactivityTimeMillis);
-    status3.setRtcpInactivityTimeMillis(kRtcpInactivityTimeMillis);
-    status3.setRtpPacketLossRate(3);
+    status3.setRtcpInactivityTimeMillis(5000);
+    status3.setRtpPacketLossRate(kRtpPacketLossRate);
     status3.setRtpJitterMillis(kRtpJitterMillis);
-
-    EXPECT_NE(status, status2);
     EXPECT_NE(status, status3);
+
+    MediaQualityStatus status4;
+    status4.setRtpInactivityTimeMillis(kRtpInactivityTimeMillis);
+    status4.setRtcpInactivityTimeMillis(kRtcpInactivityTimeMillis);
+    status4.setRtpPacketLossRate(3);
+    status4.setRtpJitterMillis(kRtpJitterMillis);
+    EXPECT_NE(status, status4);
+
+    MediaQualityStatus status5;
+    status5.setRtpInactivityTimeMillis(kRtpInactivityTimeMillis);
+    status5.setRtcpInactivityTimeMillis(kRtcpInactivityTimeMillis);
+    status5.setRtpPacketLossRate(kRtpPacketLossRate);
+    status5.setRtpJitterMillis(200);
+    EXPECT_NE(status, status5);
 }

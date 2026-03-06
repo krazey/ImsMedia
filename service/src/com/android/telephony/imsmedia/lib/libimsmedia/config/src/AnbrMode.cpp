@@ -28,14 +28,13 @@ namespace imsmedia
 /** Native representation of android.telephony.imsmedia.AnbrMode */
 AnbrMode::AnbrMode()
 {
-    anbrUplinkMode = 0;
-    anbrDownlinkMode = 0;
+    setDefaultAnbrMode();
 }
 
-AnbrMode::AnbrMode(AnbrMode& param)
+AnbrMode::AnbrMode(const AnbrMode& param)
 {
-    this->anbrUplinkMode = param.anbrUplinkMode;
-    this->anbrDownlinkMode = param.anbrDownlinkMode;
+    this->mAnbrUplinkMode = param.mAnbrUplinkMode;
+    this->mAnbrDownlinkMode = param.mAnbrDownlinkMode;
 }
 
 AnbrMode::~AnbrMode() {}
@@ -44,22 +43,22 @@ AnbrMode& AnbrMode::operator=(const AnbrMode& param)
 {
     if (this != &param)
     {
-        this->anbrUplinkMode = param.anbrUplinkMode;
-        this->anbrDownlinkMode = param.anbrDownlinkMode;
+        this->mAnbrUplinkMode = param.mAnbrUplinkMode;
+        this->mAnbrDownlinkMode = param.mAnbrDownlinkMode;
     }
     return *this;
 }
 
 bool AnbrMode::operator==(const AnbrMode& param) const
 {
-    return (this->anbrUplinkMode == param.anbrUplinkMode &&
-            this->anbrDownlinkMode == param.anbrDownlinkMode);
+    return (this->mAnbrUplinkMode == param.mAnbrUplinkMode &&
+            this->mAnbrDownlinkMode == param.mAnbrDownlinkMode);
 }
 
 bool AnbrMode::operator!=(const AnbrMode& param) const
 {
-    return (this->anbrUplinkMode != param.anbrUplinkMode ||
-            this->anbrDownlinkMode != param.anbrDownlinkMode);
+    return (this->mAnbrUplinkMode != param.mAnbrUplinkMode ||
+            this->mAnbrDownlinkMode != param.mAnbrDownlinkMode);
 }
 
 status_t AnbrMode::writeToParcel(Parcel* out) const
@@ -70,13 +69,13 @@ status_t AnbrMode::writeToParcel(Parcel* out) const
         return BAD_VALUE;
     }
 
-    err = out->writeInt32(anbrUplinkMode);
+    err = out->writeInt32(mAnbrUplinkMode);
     if (err != NO_ERROR)
     {
         return err;
     }
 
-    err = out->writeInt32(anbrDownlinkMode);
+    err = out->writeInt32(mAnbrDownlinkMode);
     if (err != NO_ERROR)
     {
         return err;
@@ -92,13 +91,13 @@ status_t AnbrMode::readFromParcel(const Parcel* in)
         return BAD_VALUE;
     }
 
-    err = in->readInt32(&anbrUplinkMode);
+    err = in->readInt32(&mAnbrUplinkMode);
     if (err != NO_ERROR)
     {
         return err;
     }
 
-    err = in->readInt32(&anbrDownlinkMode);
+    err = in->readInt32(&mAnbrDownlinkMode);
     if (err != NO_ERROR)
     {
         return err;
@@ -109,28 +108,28 @@ status_t AnbrMode::readFromParcel(const Parcel* in)
 
 void AnbrMode::setAnbrUplinkCodecMode(const int32_t uplinkMode)
 {
-    anbrUplinkMode = uplinkMode;
+    mAnbrUplinkMode = uplinkMode;
 }
 
 int32_t AnbrMode::getAnbrUplinkCodecMode()
 {
-    return anbrUplinkMode;
+    return mAnbrUplinkMode;
 }
 
 void AnbrMode::setAnbrDownlinkCodecMode(const int32_t downlinkMode)
 {
-    anbrDownlinkMode = downlinkMode;
+    mAnbrDownlinkMode = downlinkMode;
 }
 
 int32_t AnbrMode::getAnbrDownlinkCodecMode()
 {
-    return anbrDownlinkMode;
+    return mAnbrDownlinkMode;
 }
 
 void AnbrMode::setDefaultAnbrMode()
 {
-    anbrUplinkMode = kAnbrUplinkMode;
-    anbrDownlinkMode = kAnbrDownlinkMode;
+    mAnbrUplinkMode = 0;
+    mAnbrDownlinkMode = 0;
 }
 
 }  // namespace imsmedia

@@ -48,7 +48,7 @@ TextConfig::TextConfig(TextConfig* config) :
     }
 }
 
-TextConfig::TextConfig(TextConfig& config) :
+TextConfig::TextConfig(const TextConfig& config) :
         RtpConfig(config)
 {
     this->mCodecType = config.mCodecType;

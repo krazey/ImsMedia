@@ -115,6 +115,17 @@ TEST_F(MediaQualityThresholdTest, TestNotEqual)
     threshold3.setNotifyCurrentStatus(kNotifyCurrentStatus);
     threshold3.setVideoBitrateBps(kVideoBitrateBps);
 
+    MediaQualityThreshold threshold4;
+    threshold4.setRtpInactivityTimerMillis(kRtpInactivityTimerMillis);
+    threshold4.setRtcpInactivityTimerMillis(kRtcpInactivityTimerMillis);
+    threshold4.setRtpHysteresisTimeInMillis(kRtpHysteresisTimeInMillis);
+    threshold4.setRtpPacketLossDurationMillis(kRtpPacketLossDurationMillis);
+    threshold4.setRtpPacketLossRate(kRtpPacketLossRate);
+    threshold4.setRtpJitterMillis(kRtpJitterMillis);
+    threshold4.setNotifyCurrentStatus(kNotifyCurrentStatus);
+    threshold4.setVideoBitrateBps(600000);
+
     EXPECT_NE(threshold, threshold2);
     EXPECT_NE(threshold, threshold3);
+    EXPECT_NE(threshold, threshold4);
 }

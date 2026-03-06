@@ -18,12 +18,21 @@
 #include <gtest/gtest.h>
 
 using namespace android::telephony::imsmedia;
+using namespace android;
 
 const int32_t kEvsBandwidth = EvsParams::EVS_BAND_NONE;
 const int32_t kEvsMode = 8;
 const int8_t kChannelAwareMode = 3;
 const bool kUseHeaderFullOnly = false;
 const bool kcodecModeRequest = 15;
+
+TEST(EvsParamsTest, TestDefaultParams)
+{
+    EvsParams param1;
+    EvsParams param2;
+    param2.setDefaultEvsParams();
+    EXPECT_EQ(param1, param2);
+}
 
 TEST(EvsParamsTest, TestGetterSetter)
 {
@@ -50,10 +59,35 @@ TEST(EvsParamsTest, TestParcel)
     param->setCodecModeRequest(kcodecModeRequest);
 
     android::Parcel parcel;
+    EXPECT_EQ(param->writeToParcel(nullptr), BAD_VALUE);
+    EXPECT_EQ(param->writeToParcel(&parcel), NO_ERROR);
+    parcel.setDataPosition(0);
+
+    EvsParams* param2 = new EvsParams();
+    EXPECT_EQ(param2->readFromParcel(nullptr), BAD_VALUE);
+    EXPECT_EQ(param2->readFromParcel(&parcel), NO_ERROR);
+    EXPECT_EQ(*param2, *param);
+
+    delete param;
+    delete param2;
+}
+
+TEST(EvsParamsTest, TestParcel2)
+{
+    EvsParams* param = new EvsParams();
+    param->setEvsBandwidth(kEvsBandwidth);
+    param->setEvsMode(kEvsMode);
+    param->setChannelAwareMode(kChannelAwareMode);
+    param->setUseHeaderFullOnly(true);
+    param->setCodecModeRequest(kcodecModeRequest);
+
+    android::Parcel parcel;
+    EXPECT_EQ(param->writeToParcel(nullptr), BAD_VALUE);
     param->writeToParcel(&parcel);
     parcel.setDataPosition(0);
 
     EvsParams* param2 = new EvsParams();
+    EXPECT_EQ(param2->readFromParcel(nullptr), BAD_VALUE);
     param2->readFromParcel(&parcel);
     EXPECT_EQ(*param2, *param);
 

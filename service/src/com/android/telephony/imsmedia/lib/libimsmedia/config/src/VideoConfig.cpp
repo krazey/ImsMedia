@@ -1,9 +1,7 @@
 /**
  * Copyright (C) 2022 The Android Open Source Project
  *
- * Licensed under the Apache License, Version 2.0 (the "License") {
-}
-
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
@@ -28,26 +26,26 @@ namespace imsmedia
 {
 
 VideoConfig::VideoConfig() :
-        RtpConfig(RtpConfig::TYPE_VIDEO)
+        RtpConfig(RtpConfig::TYPE_VIDEO),
+        videoMode(CODEC_PROFILE_NONE),
+        codecType(CODEC_AVC),
+        framerate(DEFAULT_FRAMERATE),
+        bitrate(DEFAULT_BITRATE),
+        maxMtuBytes(1500),
+        codecProfile(CODEC_PROFILE_NONE),
+        codecLevel(CODEC_LEVEL_NONE),
+        codecSprop(""),
+        intraFrameIntervalSec(1),
+        packetizationMode(1),
+        cameraId(0),
+        cameraZoom(0),
+        resolutionWidth(DEFAULT_RESOLUTION_WIDTH),
+        resolutionHeight(DEFAULT_RESOLUTION_HEIGHT),
+        pauseImagePath(""),
+        deviceOrientationDegree(0),
+        cvoValue(CVO_DEFINE_NONE),
+        rtcpFbTypes(RTP_FB_NONE)
 {
-    videoMode = CODEC_PROFILE_NONE;
-    codecType = CODEC_AVC;
-    framerate = DEFAULT_FRAMERATE;
-    bitrate = DEFAULT_BITRATE;
-    maxMtuBytes = 1500;
-    codecProfile = CODEC_PROFILE_NONE;
-    codecLevel = CODEC_LEVEL_NONE;
-    intraFrameIntervalSec = 1;
-    packetizationMode = 1;
-    cameraId = 0;
-    cameraZoom = 0;
-    resolutionWidth = DEFAULT_RESOLUTION_WIDTH;
-    resolutionHeight = DEFAULT_RESOLUTION_HEIGHT;
-    pauseImagePath = String8("");
-    deviceOrientationDegree = 0;
-    cvoValue = CVO_DEFINE_NONE;
-    rtcpFbTypes = RTP_FB_NONE;
-    codecSprop = String8("");
 }
 
 VideoConfig::VideoConfig(VideoConfig* config) :
@@ -76,7 +74,9 @@ VideoConfig::VideoConfig(VideoConfig* config) :
 }
 
 VideoConfig::VideoConfig(const VideoConfig& config) :
-        RtpConfig(config)
+        RtpConfig(config),
+        codecSprop(config.codecSprop),
+        pauseImagePath(config.pauseImagePath)
 {
     videoMode = config.videoMode;
     codecType = config.codecType;
@@ -85,14 +85,12 @@ VideoConfig::VideoConfig(const VideoConfig& config) :
     maxMtuBytes = config.maxMtuBytes;
     codecProfile = config.codecProfile;
     codecLevel = config.codecLevel;
-    codecSprop = config.codecSprop;
     intraFrameIntervalSec = config.intraFrameIntervalSec;
     packetizationMode = config.packetizationMode;
     cameraId = config.cameraId;
     cameraZoom = config.cameraZoom;
     resolutionWidth = config.resolutionWidth;
     resolutionHeight = config.resolutionHeight;
-    pauseImagePath = config.pauseImagePath;
     deviceOrientationDegree = config.deviceOrientationDegree;
     cvoValue = config.cvoValue;
     rtcpFbTypes = config.rtcpFbTypes;
@@ -133,7 +131,7 @@ bool VideoConfig::operator==(const VideoConfig& config) const
             this->codecType == config.codecType && this->framerate == config.framerate &&
             this->bitrate == config.bitrate && this->maxMtuBytes == config.maxMtuBytes &&
             this->codecProfile == config.codecProfile && this->codecLevel == config.codecLevel &&
-            !this->codecSprop.compare(config.codecSprop) &&
+            this->codecSprop == config.codecSprop &&
             this->intraFrameIntervalSec == config.intraFrameIntervalSec &&
             this->packetizationMode == config.packetizationMode &&
             this->cameraId == config.cameraId && this->cameraZoom == config.cameraZoom &&
@@ -150,7 +148,7 @@ bool VideoConfig::operator!=(const VideoConfig& config) const
             this->codecType != config.codecType || this->framerate != config.framerate ||
             this->bitrate != config.bitrate || this->maxMtuBytes != config.maxMtuBytes ||
             this->codecProfile != config.codecProfile || this->codecLevel != config.codecLevel ||
-            this->codecSprop.compare(config.codecSprop) ||
+            this->codecSprop != config.codecSprop ||
             this->intraFrameIntervalSec != config.intraFrameIntervalSec ||
             this->packetizationMode != config.packetizationMode ||
             this->cameraId != config.cameraId || this->cameraZoom != config.cameraZoom ||
@@ -252,7 +250,7 @@ status_t VideoConfig::writeToParcel(Parcel* out) const
         return err;
     }
 
-    String16 name(pauseImagePath);
+    String16 name(pauseImagePath.c_str());
     err = out->writeString16(name);
     if (err != NO_ERROR)
     {
@@ -386,7 +384,7 @@ status_t VideoConfig::readFromParcel(const Parcel* in)
         return err;
     }
 
-    pauseImagePath = String8(path.c_str());
+    pauseImagePath = String8(path).c_str();
 
     err = in->readInt32(&deviceOrientationDegree);
     if (err != NO_ERROR)
@@ -410,7 +408,7 @@ status_t VideoConfig::readFromParcel(const Parcel* in)
     err = in->readString16(&sprop);
     if (err == NO_ERROR)
     {
-        codecSprop = String8(sprop.c_str());
+        codecSprop = String8(sprop).c_str();
     }
 
     return NO_ERROR;
@@ -486,12 +484,12 @@ int32_t VideoConfig::getCodecLevel()
     return codecLevel;
 }
 
-void VideoConfig::setCodecSprop(const String8& sprop)
+void VideoConfig::setCodecSprop(const std::string& sprop)
 {
     this->codecSprop = sprop;
 }
 
-String8 VideoConfig::getCodecSprop()
+std::string VideoConfig::getCodecSprop()
 {
     return codecSprop;
 }
@@ -556,12 +554,12 @@ int32_t VideoConfig::getResolutionHeight()
     return resolutionHeight;
 }
 
-void VideoConfig::setPauseImagePath(const android::String8& path)
+void VideoConfig::setPauseImagePath(const std::string& path)
 {
     pauseImagePath = path;
 }
 
-android::String8 VideoConfig::getPauseImagePath()
+std::string VideoConfig::getPauseImagePath()
 {
     return pauseImagePath;
 }

@@ -3,6 +3,7 @@
 #include <gtest/gtest.h>
 
 using namespace android::telephony::imsmedia;
+using namespace android;
 
 TEST(RtpContextParamsTest, TestDefaultValues)
 {
@@ -59,4 +60,22 @@ TEST(RtpContextParamsTest, TestGetterSetters)
     EXPECT_EQ(rtpContextParams.getSsrc(), 0);
     EXPECT_EQ(rtpContextParams.getTimestamp(), 0);
     EXPECT_EQ(rtpContextParams.getSequenceNumber(), 0);
+}
+
+TEST(RtpContextParamsTest, TestParcel)
+{
+    RtpContextParams param1;
+    param1.setSsrc(1000);
+    param1.setTimestamp(2000);
+    param1.setSequenceNumber(3000);
+
+    android::Parcel parcel;
+    EXPECT_EQ(param1.writeToParcel(nullptr), BAD_VALUE);
+    EXPECT_EQ(param1.writeToParcel(&parcel), NO_ERROR);
+    parcel.setDataPosition(0);
+
+    RtpContextParams param2;
+    EXPECT_EQ(param2.readFromParcel(nullptr), BAD_VALUE);
+    EXPECT_EQ(param2.readFromParcel(&parcel), NO_ERROR);
+    EXPECT_EQ(param1, param2);
 }

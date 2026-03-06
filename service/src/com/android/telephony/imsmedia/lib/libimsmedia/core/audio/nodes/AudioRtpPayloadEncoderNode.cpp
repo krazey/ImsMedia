@@ -138,7 +138,7 @@ void AudioRtpPayloadEncoderNode::SetConfig(void* config)
             mSendCMR = pConfig->getEvsParams().getCodecModeRequest();
         }
 
-        mPtime = pConfig->getPtimeMillis();
+        mPtime = pConfig->getPTimeMillis();
     }
 }
 

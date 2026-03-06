@@ -1,3 +1,19 @@
+/**
+ * Copyright (C) 2022 The Android Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 #include <RtcpConfig.h>
 
 namespace android
@@ -20,7 +36,7 @@ RtcpConfig::RtcpConfig() :
 
 RtcpConfig::RtcpConfig(const RtcpConfig& config)
 {
-    this->canonicalName = String8(config.canonicalName.c_str());
+    this->canonicalName = config.canonicalName;
     this->transmitPort = config.transmitPort;
     this->intervalSec = config.intervalSec;
     this->rtcpXrBlockTypes = config.rtcpXrBlockTypes;
@@ -32,7 +48,7 @@ RtcpConfig& RtcpConfig::operator=(const RtcpConfig& config)
 {
     if (this != &config)
     {
-        this->canonicalName = String8(config.canonicalName.c_str());
+        this->canonicalName = config.canonicalName;
         this->transmitPort = config.transmitPort;
         this->intervalSec = config.intervalSec;
         this->rtcpXrBlockTypes = config.rtcpXrBlockTypes;
@@ -62,7 +78,7 @@ status_t RtcpConfig::writeToParcel(Parcel* out) const
         return BAD_VALUE;
     }
 
-    String16 name(canonicalName);
+    String16 name(canonicalName.c_str());
     err = out->writeString16(name);
     if (err != NO_ERROR)
     {
@@ -105,7 +121,7 @@ status_t RtcpConfig::readFromParcel(const Parcel* in)
         return err;
     }
 
-    canonicalName = String8(name.c_str());
+    canonicalName = String8(name).c_str();
 
     err = in->readInt32(&transmitPort);
     if (err != NO_ERROR)
@@ -128,12 +144,12 @@ status_t RtcpConfig::readFromParcel(const Parcel* in)
     return NO_ERROR;
 }
 
-void RtcpConfig::setCanonicalName(const String8& name)
+void RtcpConfig::setCanonicalName(const std::string& name)
 {
     canonicalName = name;
 }
 
-String8 RtcpConfig::getCanonicalName()
+std::string RtcpConfig::getCanonicalName()
 {
     return canonicalName;
 }
@@ -170,10 +186,10 @@ int32_t RtcpConfig::getRtcpXrBlockTypes()
 
 void RtcpConfig::setDefaultRtcpConfig()
 {
-    canonicalName = android::String8("");
-    transmitPort = kTransmitPort;
-    intervalSec = kIntervalSec;
-    rtcpXrBlockTypes = kRtcpXrBlockTypes;
+    canonicalName = "";
+    transmitPort = 0;
+    intervalSec = 0;
+    rtcpXrBlockTypes = FLAG_RTCPXR_NONE;
 }
 
 }  // namespace imsmedia

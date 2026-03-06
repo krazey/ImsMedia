@@ -24,7 +24,7 @@ using namespace android::telephony::imsmedia;
 
 // RtpConfig
 const int32_t kMediaDirection = RtpConfig::MEDIA_DIRECTION_RECEIVE_ONLY;
-const android::String8 kRemoteAddress("127.0.0.1");
+const std::string kRemoteAddress("127.0.0.1");
 const int32_t kRemotePort = 10000;
 const int8_t kDscp = 0;
 const int8_t kRxPayload = 96;
@@ -32,7 +32,7 @@ const int8_t kTxPayload = 96;
 const int8_t kSamplingRate = 16;
 
 // RtcpConfig
-const android::String8 kCanonicalName("name");
+const std::string kCanonicalName("name");
 const int32_t kTransmitPort = 1001;
 const int32_t kIntervalSec = 5;
 const int32_t kRtcpXrBlockTypes = RtcpConfig::FLAG_RTCPXR_STATISTICS_SUMMARY_REPORT_BLOCK |

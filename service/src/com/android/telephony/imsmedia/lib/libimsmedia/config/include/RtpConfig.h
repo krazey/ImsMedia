@@ -17,13 +17,16 @@
 #ifndef RTPCONFIG_H
 #define RTPCONFIG_H
 
+#include <stdint.h>
+#include <string>
+
 #include <binder/Parcel.h>
 #include <binder/Parcelable.h>
 #include <binder/Status.h>
+
 #include <RtcpConfig.h>
 #include <RtpContextParams.h>
 #include <AnbrMode.h>
-#include <stdint.h>
 
 namespace android
 {
@@ -72,8 +75,8 @@ public:
     int32_t getMediaDirection();
     void setAccessNetwork(const int32_t network);
     int32_t getAccessNetwork();
-    void setRemoteAddress(const String8& address);
-    String8 getRemoteAddress();
+    void setRemoteAddress(const std::string& address);
+    std::string getRemoteAddress();
     void setRemotePort(const int32_t port);
     int32_t getRemotePort();
     void setRtcpConfig(const RtcpConfig& config);
@@ -86,14 +89,14 @@ public:
     int8_t getTxPayloadTypeNumber();
     void setSamplingRateKHz(const int8_t sample);
     int8_t getSamplingRateKHz();
-    RtpContextParams getRtpContextParams();
-    void setRtpContextParams(RtpContextParams& rtpContextParams);
+    const RtpContextParams& getRtpContextParams();
+    void setRtpContextParams(const RtpContextParams& rtpContextParams);
     void setAnbrMode(const AnbrMode& anbrMode);
     AnbrMode getAnbrMode();
 
 protected:
-    RtpConfig(int32_t type);
-    RtpConfig(RtpConfig* config);
+    explicit RtpConfig(int32_t type);
+    explicit RtpConfig(RtpConfig* config);
     RtpConfig(const RtpConfig& config);
 
     /* definition of uninitialized port number*/
@@ -119,7 +122,7 @@ protected:
     /**
      * @brief ip address of other party
      */
-    String8 remoteAddress;
+    std::string remoteAddress;
     /**
      * @brief port number of other party
      */

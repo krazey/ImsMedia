@@ -18,9 +18,12 @@
 #define VIDEOCONFIG_H
 
 #include <stdint.h>
+#include <string>
+
 #include <binder/Parcel.h>
 #include <binder/Parcelable.h>
 #include <binder/Status.h>
+
 #include <RtpConfig.h>
 
 namespace android
@@ -174,14 +177,14 @@ public:
     };
 
     VideoConfig();
-    VideoConfig(VideoConfig* config);
+    explicit VideoConfig(VideoConfig* config);
     VideoConfig(const VideoConfig& config);
-    virtual ~VideoConfig();
+    virtual ~VideoConfig() override;
     VideoConfig& operator=(const VideoConfig& config);
     bool operator==(const VideoConfig& config) const;
     bool operator!=(const VideoConfig& config) const;
-    virtual status_t writeToParcel(Parcel* out) const;
-    virtual status_t readFromParcel(const Parcel* in);
+    virtual status_t writeToParcel(Parcel* out) const override;
+    virtual status_t readFromParcel(const Parcel* in) override;
     void setVideoMode(const int32_t mode);
     int32_t getVideoMode();
     void setCodecType(const int32_t type);
@@ -192,8 +195,8 @@ public:
     int32_t getBitrate();
     void setCodecProfile(const int32_t profile);
     int32_t getCodecProfile();
-    void setCodecSprop(const String8& sprop);
-    String8 getCodecSprop();
+    void setCodecSprop(const std::string& sprop);
+    std::string getCodecSprop();
     void setCodecLevel(const int32_t level);
     int32_t getCodecLevel();
     void setIntraFrameInterval(const int32_t interval);
@@ -210,8 +213,8 @@ public:
     int32_t getResolutionWidth();
     void setResolutionHeight(const int32_t height);
     int32_t getResolutionHeight();
-    void setPauseImagePath(const String8& path);
-    String8 getPauseImagePath();
+    void setPauseImagePath(const std::string& path);
+    std::string getPauseImagePath();
     void setDeviceOrientationDegree(const int32_t degree);
     int32_t getDeviceOrientationDegree();
     void setCvoValue(const int32_t value);
@@ -237,7 +240,7 @@ protected:
     /* Video codec sprop value. Base64(SPS,PPS) for AVC codec.
      * And Base64 encoded (VPS,SPS,PPS) for HEVC codec.
      */
-    String8 codecSprop;
+    std::string codecSprop;
     /* Video codec encoder interval of intra-frames in seconds */
     int32_t intraFrameIntervalSec;
     /* Video Rtp packetization mode. The 0 means Single NAL unit mode, 1 means non-interleaved
@@ -253,7 +256,7 @@ protected:
     /* The height of resolution in transmit streaming */
     int32_t resolutionHeight;
     /* The path of jpg image for video mode VIDEO_MODE_PAUSE_IMAGE. */
-    String8 pauseImagePath;
+    std::string pauseImagePath;
     /* The device orientation from sensor captured as degree unit */
     int32_t deviceOrientationDegree;
     /* The value to identify CVO RTP header extension features is enabled by the SDP negotiation.

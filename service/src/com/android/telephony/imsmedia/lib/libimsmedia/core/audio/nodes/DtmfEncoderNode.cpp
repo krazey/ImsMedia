@@ -81,11 +81,11 @@ void DtmfEncoderNode::SetConfig(void* config)
 
     if (pConfig != nullptr)
     {
-        mSamplingRate = pConfig->getDtmfsamplingRateKHz();
+        mSamplingRate = pConfig->getDtmfSamplingRateKHz();
         mDuration = DTMF_DEFAULT_DURATION;
         mRetransmitDuration = DTMF_DEFAULT_RETRANSMIT_DURATION;
         mVolume = DTMF_DEFAULT_VOLUME;
-        mPtime = pConfig->getPtimeMillis();
+        mPtime = pConfig->getPTimeMillis();
     }
 }
 
@@ -97,8 +97,8 @@ bool DtmfEncoderNode::IsSameConfig(void* config)
     }
 
     AudioConfig* pConfig = reinterpret_cast<AudioConfig*>(config);
-    return (mSamplingRate == pConfig->getDtmfsamplingRateKHz() &&
-            mPtime == pConfig->getPtimeMillis());
+    return (mSamplingRate == pConfig->getDtmfSamplingRateKHz() &&
+            mPtime == pConfig->getPTimeMillis());
 }
 
 void DtmfEncoderNode::OnDataFromFrontNode(ImsMediaSubType subtype, uint8_t* pData, uint32_t size,

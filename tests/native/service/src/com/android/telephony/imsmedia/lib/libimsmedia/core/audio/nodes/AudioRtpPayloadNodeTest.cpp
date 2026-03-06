@@ -25,7 +25,7 @@ using namespace android;
 
 // RtpConfig
 const int32_t kMediaDirection = RtpConfig::MEDIA_DIRECTION_SEND_RECEIVE;
-const String8 kRemoteAddress("127.0.0.1");
+const std::string kRemoteAddress("127.0.0.1");
 const int32_t kRemotePort = 10000;
 const int8_t kDscp = 0;
 const int8_t kRxPayload = 96;
@@ -33,7 +33,7 @@ const int8_t kTxPayload = 96;
 const int8_t kSamplingRate = 16;
 
 // RtcpConfig
-const String8 kCanonicalName("name");
+const std::string kCanonicalName("name");
 const int32_t kTransmitPort = 10001;
 const int32_t kIntervalSec = 5;
 const int32_t kRtcpXrBlockTypes = 0;
@@ -43,7 +43,7 @@ const int8_t kPTimeMillis = 20;
 const int32_t kMaxPtimeMillis = 100;
 const bool kDtxEnabled = true;
 const int8_t kDtmfPayloadTypeNumber = 103;
-const int8_t kDtmfsamplingRateKHz = 16;
+const int8_t kDtmfSamplingRateKHz = 16;
 
 // AmrParam
 const int32_t kAmrMode = AmrParams::AMR_MODE_8;
@@ -176,13 +176,13 @@ public:
         audioConfig.setRxPayloadTypeNumber(kRxPayload);
         audioConfig.setTxPayloadTypeNumber(kTxPayload);
         audioConfig.setSamplingRateKHz(kSamplingRate);
-        audioConfig.setPtimeMillis(kPTimeMillis);
-        audioConfig.setMaxPtimeMillis(kMaxPtimeMillis);
+        audioConfig.setPTimeMillis(kPTimeMillis);
+        audioConfig.setMaxPTimeMillis(kMaxPtimeMillis);
         audioConfig.setDtxEnabled(kDtxEnabled);
         audioConfig.setCodecType(AudioConfig::CODEC_AMR_WB);
         audioConfig.setTxDtmfPayloadTypeNumber(kDtmfPayloadTypeNumber);
         audioConfig.setRxDtmfPayloadTypeNumber(kDtmfPayloadTypeNumber);
-        audioConfig.setDtmfsamplingRateKHz(kDtmfsamplingRateKHz);
+        audioConfig.setDtmfSamplingRateKHz(kDtmfSamplingRateKHz);
         audioConfig.setAmrParams(amr);
         audioConfig.setEvsParams(evs);
     }
@@ -190,7 +190,7 @@ public:
 
 TEST_F(AudioRtpPayloadNodeTest, startFail)
 {
-    audioConfig.setPtimeMillis(0);
+    audioConfig.setPTimeMillis(0);
     encoder->SetConfig(&audioConfig);
     EXPECT_EQ(encoder->Start(), RESULT_INVALID_PARAM);
 }

@@ -62,7 +62,7 @@ public:
     };
 
     AmrParams();
-    AmrParams(AmrParams& param);
+    AmrParams(const AmrParams& param);
     virtual ~AmrParams();
     AmrParams& operator=(const AmrParams& param);
     bool operator==(const AmrParams& param) const;
@@ -94,11 +94,6 @@ private:
      * redundancy is present. See RFC 4867
      */
     int32_t maxRedundancyMillis;
-
-    // Default AmrParams
-    const int32_t kAmrMode = 0;
-    const bool kOctetAligned = false;
-    const int32_t kMaxRedundancyMillis = 0;
 };
 
 }  // namespace imsmedia

@@ -43,7 +43,7 @@ ImsMediaVideoSource::ImsMediaVideoSource()
     mFramerate = 0;
     mBitrate = 0;
     mIntraInterval = 1;
-    mImagePath = android::String8("");
+    mImagePath = "";
     mDeviceOrientation = -1;
     mTimestamp = 0;
     mPrevTimestamp = 0;
@@ -71,7 +71,7 @@ void ImsMediaVideoSource::SetCameraConfig(const uint32_t cameraId, const uint32_
     mCameraZoom = cameraZoom;
 }
 
-void ImsMediaVideoSource::SetImagePath(const android::String8& path)
+void ImsMediaVideoSource::SetImagePath(const std::string& path)
 {
     IMLOGD1("[SetImagePath] path[%s]", path.c_str());
     mImagePath = path;
