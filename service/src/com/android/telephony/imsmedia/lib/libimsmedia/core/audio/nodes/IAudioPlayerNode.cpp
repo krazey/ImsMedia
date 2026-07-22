@@ -67,33 +67,37 @@ ImsMediaResult IAudioPlayerNode::Start()
     // reset the jitter
     Reset();
 
-    if (mAudioPlayer)
-    {
-        mAudioPlayer->SetCodec(mCodecType);
-        mAudioPlayer->SetSamplingRate(mSamplingRate * 1000);
-        mAudioPlayer->SetDtxEnabled(mIsDtxEnabled);
-        mAudioPlayer->SetOctetAligned(mIsOctetAligned);
-        int mode = (mCodecType == kAudioCodecEvs)
-                ? ImsMediaAudioUtil::GetMaximumEvsMode(mMode)
-                : ImsMediaAudioUtil::GetMaximumAmrMode(mCodecType, mMode);
-
-        if (mCodecType == kAudioCodecEvs)
-        {
-            mAudioPlayer->SetEvsBandwidth((int32_t)mEvsBandwidth);
-            mAudioPlayer->SetEvsPayloadHeaderMode(mEvsPayloadHeaderMode);
-            mAudioPlayer->SetEvsChAwOffset(mEvsChannelAwOffset);
-            mRunningCodecMode = ImsMediaAudioUtil::GetMaximumEvsMode(mMode);
-            mAudioPlayer->SetEvsBitRate(
-                    ImsMediaAudioUtil::ConvertEVSModeToBitRate(mRunningCodecMode));
-            mAudioPlayer->SetCodecMode(mRunningCodecMode);
-        }
-        mAudioPlayer->SetCodecMode(mode);
-
-        mAudioPlayer->Start();
-    }
-    else
+    if (!mAudioPlayer)
     {
         IMLOGE0("[IAudioPlayer] Not able to start AudioPlayer");
+        return RESULT_NOT_READY;
+    }
+
+    mAudioPlayer->SetCodec(mCodecType);
+    mAudioPlayer->SetSamplingRate(mSamplingRate * 1000);
+    mAudioPlayer->SetDtxEnabled(mIsDtxEnabled);
+    mAudioPlayer->SetOctetAligned(mIsOctetAligned);
+    int mode = (mCodecType == kAudioCodecEvs)
+            ? ImsMediaAudioUtil::GetMaximumEvsMode(mMode)
+            : ImsMediaAudioUtil::GetMaximumAmrMode(mCodecType, mMode);
+
+    if (mCodecType == kAudioCodecEvs)
+    {
+        mAudioPlayer->SetEvsBandwidth((int32_t)mEvsBandwidth);
+        mAudioPlayer->SetEvsPayloadHeaderMode(mEvsPayloadHeaderMode);
+        mAudioPlayer->SetEvsChAwOffset(mEvsChannelAwOffset);
+        mRunningCodecMode = ImsMediaAudioUtil::GetMaximumEvsMode(mMode);
+        mAudioPlayer->SetEvsBitRate(
+                ImsMediaAudioUtil::ConvertEVSModeToBitRate(mRunningCodecMode));
+        mAudioPlayer->SetCodecMode(mRunningCodecMode);
+    }
+    mAudioPlayer->SetCodecMode(mode);
+
+    if (!mAudioPlayer->Start())
+    {
+        IMLOGE0("[IAudioPlayer] AudioPlayer start failed");
+        mAudioPlayer->Stop();
+        return RESULT_NOT_READY;
     }
 
     mNodeState = kNodeStateRunning;

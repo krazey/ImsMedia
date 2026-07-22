@@ -25,8 +25,13 @@ using namespace std::chrono;
 
 #define RUN_WAIT_TIMEOUT_MS  2
 #define STOP_WAIT_TIMEOUT_MS 1000
+#define START_WAIT_TIMEOUT_MS 2000
 
-StreamScheduler::StreamScheduler() {}
+StreamScheduler::StreamScheduler() :
+        mIsRunning(false),
+        mStartResult(RESULT_SUCCESS)
+{
+}
 
 StreamScheduler::~StreamScheduler()
 {
@@ -53,7 +58,7 @@ void StreamScheduler::DeRegisterNode(BaseNode* pNode)
     }
 }
 
-void StreamScheduler::Start()
+ImsMediaResult StreamScheduler::Start()
 {
     IMLOGD1("[Start] [%p] enter", this);
 
@@ -65,14 +70,44 @@ void StreamScheduler::Start()
         }
     }
 
-    if (!mListRegisteredNode.empty())
+    if (mListRegisteredNode.empty())
     {
-        IMLOGD1("[Start] [%p] Start thread", this);
-        mIsRunning = true;
-        StartThread("StreamScheduler");
+        mIsRunning = false;
+        IMLOGD1("[Start] [%p] exit - no registered nodes", this);
+        return RESULT_SUCCESS;
     }
 
-    IMLOGD1("[Start] [%p] exit", this);
+    mConditionStarted.reset();
+    mConditionExit.reset();
+    mStartResult = RESULT_NOT_READY;
+    mIsRunning = true;
+    IMLOGD1("[Start] [%p] Start thread", this);
+
+    if (!StartThread("StreamScheduler"))
+    {
+        mIsRunning = false;
+        IMLOGE1("[Start] [%p] failed to create scheduler thread", this);
+        return RESULT_NOT_READY;
+    }
+
+    if (mConditionStarted.wait_timeout(START_WAIT_TIMEOUT_MS))
+    {
+        IMLOGE1("[Start] [%p] timed out starting registered nodes", this);
+        StopThread();
+        Awake();
+        mConditionExit.wait_timeout(STOP_WAIT_TIMEOUT_MS);
+        return RESULT_NOT_READY;
+    }
+
+    ImsMediaResult result = mStartResult.load();
+
+    if (result != RESULT_SUCCESS)
+    {
+        mConditionExit.wait_timeout(STOP_WAIT_TIMEOUT_MS);
+    }
+
+    IMLOGD2("[Start] [%p] exit result[%d]", this, result);
+    return result;
 }
 
 void StreamScheduler::Stop()
@@ -149,18 +184,34 @@ void* StreamScheduler::run()
     // start nodes
     mMutex.lock();
 
+    ImsMediaResult startResult = RESULT_SUCCESS;
+
     for (auto& node : mListRegisteredNode)
     {
         if (node != nullptr && !node->IsRunTimeStart())
         {
             if (node->GetState() == kNodeStateStopped)
             {
-                node->ProcessStart();
+                ImsMediaResult result = node->ProcessStart();
+
+                if (result != RESULT_SUCCESS)
+                {
+                    IMLOGE2("[run] start node[%s] failed[%d]", node->GetNodeName(), result);
+                    startResult = result;
+                    break;
+                }
             }
         }
     }
 
+    mStartResult = startResult;
     mMutex.unlock();
+    mConditionStarted.signal();
+
+    if (startResult != RESULT_SUCCESS)
+    {
+        StopThread();
+    }
 
     while (!IsThreadStopped())
     {
@@ -185,6 +236,7 @@ void* StreamScheduler::run()
         }
     }
 
+    mIsRunning = false;
     mConditionExit.signal();
     IMLOGD1("[run] [%p] exit", this);
     return nullptr;

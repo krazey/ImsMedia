@@ -31,7 +31,7 @@ public:
     virtual ~StreamScheduler();
     void RegisterNode(BaseNode* pNode);
     void DeRegisterNode(BaseNode* pNode);
-    void Start();
+    ImsMediaResult Start();
     void Stop();
     void Awake();
     virtual void onAwakeScheduler() { this->Awake(); }
@@ -44,8 +44,10 @@ private:
     std::list<BaseNode*> mListRegisteredNode;
     ImsMediaCondition mConditionMain;
     ImsMediaCondition mConditionExit;
+    ImsMediaCondition mConditionStarted;
     ImsMediaMutex mMutex;
     std::atomic<bool> mIsRunning;
+    std::atomic<ImsMediaResult> mStartResult;
 };
 
 #endif

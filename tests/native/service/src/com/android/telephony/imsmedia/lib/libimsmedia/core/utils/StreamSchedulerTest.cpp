@@ -69,6 +69,12 @@ public:
     virtual bool IsRunTimeStart() { return true; }
 };
 
+class FailingStartTestNode : public NonRuntimeTestNode
+{
+public:
+    virtual ImsMediaResult ProcessStart() { return RESULT_NOT_READY; }
+};
+
 class FakeNormalTestNode : public FakeSourceTestNode
 {
 public:
@@ -107,7 +113,7 @@ protected:
 
 TEST_F(StreamSchedulerTest, testStartWithEmptyNode)
 {
-    mScheduler->Start();
+    EXPECT_EQ(mScheduler->Start(), RESULT_SUCCESS);
     mCondition.wait_timeout(10);
     EXPECT_FALSE(mScheduler->IsThreadRunning());
     mScheduler->Stop();
@@ -118,13 +124,24 @@ TEST_F(StreamSchedulerTest, testAsyncStartNode)
     NonRuntimeTestNode node;
     mScheduler->RegisterNode(&node);
     EXPECT_EQ(mScheduler->GetNumRegisteredNodes(), 1);
-    mScheduler->Start();
+    EXPECT_EQ(mScheduler->Start(), RESULT_SUCCESS);
     mCondition.wait_timeout(10);
     EXPECT_FALSE(mScheduler->IsThreadRunning());
     EXPECT_EQ(node.GetState(), kNodeStateRunning);
     mScheduler->Stop();
     mScheduler->DeRegisterNode(&node);
     EXPECT_EQ(mScheduler->GetNumRegisteredNodes(), 0);
+}
+
+TEST_F(StreamSchedulerTest, testAsyncStartFailure)
+{
+    FailingStartTestNode node;
+    mScheduler->RegisterNode(&node);
+    EXPECT_EQ(mScheduler->Start(), RESULT_NOT_READY);
+    EXPECT_FALSE(mScheduler->IsThreadRunning());
+    EXPECT_EQ(node.GetState(), kNodeStateStopped);
+    mScheduler->Stop();
+    mScheduler->DeRegisterNode(&node);
 }
 
 TEST_F(StreamSchedulerTest, testSourceNode)

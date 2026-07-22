@@ -160,8 +160,14 @@ ImsMediaResult BaseStreamGraph::startNodes()
         }
     }
 
-    mScheduler->Start();
-    return RESULT_SUCCESS;
+    ret = mScheduler->Start();
+
+    if (ret != RESULT_SUCCESS)
+    {
+        IMLOGE1("[startNodes] scheduler start failed[%d]", ret);
+    }
+
+    return ret;
 }
 
 ImsMediaResult BaseStreamGraph::stopNodes()

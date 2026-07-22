@@ -144,7 +144,13 @@ ImsMediaResult AudioStreamGraphRtpTx::update(RtpConfig* config)
                 IMLOGE2("[update] error in update node[%s], ret[%d]", node->GetNodeName(), ret);
             }
         }
-        mScheduler->Start();
+
+        ret = mScheduler->Start();
+        if (ret != RESULT_SUCCESS)
+        {
+            IMLOGE1("[update] scheduler start failed[%d]", ret);
+            return ret;
+        }
     }
     else if (mGraphState == kStreamStateCreated)
     {
