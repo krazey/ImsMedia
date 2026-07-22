@@ -28,6 +28,7 @@
 #include <thread>
 
 #define AAUDIO_STATE_TIMEOUT_NANO (100 * 1000000L)
+#define AAUDIO_START_TIMEOUT_NANO (10 * AAUDIO_STATE_TIMEOUT_NANO)
 #define NUM_FRAMES_PER_SEC        (50)
 #define DEFAULT_SAMPLING_RATE     (8000)
 #define CODEC_TIMEOUT_NANO        (100000)
@@ -130,6 +131,8 @@ bool ImsMediaAudioSource::Start()
     if (!startCodec())
     {
         IMLOGE0("[Start] start codec failed");
+        AAudioStream_close(mAudioStream);
+        mAudioStream = nullptr;
         return false;
     }
 
@@ -141,26 +144,26 @@ bool ImsMediaAudioSource::Start()
         IMLOGE1("[Start] Error start stream[%s]", AAudio_convertResultToText(audioResult));
 
         stopCodec();
+        AAudioStream_close(mAudioStream);
+        mAudioStream = nullptr;
         return false;
     }
 
     aaudio_stream_state_t inputState = AAUDIO_STREAM_STATE_STARTING;
     aaudio_stream_state_t nextState = AAUDIO_STREAM_STATE_UNINITIALIZED;
     audioResult = AAudioStream_waitForStateChange(
-            mAudioStream, inputState, &nextState, 10 * AAUDIO_STATE_TIMEOUT_NANO);
+            mAudioStream, inputState, &nextState, AAUDIO_START_TIMEOUT_NANO);
 
-    if (audioResult != AAUDIO_OK)
+    if (audioResult != AAUDIO_OK || nextState != AAUDIO_STREAM_STATE_STARTED)
     {
-        IMLOGE1("[Start] Error start stream[%s]", AAudio_convertResultToText(audioResult));
+        IMLOGE2("[Start] Error start stream[%s], state[%s]",
+                AAudio_convertResultToText(audioResult),
+                AAudio_convertStreamStateToText(nextState));
 
-        if (mCodecType == kAudioCodecAmr || mCodecType == kAudioCodecAmrWb)
-        {
-            AMediaCodec_delete(mCodec);
-            mCodec = nullptr;
-            AMediaFormat_delete(mFormat);
-            mFormat = nullptr;
-        }
-
+        AAudioStream_requestStop(mAudioStream);
+        AAudioStream_close(mAudioStream);
+        mAudioStream = nullptr;
+        stopCodec();
         return false;
     }
 
@@ -337,49 +340,66 @@ void* ImsMediaAudioSource::run()
 
 void ImsMediaAudioSource::openAudioStream()
 {
-    AAudioStreamBuilder* builder = nullptr;
-    aaudio_result_t result = AAudio_createStreamBuilder(&builder);
+    const aaudio_sharing_mode_t sharingModes[] = {
+            AAUDIO_SHARING_MODE_EXCLUSIVE, AAUDIO_SHARING_MODE_SHARED};
+    aaudio_result_t result = AAUDIO_ERROR_UNAVAILABLE;
 
-    if (result != AAUDIO_OK)
+    for (aaudio_sharing_mode_t sharingMode : sharingModes)
     {
-        IMLOGE1("[openAudioStream] Error creating stream builder[%s]",
+        AAudioStreamBuilder* builder = nullptr;
+        result = AAudio_createStreamBuilder(&builder);
+
+        if (result != AAUDIO_OK)
+        {
+            IMLOGE1("[openAudioStream] Error creating stream builder[%s]",
+                    AAudio_convertResultToText(result));
+            return;
+        }
+
+        AAudioStreamBuilder_setInputPreset(builder, AAUDIO_INPUT_PRESET_VOICE_COMMUNICATION);
+        AAudioStreamBuilder_setDirection(builder, AAUDIO_DIRECTION_INPUT);
+        AAudioStreamBuilder_setFormat(builder, AAUDIO_FORMAT_PCM_I16);
+        AAudioStreamBuilder_setChannelCount(builder, 1);
+        AAudioStreamBuilder_setSampleRate(builder, mSamplingRate);
+        AAudioStreamBuilder_setSharingMode(builder, sharingMode);
+        AAudioStreamBuilder_setPerformanceMode(builder, AAUDIO_PERFORMANCE_MODE_LOW_LATENCY);
+        AAudioStreamBuilder_setUsage(builder, AAUDIO_USAGE_VOICE_COMMUNICATION);
+        AAudioStreamBuilder_setErrorCallback(builder, audioErrorCallback, this);
+        AAudioStreamBuilder_setPrivacySensitive(builder, true);
+
+        result = AAudioStreamBuilder_openStream(builder, &mAudioStream);
+        AAudioStreamBuilder_delete(builder);
+
+        if (result == AAUDIO_OK && mAudioStream != nullptr)
+        {
+            IMLOGI1("[openAudioStream] sharingMode[%d]", sharingMode);
+            break;
+        }
+
+        IMLOGW2("[openAudioStream] Failed sharingMode[%d], error[%s]",
+                sharingMode, AAudio_convertResultToText(result));
+        if (mAudioStream != nullptr)
+        {
+            AAudioStream_close(mAudioStream);
+            mAudioStream = nullptr;
+        }
+    }
+
+    if (mAudioStream == nullptr)
+    {
+        IMLOGE1("[openAudioStream] Failed to openStream. Error[%s]",
                 AAudio_convertResultToText(result));
         return;
     }
 
-    // setup builder
-    AAudioStreamBuilder_setInputPreset(builder, AAUDIO_INPUT_PRESET_VOICE_COMMUNICATION);
-    AAudioStreamBuilder_setDirection(builder, AAUDIO_DIRECTION_INPUT);
-    AAudioStreamBuilder_setFormat(builder, AAUDIO_FORMAT_PCM_I16);
-    AAudioStreamBuilder_setChannelCount(builder, 1);
-    AAudioStreamBuilder_setSampleRate(builder, mSamplingRate);
-    AAudioStreamBuilder_setSharingMode(builder, AAUDIO_SHARING_MODE_EXCLUSIVE);
-    AAudioStreamBuilder_setPerformanceMode(builder, AAUDIO_PERFORMANCE_MODE_LOW_LATENCY);
-    AAudioStreamBuilder_setUsage(builder, AAUDIO_USAGE_VOICE_COMMUNICATION);
-    AAudioStreamBuilder_setErrorCallback(builder, audioErrorCallback, this);
-    AAudioStreamBuilder_setPrivacySensitive(builder, true);
-
-    // open stream
-    result = AAudioStreamBuilder_openStream(builder, &mAudioStream);
-    AAudioStreamBuilder_delete(builder);
-
-    if (result == AAUDIO_OK && mAudioStream != nullptr)
-    {
-        mBufferSize = AAudioStream_getFramesPerBurst(mAudioStream);
-        IMLOGD3("[openAudioStream] samplingRate[%d], framesPerBurst[%d], "
-                "performanceMode[%d]",
-                AAudioStream_getSampleRate(mAudioStream), mBufferSize,
-                AAudioStream_getPerformanceMode(mAudioStream));
-        // Set the buffer size to the burst size - this will give us the minimum
-        // possible latency
-        AAudioStream_setBufferSizeInFrames(mAudioStream, mBufferSize);
-    }
-    else
-    {
-        IMLOGE1("[openAudioStream] Failed to openStream. Error[%s]",
-                AAudio_convertResultToText(result));
-        mAudioStream = nullptr;
-    }
+    mBufferSize = AAudioStream_getFramesPerBurst(mAudioStream);
+    IMLOGD3("[openAudioStream] samplingRate[%d], framesPerBurst[%d], "
+            "performanceMode[%d]",
+            AAudioStream_getSampleRate(mAudioStream), mBufferSize,
+            AAudioStream_getPerformanceMode(mAudioStream));
+    // Set the buffer size to the burst size - this will give us the minimum
+    // possible latency
+    AAudioStream_setBufferSizeInFrames(mAudioStream, mBufferSize);
 }
 
 void ImsMediaAudioSource::restartAudioStream()
@@ -408,15 +428,22 @@ void ImsMediaAudioSource::restartAudioStream()
     if (result != AAUDIO_OK)
     {
         IMLOGE1("[restartAudioStream] Error start stream[%s]", AAudio_convertResultToText(result));
+        AAudioStream_close(mAudioStream);
+        mAudioStream = nullptr;
         return;
     }
 
     result = AAudioStream_waitForStateChange(
-            mAudioStream, inputState, &nextState, 10 * AAUDIO_STATE_TIMEOUT_NANO);
+            mAudioStream, inputState, &nextState, AAUDIO_START_TIMEOUT_NANO);
 
-    if (result != AAUDIO_OK)
+    if (result != AAUDIO_OK || nextState != AAUDIO_STREAM_STATE_STARTED)
     {
-        IMLOGE1("[restartAudioStream] Error start stream[%s]", AAudio_convertResultToText(result));
+        IMLOGE2("[restartAudioStream] Error start stream[%s], state[%s]",
+                AAudio_convertResultToText(result),
+                AAudio_convertStreamStateToText(nextState));
+        AAudioStream_requestStop(mAudioStream);
+        AAudioStream_close(mAudioStream);
+        mAudioStream = nullptr;
         return;
     }
 

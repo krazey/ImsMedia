@@ -31,6 +31,7 @@
 #include <utils/Errors.h>
 
 #define AAUDIO_STATE_TIMEOUT_NANO (100 * 1000000L)
+#define AAUDIO_START_TIMEOUT_NANO (10 * AAUDIO_STATE_TIMEOUT_NANO)
 #define DEFAULT_SAMPLING_RATE     (8000)
 #define CODEC_TIMEOUT_NANO        (100000)
 
@@ -160,6 +161,8 @@ bool ImsMediaAudioPlayer::Start()
             IMLOGE1("[Start] unable to create %s codec instance", kMimeType);
             AMediaFormat_delete(mFormat);
             mFormat = nullptr;
+            AAudioStream_close(mAudioStream);
+            mAudioStream = nullptr;
             return false;
         }
 
@@ -173,6 +176,8 @@ bool ImsMediaAudioPlayer::Start()
             mCodec = nullptr;
             AMediaFormat_delete(mFormat);
             mFormat = nullptr;
+            AAudioStream_close(mAudioStream);
+            mAudioStream = nullptr;
             return false;
         }
     }
@@ -191,15 +196,19 @@ bool ImsMediaAudioPlayer::Start()
             AMediaFormat_delete(mFormat);
             mFormat = nullptr;
         }
+        AAudioStream_close(mAudioStream);
+        mAudioStream = nullptr;
         return false;
     }
 
     result = AAudioStream_waitForStateChange(
-            mAudioStream, inputState, &nextState, AAUDIO_STATE_TIMEOUT_NANO);
+            mAudioStream, inputState, &nextState, AAUDIO_START_TIMEOUT_NANO);
 
-    if (result != AAUDIO_OK)
+    if (result != AAUDIO_OK || nextState != AAUDIO_STREAM_STATE_STARTED)
     {
-        IMLOGE1("[Start] Error start stream[%s]", AAudio_convertResultToText(result));
+        IMLOGE2("[Start] Error start stream[%s], state[%s]",
+                AAudio_convertResultToText(result),
+                AAudio_convertStreamStateToText(nextState));
         if (mCodecType == kAudioCodecAmr || mCodecType == kAudioCodecAmrWb)
         {
             AMediaCodec_delete(mCodec);
@@ -207,6 +216,9 @@ bool ImsMediaAudioPlayer::Start()
             AMediaFormat_delete(mFormat);
             mFormat = nullptr;
         }
+        AAudioStream_requestStop(mAudioStream);
+        AAudioStream_close(mAudioStream);
+        mAudioStream = nullptr;
         return false;
     }
 
@@ -222,6 +234,9 @@ bool ImsMediaAudioPlayer::Start()
             mCodec = nullptr;
             AMediaFormat_delete(mFormat);
             mFormat = nullptr;
+            AAudioStream_requestStop(mAudioStream);
+            AAudioStream_close(mAudioStream);
+            mAudioStream = nullptr;
             return false;
         }
     }
@@ -418,41 +433,52 @@ bool ImsMediaAudioPlayer::decodeEvs(uint8_t* buffer, uint32_t size)
 
 void ImsMediaAudioPlayer::openAudioStream()
 {
-    AAudioStreamBuilder* builder = nullptr;
-    aaudio_result_t result = AAudio_createStreamBuilder(&builder);
+    const aaudio_sharing_mode_t sharingModes[] = {
+            AAUDIO_SHARING_MODE_EXCLUSIVE, AAUDIO_SHARING_MODE_SHARED};
+    aaudio_result_t result = AAUDIO_ERROR_UNAVAILABLE;
 
-    if (result != AAUDIO_OK)
+    for (aaudio_sharing_mode_t sharingMode : sharingModes)
     {
-        IMLOGE1("[openAudioStream] Error creating stream builder[%s]",
-                AAudio_convertResultToText(result));
-        return;
-    }
+        AAudioStreamBuilder* builder = nullptr;
+        result = AAudio_createStreamBuilder(&builder);
 
-    // setup builder
-    AAudioStreamBuilder_setInputPreset(builder, AAUDIO_INPUT_PRESET_VOICE_COMMUNICATION);
-    AAudioStreamBuilder_setDirection(builder, AAUDIO_DIRECTION_OUTPUT);
-    AAudioStreamBuilder_setFormat(builder, AAUDIO_FORMAT_PCM_I16);
-    AAudioStreamBuilder_setChannelCount(builder, 1);
-    AAudioStreamBuilder_setSampleRate(builder, mSamplingRate);
-    AAudioStreamBuilder_setSharingMode(builder, AAUDIO_SHARING_MODE_EXCLUSIVE);
-    AAudioStreamBuilder_setPerformanceMode(builder, AAUDIO_PERFORMANCE_MODE_LOW_LATENCY);
-    AAudioStreamBuilder_setUsage(builder, AAUDIO_USAGE_VOICE_COMMUNICATION);
-    AAudioStreamBuilder_setErrorCallback(builder, audioErrorCallback, this);
+        if (result != AAUDIO_OK)
+        {
+            IMLOGE1("[openAudioStream] Error creating stream builder[%s]",
+                    AAudio_convertResultToText(result));
+            return;
+        }
 
-    // open stream
-    result = AAudioStreamBuilder_openStream(builder, &mAudioStream);
-    AAudioStreamBuilder_delete(builder);
+        AAudioStreamBuilder_setDirection(builder, AAUDIO_DIRECTION_OUTPUT);
+        AAudioStreamBuilder_setFormat(builder, AAUDIO_FORMAT_PCM_I16);
+        AAudioStreamBuilder_setChannelCount(builder, 1);
+        AAudioStreamBuilder_setSampleRate(builder, mSamplingRate);
+        AAudioStreamBuilder_setSharingMode(builder, sharingMode);
+        AAudioStreamBuilder_setPerformanceMode(builder, AAUDIO_PERFORMANCE_MODE_LOW_LATENCY);
+        AAudioStreamBuilder_setUsage(builder, AAUDIO_USAGE_VOICE_COMMUNICATION);
+        AAudioStreamBuilder_setContentType(builder, AAUDIO_CONTENT_TYPE_SPEECH);
+        AAudioStreamBuilder_setErrorCallback(builder, audioErrorCallback, this);
 
-    if (result != AAUDIO_OK)
-    {
-        IMLOGE1("[openAudioStream] Failed to openStream. Error[%s]",
-                AAudio_convertResultToText(result));
+        result = AAudioStreamBuilder_openStream(builder, &mAudioStream);
+        AAudioStreamBuilder_delete(builder);
+
+        if (result == AAUDIO_OK && mAudioStream != nullptr)
+        {
+            IMLOGI1("[openAudioStream] sharingMode[%d]", sharingMode);
+            return;
+        }
+
+        IMLOGW2("[openAudioStream] Failed sharingMode[%d], error[%s]",
+                sharingMode, AAudio_convertResultToText(result));
         if (mAudioStream != nullptr)
         {
             AAudioStream_close(mAudioStream);
+            mAudioStream = nullptr;
         }
-        mAudioStream = nullptr;
     }
+
+    IMLOGE1("[openAudioStream] Failed to openStream. Error[%s]",
+            AAudio_convertResultToText(result));
 }
 
 void ImsMediaAudioPlayer::restartAudioStream()
@@ -481,15 +507,22 @@ void ImsMediaAudioPlayer::restartAudioStream()
     if (result != AAUDIO_OK)
     {
         IMLOGE1("[restartAudioStream] Error start stream[%s]", AAudio_convertResultToText(result));
+        AAudioStream_close(mAudioStream);
+        mAudioStream = nullptr;
         return;
     }
 
     result = AAudioStream_waitForStateChange(
-            mAudioStream, inputState, &nextState, 3 * AAUDIO_STATE_TIMEOUT_NANO);
+            mAudioStream, inputState, &nextState, AAUDIO_START_TIMEOUT_NANO);
 
-    if (result != AAUDIO_OK)
+    if (result != AAUDIO_OK || nextState != AAUDIO_STREAM_STATE_STARTED)
     {
-        IMLOGE1("[restartAudioStream] Error start stream[%s]", AAudio_convertResultToText(result));
+        IMLOGE2("[restartAudioStream] Error start stream[%s], state[%s]",
+                AAudio_convertResultToText(result),
+                AAudio_convertStreamStateToText(nextState));
+        AAudioStream_requestStop(mAudioStream);
+        AAudioStream_close(mAudioStream);
+        mAudioStream = nullptr;
         return;
     }
 
