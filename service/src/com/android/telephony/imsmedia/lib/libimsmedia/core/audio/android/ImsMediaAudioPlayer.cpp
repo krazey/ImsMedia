@@ -23,6 +23,8 @@
 #include <sys/types.h>
 #include <thread>
 
+#include <cutils/properties.h>
+
 #include <ImsMediaDefine.h>
 #include <ImsMediaTrace.h>
 #include <ImsMediaTimer.h>
@@ -34,6 +36,9 @@
 #define AAUDIO_START_TIMEOUT_NANO (10 * AAUDIO_STATE_TIMEOUT_NANO)
 #define DEFAULT_SAMPLING_RATE     (8000)
 #define CODEC_TIMEOUT_NANO        (100000)
+
+static constexpr char kLowLatencyPlaybackProperty[] =
+        "persist.radio.imsmedia.low_latency_playback";
 
 using namespace android;
 
@@ -435,7 +440,15 @@ void ImsMediaAudioPlayer::openAudioStream()
 {
     const aaudio_sharing_mode_t sharingModes[] = {
             AAUDIO_SHARING_MODE_EXCLUSIVE, AAUDIO_SHARING_MODE_SHARED};
+    const bool lowLatencyPlayback =
+            property_get_bool(kLowLatencyPlaybackProperty, false);
+    const aaudio_performance_mode_t performanceMode = lowLatencyPlayback
+            ? AAUDIO_PERFORMANCE_MODE_LOW_LATENCY
+            : AAUDIO_PERFORMANCE_MODE_NONE;
     aaudio_result_t result = AAUDIO_ERROR_UNAVAILABLE;
+
+    IMLOGI2("[openAudioStream] lowLatencyPlayback[%d], requestedPerformanceMode[%d]",
+            lowLatencyPlayback, performanceMode);
 
     for (aaudio_sharing_mode_t sharingMode : sharingModes)
     {
@@ -454,7 +467,7 @@ void ImsMediaAudioPlayer::openAudioStream()
         AAudioStreamBuilder_setChannelCount(builder, 1);
         AAudioStreamBuilder_setSampleRate(builder, mSamplingRate);
         AAudioStreamBuilder_setSharingMode(builder, sharingMode);
-        AAudioStreamBuilder_setPerformanceMode(builder, AAUDIO_PERFORMANCE_MODE_LOW_LATENCY);
+        AAudioStreamBuilder_setPerformanceMode(builder, performanceMode);
         AAudioStreamBuilder_setUsage(builder, AAUDIO_USAGE_VOICE_COMMUNICATION);
         AAudioStreamBuilder_setContentType(builder, AAUDIO_CONTENT_TYPE_SPEECH);
         AAudioStreamBuilder_setErrorCallback(builder, audioErrorCallback, this);
@@ -464,7 +477,10 @@ void ImsMediaAudioPlayer::openAudioStream()
 
         if (result == AAUDIO_OK && mAudioStream != nullptr)
         {
-            IMLOGI1("[openAudioStream] sharingMode[%d]", sharingMode);
+            IMLOGI3("[openAudioStream] sharingMode[%d], requestedPerformanceMode[%d], "
+                    "actualPerformanceMode[%d]",
+                    sharingMode, performanceMode,
+                    AAudioStream_getPerformanceMode(mAudioStream));
             return;
         }
 
