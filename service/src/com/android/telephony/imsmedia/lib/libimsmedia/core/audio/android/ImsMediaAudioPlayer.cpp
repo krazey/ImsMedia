@@ -34,6 +34,8 @@
 
 #define AAUDIO_STATE_TIMEOUT_NANO (100 * 1000000L)
 #define AAUDIO_START_TIMEOUT_NANO (10 * AAUDIO_STATE_TIMEOUT_NANO)
+#define AUDIO_FRAME_DURATION_NANO (20 * 1000000L)
+#define NUM_FRAMES_PER_SEC        (50)
 #define DEFAULT_SAMPLING_RATE     (8000)
 #define CODEC_TIMEOUT_NANO        (100000)
 
@@ -296,15 +298,20 @@ void ImsMediaAudioPlayer::Stop()
     IMLOGD0("[Stop] exit ");
 }
 
-bool ImsMediaAudioPlayer::onDataFrame(uint8_t* buffer, uint32_t size, FrameType /*frameType*/,
+bool ImsMediaAudioPlayer::onDataFrame(uint8_t* buffer, uint32_t size, FrameType frameType,
         bool /*hasNextFrame*/, uint8_t /*nextFrameByte*/)
 {
     ImsMediaMutex::Autolock lock(mMutex);
 
-    if (size == 0 || buffer == nullptr || mAudioStream == nullptr ||
+    if (mAudioStream == nullptr ||
             AAudioStream_getState(mAudioStream) != AAUDIO_STREAM_STATE_STARTED)
     {
         return false;
+    }
+
+    if (size == 0 || buffer == nullptr)
+    {
+        return frameType == SPEECH ? false : writeSilenceFrame();
     }
 
     if (mCodecType == kAudioCodecAmr || mCodecType == kAudioCodecAmrWb)
@@ -315,7 +322,8 @@ bool ImsMediaAudioPlayer::onDataFrame(uint8_t* buffer, uint32_t size, FrameType 
         }
         else
         {
-            return decodeAmr(buffer, size);
+            bool audioProduced = decodeAmr(buffer, size);
+            return audioProduced || (frameType != SPEECH && writeSilenceFrame());
         }
     }
     else if (mCodecType == kAudioCodecEvs)
@@ -326,14 +334,74 @@ bool ImsMediaAudioPlayer::onDataFrame(uint8_t* buffer, uint32_t size, FrameType 
     else if (mCodecType == kAudioCodecL16)
     {
         memcpy(mBuffer, buffer, (MAX_PCM_SIZE * 2));
-        // call audio write
-        AAudioStream_write(mAudioStream, mBuffer, MAX_PCM_SIZE, 0);
+        return writeAudioFrames(mBuffer, MAX_PCM_SIZE);
     }
     return false;
 }
 
+bool ImsMediaAudioPlayer::writeAudioFrames(const uint16_t* buffer, int32_t numFrames)
+{
+    if (buffer == nullptr || numFrames <= 0 || mAudioStream == nullptr)
+    {
+        return false;
+    }
+
+    int32_t totalFramesWritten = 0;
+    uint64_t deadlineUs = ImsMediaTimer::GetTimeInMicroSeconds() +
+            AUDIO_FRAME_DURATION_NANO / 1000;
+
+    while (totalFramesWritten < numFrames)
+    {
+        uint64_t nowUs = ImsMediaTimer::GetTimeInMicroSeconds();
+        if (nowUs >= deadlineUs)
+        {
+            IMLOGW2("[writeAudioFrames] timeout after frames[%d/%d]", totalFramesWritten,
+                    numFrames);
+            return false;
+        }
+
+        aaudio_result_t result = AAudioStream_write(mAudioStream, buffer + totalFramesWritten,
+                numFrames - totalFramesWritten,
+                static_cast<int64_t>((deadlineUs - nowUs) * 1000));
+        if (result < 0)
+        {
+            IMLOGE1("[writeAudioFrames] write failed[%s]", AAudio_convertResultToText(result));
+            return false;
+        }
+        if (result == 0)
+        {
+            IMLOGW2("[writeAudioFrames] short write frames[%d/%d]", totalFramesWritten,
+                    numFrames);
+            return false;
+        }
+
+        totalFramesWritten += result;
+    }
+
+    return true;
+}
+
+bool ImsMediaAudioPlayer::writeSilenceFrame()
+{
+    if (mSamplingRate <= 0)
+    {
+        return false;
+    }
+
+    int32_t numFrames = mSamplingRate / NUM_FRAMES_PER_SEC;
+    if (numFrames <= 0 || numFrames > PCM_BUFFER_SIZE)
+    {
+        IMLOGE2("[writeSilenceFrame] invalid rate[%d], frames[%d]", mSamplingRate, numFrames);
+        return false;
+    }
+
+    memset(mBuffer, 0, numFrames * sizeof(mBuffer[0]));
+    return writeAudioFrames(mBuffer, numFrames);
+}
+
 bool ImsMediaAudioPlayer::decodeAmr(uint8_t* buffer, uint32_t size)
 {
+    bool audioProduced = false;
     auto index = AMediaCodec_dequeueInputBuffer(mCodec, CODEC_TIMEOUT_NANO);
 
     if (index >= 0)
@@ -375,8 +443,9 @@ bool ImsMediaAudioPlayer::decodeAmr(uint8_t* buffer, uint32_t size)
             if (buf != nullptr && buffCapacity > 0)
             {
                 memcpy(mBuffer, buf, info.size);
-                // call audio write
-                AAudioStream_write(mAudioStream, mBuffer, info.size / 2, 0);
+                audioProduced = true;
+                writeAudioFrames(
+                        mBuffer, static_cast<int32_t>(info.size / sizeof(mBuffer[0])));
             }
         }
 
@@ -405,7 +474,7 @@ bool ImsMediaAudioPlayer::decodeAmr(uint8_t* buffer, uint32_t size)
         IMLOGD1("[decodeAmr] unexpected index[%d]", index);
     }
 
-    return true;
+    return audioProduced;
 }
 
 // TODO: Integration with libEVS is required.
@@ -430,7 +499,7 @@ bool ImsMediaAudioPlayer::decodeEvs(uint8_t* buffer, uint32_t size)
         mIsFirstFrame = true;
     }
 
-    AAudioStream_write(mAudioStream, output, (decodeSize / 2), 0);
+    writeAudioFrames(output, decodeSize / 2);
     memset(output, 0, PCM_BUFFER_SIZE);
 
     return true;

@@ -155,6 +155,8 @@ private:
     void openAudioStream();
     void restartAudioStream();
     static void audioErrorCallback(AAudioStream* stream, void* userData, aaudio_result_t error);
+    bool writeAudioFrames(const uint16_t* buffer, int32_t numFrames);
+    bool writeSilenceFrame();
     bool decodeAmr(uint8_t* buffer, uint32_t size);
     bool decodeEvs(uint8_t* buffer, uint32_t size);
 
