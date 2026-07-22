@@ -2,4 +2,4 @@
 PRODUCT_PACKAGES += \
     ImsMediaService \
     libimsmedia \
-    preinstalled-packages-imsmedia.xml \
+    preinstalled-packages-imsmedia.xml
