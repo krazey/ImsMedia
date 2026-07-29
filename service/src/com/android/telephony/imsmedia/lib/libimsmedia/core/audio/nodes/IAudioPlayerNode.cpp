@@ -341,6 +341,7 @@ void* IAudioPlayerNode::run()
     uint32_t currentTime = 0;
     uint64_t nNextTime = ImsMediaTimer::GetTimeInMicroSeconds();
     bool isFirstFrameReceived = false;
+    bool isDtxInterval = false;
 
 #ifdef FILE_DUMP
     FILE* file = fopen("/data/user_de/0/com.android.telephony.imsmedia/out.amr", "wb");
@@ -392,6 +393,7 @@ void* IAudioPlayerNode::run()
                     frameType = SPEECH;
                     break;
             }
+            isDtxInterval = frameType == SID || frameType == NO_DATA;
 
             if (mCallback != nullptr)
             {
@@ -432,8 +434,17 @@ void* IAudioPlayerNode::run()
             }
             else
             {
-                IMLOGD_PACKET0(IM_PACKET_LOG_AUDIO, "[run] no data");
-                mAudioPlayer->onDataFrame(nullptr, 0, NO_DATA, false, 0);
+                FrameType frameType = NO_DATA;
+                // A gap after speech is loss; a gap after SID/no-data remains a DTX interval.
+                if ((mCodecType == kAudioCodecAmr || mCodecType == kAudioCodecAmrWb) &&
+                        !isDtxInterval)
+                {
+                    frameType = LOST;
+                }
+
+                IMLOGD_PACKET1(
+                        IM_PACKET_LOG_AUDIO, "[run] missing frame type[%d]", frameType);
+                mAudioPlayer->onDataFrame(nullptr, 0, frameType, false, 0);
 
                 if (mCallback != nullptr)
                 {

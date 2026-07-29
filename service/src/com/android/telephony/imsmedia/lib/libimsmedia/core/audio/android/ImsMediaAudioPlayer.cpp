@@ -41,6 +41,9 @@
 
 static constexpr char kLowLatencyPlaybackProperty[] =
         "persist.radio.imsmedia.low_latency_playback";
+// RFC 3267 storage headers with Q set and no following speech data.
+static constexpr uint8_t kAmrNoDataFrameHeader = 0x7C;
+static constexpr uint8_t kAmrWbSpeechLostFrameHeader = 0x74;
 
 using namespace android;
 
@@ -307,6 +310,24 @@ bool ImsMediaAudioPlayer::onDataFrame(uint8_t* buffer, uint32_t size, FrameType 
             AAudioStream_getState(mAudioStream) != AAUDIO_STREAM_STATE_STARTED)
     {
         return false;
+    }
+
+    if (frameType == LOST && (size == 0 || buffer == nullptr) &&
+            (mCodecType == kAudioCodecAmr || mCodecType == kAudioCodecAmrWb))
+    {
+        if (mCodec == nullptr)
+        {
+            return false;
+        }
+
+        uint8_t lossFrameHeader = mCodecType == kAudioCodecAmr
+                ? kAmrNoDataFrameHeader
+                : kAmrWbSpeechLostFrameHeader;
+        IMLOGD_PACKET2(IM_PACKET_LOG_AUDIO,
+                "[onDataFrame] conceal lost frame codec[%d], header[%02X]", mCodecType,
+                lossFrameHeader);
+        bool audioProduced = decodeAmr(&lossFrameHeader, sizeof(lossFrameHeader));
+        return audioProduced || writeSilenceFrame();
     }
 
     if (size == 0 || buffer == nullptr)
