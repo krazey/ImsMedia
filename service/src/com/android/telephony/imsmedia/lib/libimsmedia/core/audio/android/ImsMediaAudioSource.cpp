@@ -25,10 +25,11 @@
 #include <ImsMediaAudioUtil.h>
 #include <ImsMediaAudioSource.h>
 #include <utils/Errors.h>
-#include <thread>
 
 #define AAUDIO_STATE_TIMEOUT_NANO (100 * 1000000L)
 #define AAUDIO_START_TIMEOUT_NANO (10 * AAUDIO_STATE_TIMEOUT_NANO)
+#define AAUDIO_RESTART_RETRY_DELAY_MS (100)
+#define AAUDIO_RESTART_START_WAIT_ATTEMPTS (3)
 #define NUM_FRAMES_PER_SEC        (50)
 #define DEFAULT_SAMPLING_RATE     (8000)
 #define CODEC_TIMEOUT_NANO        (100000)
@@ -53,6 +54,7 @@ ImsMediaAudioSource::ImsMediaAudioSource()
     mMediaDirection = 0;
     mIsDtxEnabled = false;
     mIsOctetAligned = false;
+    mDisconnectedAudioStream.store(nullptr);
 }
 
 ImsMediaAudioSource::~ImsMediaAudioSource() {}
@@ -119,6 +121,7 @@ void ImsMediaAudioSource::SetOctetAligned(bool isOctetAligned)
 
 bool ImsMediaAudioSource::Start()
 {
+    mDisconnectedAudioStream.store(nullptr);
     openAudioStream();
 
     if (mAudioStream == nullptr)
@@ -214,6 +217,7 @@ void ImsMediaAudioSource::Stop()
     }
 
     stopCodec();
+    mDisconnectedAudioStream.store(nullptr);
 }
 
 void ImsMediaAudioSource::ProcessCmr(const uint32_t cmr)
@@ -244,10 +248,8 @@ void ImsMediaAudioSource::audioErrorCallback(
 
     if (error == AAUDIO_ERROR_DISCONNECTED)
     {
-        // Handle stream restart on a separate thread
-        std::thread streamRestartThread(&ImsMediaAudioSource::restartAudioStream,
-                reinterpret_cast<ImsMediaAudioSource*>(userData));
-        streamRestartThread.detach();
+        reinterpret_cast<ImsMediaAudioSource*>(userData)
+                ->mDisconnectedAudioStream.store(stream);
     }
 }
 
@@ -269,6 +271,17 @@ void* ImsMediaAudioSource::run()
         {
             IMLOGD0("[run] terminated");
             break;
+        }
+
+        AAudioStream* disconnectedStream = mDisconnectedAudioStream.exchange(nullptr);
+        if (disconnectedStream != nullptr)
+        {
+            restartAudioStream(disconnectedStream);
+            if (IsThreadStopped())
+            {
+                break;
+            }
+            nNextTime = ImsMediaTimer::GetTimeInMilliSeconds();
         }
 
         mMutexUplink.lock();
@@ -402,53 +415,86 @@ void ImsMediaAudioSource::openAudioStream()
     AAudioStream_setBufferSizeInFrames(mAudioStream, mBufferSize);
 }
 
-void ImsMediaAudioSource::restartAudioStream()
+void ImsMediaAudioSource::restartAudioStream(AAudioStream* disconnectedStream)
 {
-    ImsMediaMutex::Autolock lock(mMutexUplink);
-
-    if (mAudioStream == nullptr)
     {
-        return;
-    }
+        ImsMediaMutex::Autolock lock(mMutexUplink);
 
-    AAudioStream_requestStop(mAudioStream);
-    AAudioStream_close(mAudioStream);
-    mAudioStream = nullptr;
-    openAudioStream();
+        if (mAudioStream != disconnectedStream)
+        {
+            IMLOGI0("[restartAudioStream] Ignore stale disconnect");
+            return;
+        }
 
-    if (mAudioStream == nullptr)
-    {
-        return;
-    }
-
-    aaudio_stream_state_t inputState = AAUDIO_STREAM_STATE_STARTING;
-    aaudio_stream_state_t nextState = AAUDIO_STREAM_STATE_UNINITIALIZED;
-    aaudio_result_t result = AAudioStream_requestStart(mAudioStream);
-
-    if (result != AAUDIO_OK)
-    {
-        IMLOGE1("[restartAudioStream] Error start stream[%s]", AAudio_convertResultToText(result));
-        AAudioStream_close(mAudioStream);
-        mAudioStream = nullptr;
-        return;
-    }
-
-    result = AAudioStream_waitForStateChange(
-            mAudioStream, inputState, &nextState, AAUDIO_START_TIMEOUT_NANO);
-
-    if (result != AAUDIO_OK || nextState != AAUDIO_STREAM_STATE_STARTED)
-    {
-        IMLOGE2("[restartAudioStream] Error start stream[%s], state[%s]",
-                AAudio_convertResultToText(result),
-                AAudio_convertStreamStateToText(nextState));
         AAudioStream_requestStop(mAudioStream);
         AAudioStream_close(mAudioStream);
         mAudioStream = nullptr;
-        return;
     }
 
-    IMLOGI1("[restartAudioStream] start stream state[%s]",
-            AAudio_convertStreamStateToText(nextState));
+    uint32_t attempt = 0;
+    while (!IsThreadStopped())
+    {
+        ++attempt;
+        {
+            ImsMediaMutex::Autolock lock(mMutexUplink);
+            openAudioStream();
+
+            if (mAudioStream != nullptr)
+            {
+                aaudio_stream_state_t inputState = AAUDIO_STREAM_STATE_STARTING;
+                aaudio_stream_state_t nextState = AAUDIO_STREAM_STATE_UNINITIALIZED;
+                aaudio_result_t result = AAudioStream_requestStart(mAudioStream);
+
+                if (result == AAUDIO_OK)
+                {
+                    for (uint32_t waitAttempt = 0;
+                            waitAttempt < AAUDIO_RESTART_START_WAIT_ATTEMPTS; ++waitAttempt)
+                    {
+                        result = AAudioStream_waitForStateChange(
+                                mAudioStream, inputState, &nextState,
+                                AAUDIO_START_TIMEOUT_NANO);
+                        if (result != AAUDIO_ERROR_TIMEOUT ||
+                                nextState != AAUDIO_STREAM_STATE_STARTING)
+                        {
+                            break;
+                        }
+
+                        IMLOGW2("[restartAudioStream] Attempt[%u] still in state[%s]",
+                                attempt, AAudio_convertStreamStateToText(nextState));
+                    }
+                }
+
+                if (result == AAUDIO_OK && nextState == AAUDIO_STREAM_STATE_STARTED)
+                {
+                    IMLOGI2("[restartAudioStream] Recovered on attempt[%u], state[%s]",
+                            attempt, AAudio_convertStreamStateToText(nextState));
+                    return;
+                }
+
+                IMLOGE3("[restartAudioStream] Attempt[%u] failed[%s], state[%s]",
+                        attempt, AAudio_convertResultToText(result),
+                        AAudio_convertStreamStateToText(nextState));
+                AAudioStream* failedStream = mAudioStream;
+                AAudioStream_requestStop(failedStream);
+                AAudioStream_close(failedStream);
+                mAudioStream = nullptr;
+
+                AAudioStream* pendingStream = failedStream;
+                mDisconnectedAudioStream.compare_exchange_strong(pendingStream, nullptr);
+            }
+            else
+            {
+                IMLOGE1("[restartAudioStream] Attempt[%u] failed to open", attempt);
+            }
+        }
+
+        if (!IsThreadStopped())
+        {
+            ImsMediaTimer::Sleep(AAUDIO_RESTART_RETRY_DELAY_MS);
+        }
+    }
+
+    IMLOGI0("[restartAudioStream] Recovery stopped");
 }
 
 bool ImsMediaAudioSource::startCodec()

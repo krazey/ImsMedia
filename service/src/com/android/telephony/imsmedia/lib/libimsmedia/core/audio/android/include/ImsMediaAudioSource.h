@@ -27,6 +27,8 @@
 #include <media/NdkMediaCodec.h>
 #include <media/NdkMediaFormat.h>
 
+#include <atomic>
+
 #define MAX_EVS_BW_STRLEN 5
 
 using android::sp;
@@ -142,7 +144,7 @@ public:
 
 private:
     void openAudioStream();
-    void restartAudioStream();
+    void restartAudioStream(AAudioStream* disconnectedStream);
     bool startCodec();
     void stopCodec();
     void queueInputBuffer(int16_t* buffer, uint32_t size);
@@ -152,6 +154,7 @@ private:
     ImsMediaMutex mMutexUplink;
     IFrameCallback* mCallback;
     AAudioStream* mAudioStream;
+    std::atomic<AAudioStream*> mDisconnectedAudioStream;
     AMediaCodec* mCodec;
     AMediaFormat* mFormat;
     int32_t mCodecType;
