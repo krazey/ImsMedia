@@ -64,6 +64,7 @@ ImsMediaAudioPlayer::ImsMediaAudioPlayer()
     mIsEvsInitialized = false;
     mIsOctetAligned = false;
     mIsDtxEnabled = false;
+    mMutex.setTimeout(std::chrono::milliseconds(3000));
 }
 
 ImsMediaAudioPlayer::~ImsMediaAudioPlayer() {}
@@ -127,6 +128,8 @@ void ImsMediaAudioPlayer::ProcessCmr(const uint32_t cmr)
 
 bool ImsMediaAudioPlayer::Start()
 {
+    ImsMediaMutex::Autolock lock(mMutex);
+
     char kMimeType[128] = {'\0'};
     switch (mCodecType)
     {
@@ -587,12 +590,13 @@ void ImsMediaAudioPlayer::openAudioStream()
             AAudio_convertResultToText(result));
 }
 
-void ImsMediaAudioPlayer::restartAudioStream()
+void ImsMediaAudioPlayer::restartAudioStream(AAudioStream* disconnectedStream)
 {
     ImsMediaMutex::Autolock lock(mMutex);
 
-    if (mAudioStream == nullptr)
+    if (mAudioStream != disconnectedStream)
     {
+        IMLOGI0("[restartAudioStream] Ignore stale disconnect");
         return;
     }
 
@@ -651,7 +655,7 @@ void ImsMediaAudioPlayer::audioErrorCallback(
     {
         // Handle stream restart on a separate thread
         std::thread streamRestartThread(&ImsMediaAudioPlayer::restartAudioStream,
-                reinterpret_cast<ImsMediaAudioPlayer*>(userData));
+                reinterpret_cast<ImsMediaAudioPlayer*>(userData), stream);
         streamRestartThread.detach();
     }
 }

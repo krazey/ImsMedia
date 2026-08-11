@@ -153,7 +153,7 @@ public:
 
 private:
     void openAudioStream();
-    void restartAudioStream();
+    void restartAudioStream(AAudioStream* disconnectedStream);
     static void audioErrorCallback(AAudioStream* stream, void* userData, aaudio_result_t error);
     bool writeAudioFrames(const uint16_t* buffer, int32_t numFrames);
     bool writeSilenceFrame();
