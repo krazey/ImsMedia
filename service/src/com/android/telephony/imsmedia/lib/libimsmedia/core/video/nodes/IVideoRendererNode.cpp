@@ -191,9 +191,11 @@ void IVideoRendererNode::ProcessData()
             break;
         }
 
-        if (dataSize >= MAX_RTP_PAYLOAD_BUFFER_SIZE)
+        if (data == nullptr || dataSize > sizeof(mBuffer) - frameSize)
         {
-            IMLOGE1("[ProcessData] exceed buffer size[%d]", dataSize);
+            IMLOGE2("[ProcessData] frame exceeds buffer: accumulated[%u], fragment[%u]",
+                    frameSize, dataSize);
+            DeleteData();
             return;
         }
 
@@ -457,7 +459,7 @@ void IVideoRendererNode::SaveConfigFrame(uint8_t* pbBuffer, uint32_t nBufferSize
     bool bSPSString = false;
     bool bPPSString = false;
 
-    if (nBufferSize <= 4)
+    if (pbBuffer == nullptr || nBufferSize < 5)
     {
         return;
     }
@@ -476,7 +478,7 @@ void IVideoRendererNode::SaveConfigFrame(uint8_t* pbBuffer, uint32_t nBufferSize
             uint32_t nConfigSize = 0;
             uint8_t* nCurrBuff = pbBuffer;
 
-            while (nCurrSize <= nBufferSize)
+            while (nCurrSize <= nBufferSize - 5)
             {
                 if (nCurrBuff[0] == 0x00 && nCurrBuff[1] == 0x00 && nCurrBuff[2] == 0x00 &&
                         nCurrBuff[3] == 0x01)
@@ -507,6 +509,12 @@ void IVideoRendererNode::SaveConfigFrame(uint8_t* pbBuffer, uint32_t nBufferSize
                 nConfigSize = nBufferSize - nOffset;
             }
 
+            if (nConfigSize > MAX_CONFIG_LEN)
+            {
+                IMLOGE1("[SaveConfigFrame] AVC config is too large[%d]", nConfigSize);
+                return;
+            }
+
             IMLOGD_PACKET3(IM_PACKET_LOG_VIDEO,
                     "[SaveConfigFrame] AVC Codec - bSps[%d], bPps[%d], size[%d]", bSPSString,
                     bPPSString, nConfigSize);
@@ -532,8 +540,10 @@ void IVideoRendererNode::SaveConfigFrame(uint8_t* pbBuffer, uint32_t nBufferSize
 
                 pConfigData = mConfigBuffer[nConfigIndex];
 
-                if (0 != memcmp(pConfigData, pbBuffer + nOffset, nConfigSize))
+                if (mConfigLen[nConfigIndex] != nConfigSize ||
+                        memcmp(pConfigData, pbBuffer + nOffset, nConfigSize) != 0)
                 {
+                    memset(pConfigData, 0, MAX_CONFIG_LEN);
                     memcpy(pConfigData, pbBuffer + nOffset, nConfigSize);
                     mConfigLen[nConfigIndex] = nConfigSize;
                 }
@@ -549,7 +559,7 @@ void IVideoRendererNode::SaveConfigFrame(uint8_t* pbBuffer, uint32_t nBufferSize
             uint8_t* nCurrBuff = pbBuffer;
             bool bVPSString = false;
 
-            while (nCurrSize <= nBufferSize)
+            while (nCurrSize <= nBufferSize - 5)
             {
                 if (nCurrBuff[0] == 0x00 && nCurrBuff[1] == 0x00 && nCurrBuff[2] == 0x00 &&
                         nCurrBuff[3] == 0x01)
@@ -558,20 +568,22 @@ void IVideoRendererNode::SaveConfigFrame(uint8_t* pbBuffer, uint32_t nBufferSize
                     {
                         nOffset = nCurrSize;
                         bVPSString = true;
-                        break;
                     }
                     else if (eMode == kConfigSps && !bSPSString &&
                             (((nCurrBuff[4] >> 1) & 0x3F) == 33))
                     {
                         nOffset = nCurrSize;
                         bSPSString = true;
-                        break;
                     }
                     else if (eMode == kConfigPps && !bPPSString &&
                             (((nCurrBuff[4] >> 1) & 0x3F) == 34))
                     {
                         nOffset = nCurrSize;
                         bPPSString = true;
+                    }
+                    else if (bVPSString || bSPSString || bPPSString)
+                    {
+                        nConfigSize = nCurrSize - nOffset;
                         break;
                     }
                 }
@@ -582,10 +594,16 @@ void IVideoRendererNode::SaveConfigFrame(uint8_t* pbBuffer, uint32_t nBufferSize
 
             if (bVPSString || bSPSString || bPPSString)
             {
-                if ((nBufferSize - nOffset) > 0)
+                if (nConfigSize == 0 && (nBufferSize - nOffset) > 0)
                 {
                     nConfigSize = nBufferSize - nOffset;
                 }
+            }
+
+            if (nConfigSize > MAX_CONFIG_LEN)
+            {
+                IMLOGE1("[SaveConfigFrame] HEVC config is too large[%d]", nConfigSize);
+                return;
             }
 
             IMLOGD_PACKET4(IM_PACKET_LOG_VIDEO,
@@ -617,8 +635,10 @@ void IVideoRendererNode::SaveConfigFrame(uint8_t* pbBuffer, uint32_t nBufferSize
 
                 pConfigData = mConfigBuffer[nConfigIndex];
 
-                if (0 != memcmp(pConfigData, pbBuffer + nOffset, nConfigSize))
+                if (mConfigLen[nConfigIndex] != nConfigSize ||
+                        memcmp(pConfigData, pbBuffer + nOffset, nConfigSize) != 0)
                 {
+                    memset(pConfigData, 0, MAX_CONFIG_LEN);
                     memcpy(pConfigData, pbBuffer + nOffset, nConfigSize);
                     mConfigLen[nConfigIndex] = nConfigSize;
                 }

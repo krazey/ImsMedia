@@ -18,13 +18,16 @@
 #define IMSMEDIA_VIDEO_RENDERER_H_INCLUDED
 
 #include <ImsMediaDefine.h>
-#include <ImsMediaCondition.h>
 #include <BaseSessionCallback.h>
 #include <android/native_window.h>
 #include <media/NdkMediaCodec.h>
 #include <media/NdkMediaFormat.h>
-#include <mutex>
+#include <cstring>
 #include <list>
+#include <mutex>
+#include <new>
+#include <pthread.h>
+#include <string>
 
 struct FrameData
 {
@@ -33,14 +36,18 @@ public:
             bool isConfig = false)
     {
         this->data = nullptr;
+        this->size = 0;
 
         if (size != 0 && data != nullptr)
         {
-            this->data = new uint8_t[size];
-            memcpy(this->data, data, size);
+            this->data = new (std::nothrow) uint8_t[size];
+            if (this->data != nullptr)
+            {
+                std::memcpy(this->data, data, size);
+                this->size = size;
+            }
         }
 
-        this->size = size;
         this->timestamp = timestamp;
         this->isConfig = isConfig;
     }
@@ -87,13 +94,15 @@ private:
     AMediaFormat* mFormat;
     std::list<FrameData*> mFrameDatas;
     std::mutex mMutex;
-    ImsMediaCondition mConditionExit;
+    pthread_t mRenderThread;
+    bool mRenderThreadStarted;
     int32_t mCodecType;
     uint32_t mWidth;
     uint32_t mHeight;
     uint32_t mFarOrientationDegree;
     uint32_t mNearOrientationDegree;
     bool mStopped;
+    ANativeWindow* mAcquiredWindow;
     std::string mSpropValue;
 };
 
