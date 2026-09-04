@@ -17,7 +17,8 @@
 #ifndef IMS_MEDIA_IMAGE_ROTATE
 #define IMS_MEDIA_IMAGE_ROTATE
 
-#include <string.h>
+#include <stddef.h>
+#include <stdint.h>
 
 class ImsMediaImageRotate
 {

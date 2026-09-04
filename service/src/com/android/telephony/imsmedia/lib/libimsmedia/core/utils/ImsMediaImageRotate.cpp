@@ -62,23 +62,28 @@ int ImsMediaImageRotate::YUV420_SP_Rotate90(uint8_t* pOutBuffer, size_t nOutBufS
         uint16_t outputStride, uint8_t* pYPlane, uint8_t* pUVPlane, uint16_t nSrcWidth,
         uint16_t nSrcHeight)
 {
-    uint16_t x, y, nDstWidth = nSrcHeight, nDstHt = nSrcWidth, nPadWidth = outputStride - nDstWidth;
-    uint64_t srcIdx, dstIdx = (outputStride * nDstHt) - 1;
-    const size_t dstSize = outputStride * nDstHt * 1.5f;
-
-    if (nOutBufSize < (dstSize - nPadWidth))
+    const size_t nDstWidth = nSrcHeight;
+    const size_t nDstHt = nSrcWidth;
+    if (pOutBuffer == nullptr || pYPlane == nullptr || pUVPlane == nullptr || nSrcWidth == 0 ||
+            nSrcHeight == 0 || nSrcWidth % 2 != 0 || nSrcHeight % 2 != 0 ||
+            outputStride % 2 != 0 ||
+            nDstWidth > outputStride)
     {
-        IMLOGE4("Output buffer size is not sufficient. \
-                Required(outputStride[%d] * outputHeight[%d] * 1.5 = %d) but passed[%d]",
-                outputStride, nDstHt, dstSize, nOutBufSize);
+        IMLOGE2("Invalid destination width[%zu] or stride[%u]", nDstWidth, outputStride);
         return -1;
     }
 
-    if (nDstWidth > outputStride)
+    const size_t yPlaneSize = static_cast<size_t>(outputStride) * nDstHt;
+    const size_t dstSize = yPlaneSize + yPlaneSize / 2;
+    if (nOutBufSize < dstSize)
     {
-        IMLOGE2("Destination width[%d] cannot be bigger than stride[%d]", nDstWidth, outputStride);
+        IMLOGE2("Output buffer is too small. Required[%zu], passed[%zu]", dstSize, nOutBufSize);
         return -1;
     }
+
+    uint16_t x, y;
+    const size_t nPadWidth = outputStride - nDstWidth;
+    uint64_t srcIdx, dstIdx = yPlaneSize - 1;
 
     // Rotate Y buffer
     for (y = 0; y < nSrcWidth; y++)
@@ -155,24 +160,29 @@ int ImsMediaImageRotate::YUV420_SP_Rotate270(uint8_t* pOutBuffer, size_t nOutBuf
         uint16_t outputStride, uint8_t* pYPlane, uint8_t* pUVPlane, uint16_t nSrcWidth,
         uint16_t nSrcHeight)
 {
-    uint16_t x, y, nDstWth = nSrcHeight, nDstHt = nSrcWidth, nPadWidth = outputStride - nDstWth;
-    uint64_t srcIdx, dstIdx = outputStride * nDstHt - 1;
-    const size_t size = nSrcWidth * nSrcHeight;
-    const size_t dstSize = outputStride * nDstHt * 1.5f;
-
-    if (nOutBufSize < (dstSize - nPadWidth))
+    const size_t nDstWidth = nSrcHeight;
+    const size_t nDstHt = nSrcWidth;
+    if (pOutBuffer == nullptr || pYPlane == nullptr || pUVPlane == nullptr || nSrcWidth == 0 ||
+            nSrcHeight == 0 || nSrcWidth % 2 != 0 || nSrcHeight % 2 != 0 ||
+            outputStride % 2 != 0 ||
+            nDstWidth > outputStride)
     {
-        IMLOGE4("Output buffer size is not sufficient. \
-                Required(outputStride[%d] * outputHeight[%d] * 1.5 = %d) but passed[%d]",
-                outputStride, nDstHt, dstSize, nOutBufSize);
+        IMLOGE2("Invalid destination width[%zu] or stride[%u]", nDstWidth, outputStride);
         return -1;
     }
 
-    if (nDstWth > outputStride)
+    const size_t yPlaneSize = static_cast<size_t>(outputStride) * nDstHt;
+    const size_t dstSize = yPlaneSize + yPlaneSize / 2;
+    if (nOutBufSize < dstSize)
     {
-        IMLOGE2("Destination width[%d] cannot be bigger than stride[%d]", nDstWth, outputStride);
+        IMLOGE2("Output buffer is too small. Required[%zu], passed[%zu]", dstSize, nOutBufSize);
         return -1;
     }
+
+    uint16_t x, y;
+    const size_t nPadWidth = outputStride - nDstWidth;
+    uint64_t srcIdx, dstIdx = yPlaneSize - 1;
+    const size_t size = static_cast<size_t>(nSrcWidth) * nSrcHeight;
 
     // Rotate Y buffer
     for (y = 0; y < nSrcWidth; y++)
