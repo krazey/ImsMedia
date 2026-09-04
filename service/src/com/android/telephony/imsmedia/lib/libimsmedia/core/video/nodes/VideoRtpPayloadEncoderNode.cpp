@@ -48,7 +48,10 @@ VideoRtpPayloadEncoderNode::VideoRtpPayloadEncoderNode(BaseSessionCallback* call
     mMaxFragmentUnitSize = MEDIABUF_DATAPACKET_MAX;
 }
 
-VideoRtpPayloadEncoderNode::~VideoRtpPayloadEncoderNode() {}
+VideoRtpPayloadEncoderNode::~VideoRtpPayloadEncoderNode()
+{
+    Stop();
+}
 
 kBaseNodeId VideoRtpPayloadEncoderNode::GetNodeId()
 {
@@ -62,6 +65,22 @@ ImsMediaResult VideoRtpPayloadEncoderNode::Start()
     if (mMaxFragmentUnitSize == 0)
     {
         mMaxFragmentUnitSize = MEDIABUF_DATAPACKET_MAX;
+    }
+
+    if ((mCodecType != VideoConfig::CODEC_AVC && mCodecType != VideoConfig::CODEC_HEVC) ||
+            (mPayloadMode != kRtpPayloadHeaderModeSingleNalUnit &&
+                    mPayloadMode != kRtpPayloadHeaderModeNonInterleaved) ||
+            mMaxFragmentUnitSize < 6 ||
+            static_cast<uint32_t>(mMaxFragmentUnitSize) > MAX_RTP_PAYLOAD_BUFFER_SIZE)
+    {
+        IMLOGE3("[Start] invalid codec[%d], mode[%d], or MTU[%d]", mCodecType, mPayloadMode,
+                mMaxFragmentUnitSize);
+        return RESULT_INVALID_PARAM;
+    }
+
+    if (mBuffer != nullptr)
+    {
+        return RESULT_NOT_READY;
     }
 
     IMLOGD3("[Start] codecType[%d], PayloadMode[%d], mtu[%d]", mCodecType, mPayloadMode,
@@ -133,6 +152,12 @@ void VideoRtpPayloadEncoderNode::OnDataFromFrontNode(ImsMediaSubType subtype, ui
     (void)nSeqNum;
     (void)nDataType;
     (void)arrivalTime;
+
+    if (pData == nullptr || nDataSize == 0)
+    {
+        IMLOGE0("[OnDataFromFrontNode] empty video frame");
+        return;
+    }
 
     switch (mCodecType)
     {
@@ -218,10 +243,8 @@ void VideoRtpPayloadEncoderNode::EncodeAvc(
     uint32_t nSkipSize;
     uint8_t* pStartCodePos;
     uint8_t nNalUnitType;
-    char spsEncoded[255];
-    uint32_t spsEncodedSize = 0;
-    char ppsEncoded[255];
-    uint32_t ppsEncodedSize = 0;
+    char spsEncoded[(MAX_CONFIG_LEN + 2) / 3 * 4 + 1] = {};
+    char ppsEncoded[(MAX_CONFIG_LEN + 2) / 3 * 4 + 1] = {};
 
     if (nDataSize > 5)
     {
@@ -234,6 +257,12 @@ void VideoRtpPayloadEncoderNode::EncodeAvc(
 
     if (pStartCodePos == nullptr)
     {
+        return;
+    }
+
+    if (nDataSize <= nSkipSize + 4)
+    {
+        IMLOGE0("[EncodeAvc] start code has no NAL unit");
         return;
     }
 
@@ -258,25 +287,39 @@ void VideoRtpPayloadEncoderNode::EncodeAvc(
 
         if (nNalUnitType == 7)
         {
+            if (nCurDataSize > sizeof(mSPS))
+            {
+                IMLOGE1("[EncodeAvc] SPS is too large[%u]", nCurDataSize);
+                return;
+            }
             memset(mSPS, 0, MAX_CONFIG_LEN);
             memcpy(mSPS, pCurDataPos, nCurDataSize);
             mSpsSize = nCurDataSize;
-            ImsMediaBinaryFormat::BinaryToBase00(
-                    spsEncoded, spsEncodedSize, mSPS, mSpsSize, BINARY_FORMAT_BASE64);
-            IMLOGD2("[EncodeAvc] save sps size[%d], data : %s", mSpsSize, spsEncoded);
+            if (ImsMediaBinaryFormat::BinaryToBase00(spsEncoded, sizeof(spsEncoded), mSPS,
+                        mSpsSize, BINARY_FORMAT_BASE64))
+            {
+                IMLOGD2("[EncodeAvc] save sps size[%d], data : %s", mSpsSize, spsEncoded);
+            }
         }
         else if (nNalUnitType == 8)
         {
+            if (nCurDataSize > sizeof(mPPS))
+            {
+                IMLOGE1("[EncodeAvc] PPS is too large[%u]", nCurDataSize);
+                return;
+            }
             memset(mPPS, 0, MAX_CONFIG_LEN);
             memcpy(mPPS, pCurDataPos, nCurDataSize);
             mPpsSize = nCurDataSize;
 
-            ImsMediaBinaryFormat::BinaryToBase00(
-                    ppsEncoded, ppsEncodedSize, mPPS, mPpsSize, BINARY_FORMAT_BASE64);
-            IMLOGD2("[EncodeAvc] save pps, size[%d], data : %s", mPpsSize, ppsEncoded);
+            if (ImsMediaBinaryFormat::BinaryToBase00(ppsEncoded, sizeof(ppsEncoded), mPPS,
+                        mPpsSize, BINARY_FORMAT_BASE64))
+            {
+                IMLOGD2("[EncodeAvc] save pps, size[%d], data : %s", mPpsSize, ppsEncoded);
+            }
         }
 
-        if (nDataSize < nCurDataSize + 4)
+        if (nDataSize <= nCurDataSize + 4)
         {
             return;
         }
@@ -289,9 +332,9 @@ void VideoRtpPayloadEncoderNode::EncodeAvc(
     if (nNalUnitType == 5)  // check idf frame, send sps/pps
     {
         // sps
-        EncodeAvcNALUnit(mSPS, mSpsSize, nTimestamp, 1, 7);
+        EncodeAvcNALUnit(mSPS, mSpsSize, nTimestamp, false, 7);
         // pps
-        EncodeAvcNALUnit(mPPS, mPpsSize, nTimestamp, 1, 8);
+        EncodeAvcNALUnit(mPPS, mPpsSize, nTimestamp, false, 8);
         IMLOGD0("[EncodeAvc] Send SPS, PPS when an I frame send");
     }
 
@@ -305,7 +348,12 @@ void VideoRtpPayloadEncoderNode::EncodeAvcNALUnit(
         uint8_t* pData, uint32_t nDataSize, uint32_t nTimestamp, bool bMark, uint32_t nNalUnitType)
 {
     uint8_t* pCurDataPos = pData;
-    uint32_t nMtu = mMaxFragmentUnitSize * 0.9;
+    const uint32_t nMtu = static_cast<uint32_t>(mMaxFragmentUnitSize) * 9 / 10;
+
+    if (pData == nullptr || nDataSize == 0)
+    {
+        return;
+    }
 
     if (nDataSize > 5)
     {
@@ -464,6 +512,12 @@ void VideoRtpPayloadEncoderNode::EncodeHevc(
         return;
     }
 
+    if (nDataSize < nSkipSize + 6)
+    {
+        IMLOGE0("[EncodeHevc] start code has no complete NAL header");
+        return;
+    }
+
     pCurDataPos = pStartCodePos + 4;
     nDataSize -= (nSkipSize + 4);
     nNalUnitType = (pCurDataPos[0] >> 1) & 0x3F;
@@ -481,10 +535,16 @@ void VideoRtpPayloadEncoderNode::EncodeHevc(
         }
 
         uint32_t nCurDataSize = pStartCodePos - pCurDataPos;
-        EncodeHevcNALUnit(pCurDataPos, nCurDataSize, nTimestamp, bMark, nNalUnitType);
+        // A following start code means this NAL cannot be the final packet for the access unit.
+        EncodeHevcNALUnit(pCurDataPos, nCurDataSize, nTimestamp, false, nNalUnitType);
 
         if (nNalUnitType == 32)
         {
+            if (nCurDataSize > sizeof(mVPS))
+            {
+                IMLOGE1("[EncodeHevc] VPS is too large[%u]", nCurDataSize);
+                return;
+            }
             memset(mVPS, 0, MAX_CONFIG_LEN);
             memcpy(mVPS, pCurDataPos, nCurDataSize);
             mVPSsize = nCurDataSize;
@@ -492,6 +552,11 @@ void VideoRtpPayloadEncoderNode::EncodeHevc(
         }
         else if (nNalUnitType == 33)
         {
+            if (nCurDataSize > sizeof(mSPS))
+            {
+                IMLOGE1("[EncodeHevc] SPS is too large[%u]", nCurDataSize);
+                return;
+            }
             memset(mSPS, 0, MAX_CONFIG_LEN);
             memcpy(mSPS, pCurDataPos, nCurDataSize);
             mSpsSize = nCurDataSize;
@@ -499,13 +564,18 @@ void VideoRtpPayloadEncoderNode::EncodeHevc(
         }
         else if (nNalUnitType == 34)
         {
+            if (nCurDataSize > sizeof(mPPS))
+            {
+                IMLOGE1("[EncodeHevc] PPS is too large[%u]", nCurDataSize);
+                return;
+            }
             memset(mPPS, 0, MAX_CONFIG_LEN);
             memcpy(mPPS, pCurDataPos, nCurDataSize);
             mPpsSize = nCurDataSize;
             IMLOGD1("[EncodeHevc] PPS Size [%d]", mPpsSize);
         }
 
-        if (nDataSize < nCurDataSize + 4)
+        if (nDataSize < nCurDataSize + 6)
         {
             IMLOGE0("[EncodeHevc] error - extract nal unit!!!");
             return;
@@ -521,20 +591,32 @@ void VideoRtpPayloadEncoderNode::EncodeHevc(
     if ((nNalUnitType == 19) || (nNalUnitType == 20) || (nNalUnitType == 21))
     {
         // sending vps/sps/pps on I-frame
-        EncodeHevcNALUnit(mVPS, mVPSsize, nTimestamp, 1, nNalUnitType);
-        EncodeHevcNALUnit(mSPS, mSpsSize, nTimestamp, 1, nNalUnitType);
-        EncodeHevcNALUnit(mPPS, mPpsSize, nTimestamp, 1, nNalUnitType);
+        EncodeHevcNALUnit(mVPS, mVPSsize, nTimestamp, false, 32);
+        EncodeHevcNALUnit(mSPS, mSpsSize, nTimestamp, false, 33);
+        EncodeHevcNALUnit(mPPS, mPpsSize, nTimestamp, false, 34);
     }
 
     if (nDataSize > 0)
     {
         EncodeHevcNALUnit(pCurDataPos, nDataSize, nTimestamp, bMark, nNalUnitType);
-        if (nNalUnitType == 34)
+        if (nNalUnitType >= 32 && nNalUnitType <= 34)
         {
-            memset(mPPS, 0, MAX_CONFIG_LEN);
-            memcpy(mPPS, pCurDataPos, nDataSize);
-            mPpsSize = nDataSize;
-            IMLOGD1("[EncodeHevc] PPS Size[%d]", mPpsSize);
+            uint8_t* destination = nNalUnitType == 32 ? mVPS
+                    : nNalUnitType == 33             ? mSPS
+                                                     : mPPS;
+            uint32_t* destinationSize = nNalUnitType == 32 ? &mVPSsize
+                    : nNalUnitType == 33                    ? &mSpsSize
+                                                            : &mPpsSize;
+            if (nDataSize > MAX_CONFIG_LEN)
+            {
+                IMLOGE1("[EncodeHevc] parameter set is too large[%u]", nDataSize);
+                return;
+            }
+            memset(destination, 0, MAX_CONFIG_LEN);
+            memcpy(destination, pCurDataPos, nDataSize);
+            *destinationSize = nDataSize;
+            IMLOGD2("[EncodeHevc] parameter set type[%u], size[%u]", nNalUnitType,
+                    nDataSize);
         }
     }
 }
@@ -543,7 +625,12 @@ void VideoRtpPayloadEncoderNode::EncodeHevcNALUnit(
         uint8_t* pData, uint32_t nDataSize, uint32_t nTimestamp, bool bMark, uint32_t nNalUnitType)
 {
     uint8_t* pCurDataPos = pData;
-    uint32_t nMtu = mMaxFragmentUnitSize * 0.9;
+    const uint32_t nMtu = static_cast<uint32_t>(mMaxFragmentUnitSize) * 9 / 10;
+
+    if (pData == nullptr || nDataSize < 2)
+    {
+        return;
+    }
 
     if (nDataSize > 5)
     {

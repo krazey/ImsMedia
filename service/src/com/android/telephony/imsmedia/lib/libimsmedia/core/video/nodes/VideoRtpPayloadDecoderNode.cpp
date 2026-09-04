@@ -34,7 +34,10 @@ VideoRtpPayloadDecoderNode::VideoRtpPayloadDecoderNode(BaseSessionCallback* call
     mSbitfirstByte = 0;
 }
 
-VideoRtpPayloadDecoderNode::~VideoRtpPayloadDecoderNode() {}
+VideoRtpPayloadDecoderNode::~VideoRtpPayloadDecoderNode()
+{
+    Stop();
+}
 
 kBaseNodeId VideoRtpPayloadDecoderNode::GetNodeId()
 {
@@ -44,6 +47,18 @@ kBaseNodeId VideoRtpPayloadDecoderNode::GetNodeId()
 ImsMediaResult VideoRtpPayloadDecoderNode::Start()
 {
     IMLOGD2("[Start] Codec[%d], PayloadMode[%d]", mCodecType, mPayloadMode);
+
+    if ((mCodecType != VideoConfig::CODEC_AVC && mCodecType != VideoConfig::CODEC_HEVC) ||
+            (mPayloadMode != kRtpPayloadHeaderModeSingleNalUnit &&
+                    mPayloadMode != kRtpPayloadHeaderModeNonInterleaved))
+    {
+        return RESULT_INVALID_PARAM;
+    }
+
+    if (mBuffer != nullptr)
+    {
+        return RESULT_NOT_READY;
+    }
 
     mBuffer = reinterpret_cast<uint8_t*>(malloc(MAX_RTP_PAYLOAD_BUFFER_SIZE * sizeof(uint8_t)));
 
@@ -131,7 +146,8 @@ void VideoRtpPayloadDecoderNode::OnDataFromFrontNode(ImsMediaSubType subtype, ui
 void VideoRtpPayloadDecoderNode::DecodeAvc(ImsMediaSubType subtype, uint8_t* pData,
         uint32_t nDataSize, uint32_t nTimeStamp, bool bMark, uint32_t nSeqNum, uint32_t arrivalTime)
 {
-    if (pData == nullptr || nDataSize == 0 || mBuffer == nullptr)
+    if (pData == nullptr || nDataSize == 0 ||
+            nDataSize > MAX_RTP_PAYLOAD_BUFFER_SIZE || mBuffer == nullptr)
     {
         return;
     }
@@ -150,6 +166,12 @@ void VideoRtpPayloadDecoderNode::DecodeAvc(ImsMediaSubType subtype, uint8_t* pDa
 
     if (bPacketType >= 1 && bPacketType <= 23)
     {  // Single NAL unit packet
+        if (nDataSize > MAX_RTP_PAYLOAD_BUFFER_SIZE - 4)
+        {
+            IMLOGE1("[DecodeAvc] single NAL is too large[%u]", nDataSize);
+            return;
+        }
+
         memcpy(mBuffer + 4, pData, nDataSize);
 
         if ((bPacketType & 0x1F) == 7 || (bPacketType & 0x1F) == 8)
@@ -174,6 +196,12 @@ void VideoRtpPayloadDecoderNode::DecodeAvc(ImsMediaSubType subtype, uint8_t* pDa
     }
     else if (bPacketType == 24)
     {  // STAP-A
+        if (nDataSize < 4)
+        {
+            IMLOGE1("[DecodeAvc] truncated STAP-A payload[%u]", nDataSize);
+            return;
+        }
+
         uint8_t* pCurrData = pData + 1;
         int32_t nRemainSize = (int32_t)(nDataSize - 1);
 
@@ -182,46 +210,65 @@ void VideoRtpPayloadDecoderNode::DecodeAvc(ImsMediaSubType subtype, uint8_t* pDa
             IMLOGD_PACKET0(IM_PACKET_LOG_PH, "[DecodeAvc] Warning - single nal unit mode");
         }
 
-        bPacketType = pCurrData[2] & 0x1F;
-
-        if ((bPacketType & 0x1F) == 7 || (bPacketType & 0x1F) == 8)
+        while (nRemainSize > 0)
         {
-            eDataType = MEDIASUBTYPE_VIDEO_CONFIGSTRING;
-        }
-        else if ((bPacketType & 0x1F) == 5)
-        {  // check idr frame
-            eDataType = MEDIASUBTYPE_VIDEO_IDR_FRAME;
-        }
-        else
-        {
-            eDataType = MEDIASUBTYPE_VIDEO_NON_IDR_FRAME;
-        }
+            if (nRemainSize < 2)
+            {
+                IMLOGE1("[DecodeAvc] truncated STAP-A length[%d]", nRemainSize);
+                return;
+            }
 
-        IMLOGD2("[DecodeAvc] eDataType[%u], nRemainSize[%u]", eDataType, nRemainSize);
-
-        while (nRemainSize > 2)
-        {
             // read NAL unit size
             uint32_t nNALUnitsize = pCurrData[0];
             nNALUnitsize = (nNALUnitsize << 8) + pCurrData[1];
             IMLOGD_PACKET1(IM_PACKET_LOG_PH, "[DecodeAvc] STAP-A nNALUnitsize[%d]", nNALUnitsize);
             pCurrData += 2;
             nRemainSize -= 2;
-            // Read and Send NAL
-            if (nRemainSize >= (int32_t)nNALUnitsize)
+            if (nNALUnitsize == 0 || nNALUnitsize > static_cast<uint32_t>(nRemainSize) ||
+                    nNALUnitsize > MAX_RTP_PAYLOAD_BUFFER_SIZE - 4)
             {
-                IMLOGD_PACKET1(IM_PACKET_LOG_PH, "[DecodeAvc] STAP-A [%02X] nNALUnitsize[%d]",
-                        nNALUnitsize);
-                memcpy(mBuffer + 4, pCurrData, nNALUnitsize);
-                SendDataToRearNode(subtype, mBuffer, nNALUnitsize + 4, nTimeStamp, bMark, nSeqNum,
-                        eDataType, arrivalTime);
+                IMLOGE2("[DecodeAvc] invalid STAP-A NAL size[%u], remaining[%d]", nNALUnitsize,
+                        nRemainSize);
+                return;
             }
+
+            bPacketType = pCurrData[0] & 0x1F;
+            if (bPacketType == 7 || bPacketType == 8)
+            {
+                eDataType = MEDIASUBTYPE_VIDEO_CONFIGSTRING;
+            }
+            else if (bPacketType == 5)
+            {
+                eDataType = MEDIASUBTYPE_VIDEO_IDR_FRAME;
+            }
+            else if (bPacketType == 6)
+            {
+                eDataType = MEDIASUBTYPE_VIDEO_SEI_FRAME;
+            }
+            else
+            {
+                eDataType = MEDIASUBTYPE_VIDEO_NON_IDR_FRAME;
+            }
+
+            // Read and Send NAL
+            IMLOGD_PACKET1(IM_PACKET_LOG_PH, "[DecodeAvc] STAP-A nNALUnitsize[%d]",
+                    nNALUnitsize);
+            memcpy(mBuffer + 4, pCurrData, nNALUnitsize);
+            const bool isLastNal = nNALUnitsize == static_cast<uint32_t>(nRemainSize);
+            SendDataToRearNode(subtype, mBuffer, nNALUnitsize + 4, nTimeStamp,
+                    isLastNal ? bMark : false, nSeqNum, eDataType, arrivalTime);
             pCurrData += nNALUnitsize;
             nRemainSize -= nNALUnitsize;
         }
     }
     else if (bPacketType == 28)
     {  // FU-A
+        if (nDataSize < 2)
+        {
+            IMLOGE1("[DecodeAvc] truncated FU-A payload[%u]", nDataSize);
+            return;
+        }
+
         uint8_t bFUIndicator;
         uint8_t bFUHeader;
         uint8_t bNALUnitType;
@@ -238,6 +285,12 @@ void VideoRtpPayloadDecoderNode::DecodeAvc(ImsMediaSubType subtype, uint8_t* pDa
         bNALUnitType = (bFUIndicator & 0xE0) | (bFUHeader & 0x1F);
         bStartBit = (bFUHeader >> 7) & 0x01;
         bEndBit = (bFUHeader >> 6) & 0x01;
+        if ((bStartBit != 0 && bEndBit != 0) || (bFUHeader & 0x20) != 0 ||
+                (bFUHeader & 0x1F) == 0)
+        {
+            IMLOGE0("[DecodeAvc] invalid FU-A header");
+            return;
+        }
 
         if ((bNALUnitType & 0x1F) == 7 || (bNALUnitType & 0x1F) == 8)
         {
@@ -254,6 +307,12 @@ void VideoRtpPayloadDecoderNode::DecodeAvc(ImsMediaSubType subtype, uint8_t* pDa
 
         if (bStartBit)
         {
+            if (nDataSize > MAX_RTP_PAYLOAD_BUFFER_SIZE - 3)
+            {
+                IMLOGE1("[DecodeAvc] FU-A fragment is too large[%u]", nDataSize);
+                return;
+            }
+
             mBuffer[4] = bNALUnitType;  // for video decoder
             memcpy(mBuffer + 5, pData + 2, nDataSize - 2);
 
@@ -283,7 +342,7 @@ void VideoRtpPayloadDecoderNode::DecodeAvc(ImsMediaSubType subtype, uint8_t* pDa
 void VideoRtpPayloadDecoderNode::DecodeHevc(ImsMediaSubType subtype, uint8_t* pData,
         uint32_t nDataSize, uint32_t nTimeStamp, bool bMark, uint32_t nSeqNum, uint32_t arrivalTime)
 {
-    if (pData == nullptr || nDataSize == 0)
+    if (pData == nullptr || nDataSize < 2 || nDataSize > MAX_RTP_PAYLOAD_BUFFER_SIZE)
     {
         IMLOGE1("[DecodeHevc] INVALID Data, Size[%d]", nDataSize);
         return;
@@ -296,6 +355,11 @@ void VideoRtpPayloadDecoderNode::DecodeHevc(ImsMediaSubType subtype, uint8_t* pD
 
     // check packet type
     uint8_t bPacketType = (pData[0] & 0x7E) >> 1;
+    if ((pData[1] & 0x07) == 0)
+    {
+        IMLOGE0("[DecodeHevc] invalid temporal_id_plus1");
+        return;
+    }
     ImsMediaSubType eDataType = MEDIASUBTYPE_UNDEFINED;
 
     // Please check Decoder Start Code...
@@ -310,14 +374,20 @@ void VideoRtpPayloadDecoderNode::DecodeHevc(ImsMediaSubType subtype, uint8_t* pD
 
     if (bPacketType <= 40)
     {  // Single NAL unit packet
+        if (nDataSize > MAX_RTP_PAYLOAD_BUFFER_SIZE - 4)
+        {
+            IMLOGE1("[DecodeHevc] single NAL is too large[%u]", nDataSize);
+            return;
+        }
+
         memcpy(mBuffer + 4, pData, nDataSize);
 
         if (bPacketType >= 32 && bPacketType <= 34)
         {  // 32: VPS, 33: SPS, 34: PPS
             eDataType = MEDIASUBTYPE_VIDEO_CONFIGSTRING;
         }
-        else if (bPacketType == 19 || bPacketType == 20)
-        {  // IDR
+        else if (bPacketType == 19 || bPacketType == 20 || bPacketType == 21)
+        {  // IDR or CRA
             eDataType = MEDIASUBTYPE_VIDEO_IDR_FRAME;
         }
         else
@@ -334,6 +404,12 @@ void VideoRtpPayloadDecoderNode::DecodeHevc(ImsMediaSubType subtype, uint8_t* pD
     }
     else if (bPacketType == 49)
     {  // FU-A
+        if (nDataSize < 3)
+        {
+            IMLOGE1("[DecodeHevc] truncated FU payload[%u]", nDataSize);
+            return;
+        }
+
         uint8_t bFUIndicator1;
         uint8_t bFUIndicator2;
         uint8_t bFUHeader;
@@ -352,6 +428,11 @@ void VideoRtpPayloadDecoderNode::DecodeHevc(ImsMediaSubType subtype, uint8_t* pD
         bNALUnitType = (bFUIndicator1 & 0x81) | ((bFUHeader & 0x3F) << 1);
         bStartBit = (bFUHeader >> 7) & 0x01;
         bEndBit = (bFUHeader >> 6) & 0x01;
+        if ((bStartBit != 0 && bEndBit != 0) || (bFUHeader & 0x3F) >= 48)
+        {
+            IMLOGE0("[DecodeHevc] invalid FU header");
+            return;
+        }
 
         uint8_t frameType = (bNALUnitType & 0x7E) >> 1;
 
@@ -359,8 +440,8 @@ void VideoRtpPayloadDecoderNode::DecodeHevc(ImsMediaSubType subtype, uint8_t* pD
         {  // 32: VPS, 33: SPS, 34: PPS
             eDataType = MEDIASUBTYPE_VIDEO_CONFIGSTRING;
         }
-        else if (frameType == 19 || frameType == 20)
-        {  // IDR
+        else if (frameType == 19 || frameType == 20 || frameType == 21)
+        {  // IDR or CRA
             eDataType = MEDIASUBTYPE_VIDEO_IDR_FRAME;
         }
         else
@@ -370,6 +451,12 @@ void VideoRtpPayloadDecoderNode::DecodeHevc(ImsMediaSubType subtype, uint8_t* pD
 
         if (bStartBit)
         {
+            if (nDataSize > MAX_RTP_PAYLOAD_BUFFER_SIZE - 3)
+            {
+                IMLOGE1("[DecodeHevc] FU fragment is too large[%u]", nDataSize);
+                return;
+            }
+
             mBuffer[4] = bNALUnitType;  // for decoder
             mBuffer[5] = bFUIndicator2;
             memcpy(mBuffer + 6, pData + 3, nDataSize - 3);

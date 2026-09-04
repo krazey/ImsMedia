@@ -67,7 +67,7 @@ private:
     uint32_t mVPSsize;
     uint32_t mSpsSize;
     uint32_t mPpsSize;
-    uint32_t mMaxFragmentUnitSize;
+    int32_t mMaxFragmentUnitSize;
 };
 
 #endif  // VIDEO_RTP_PAYLOAD_ENCODER_NODE_H_INCLUDED
