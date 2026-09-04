@@ -16,8 +16,9 @@
 
 #include <IImsMediaThread.h>
 #include <ImsMediaTrace.h>
-#include <thread>
 #include <mediautils/SchedulingPolicyService.h>
+#include <pthread.h>
+#include <string.h>
 
 #define MAX_THREAD_NAME_LEN 16
 
@@ -44,25 +45,39 @@ void* runThread(void* arg)
 
 bool IImsMediaThread::StartThread(const char* name)
 {
-    IMLOGD1("[StartThread] name:%s", name);
+    IMLOGD1("[StartThread] name:%s", name != nullptr ? name : "(null)");
     ImsMediaMutex::Autolock lock(mThreadMutex);
     mThreadStopped = false;
 
-    std::thread t1(&runThread, this);
+    pthread_t thread;
+    const int threadError = pthread_create(&thread, nullptr, runThread, this);
+    if (threadError != 0)
+    {
+        mThreadStopped = true;
+        IMLOGE1("[StartThread] unable to create thread: %s", strerror(threadError));
+        return false;
+    }
+
     if (name)
     {
         if (strlen(name) >= MAX_THREAD_NAME_LEN)
         {
             char shortname[MAX_THREAD_NAME_LEN];
             strncpy(shortname, name, MAX_THREAD_NAME_LEN - 1);
-            pthread_setname_np(t1.native_handle(), shortname);
+            shortname[MAX_THREAD_NAME_LEN - 1] = '\0';
+            pthread_setname_np(thread, shortname);
         }
         else
         {
-            pthread_setname_np(t1.native_handle(), name);
+            pthread_setname_np(thread, name);
         }
     }
-    t1.detach();
+
+    const int detachError = pthread_detach(thread);
+    if (detachError != 0)
+    {
+        IMLOGE1("[StartThread] unable to detach thread: %s", strerror(detachError));
+    }
     return true;
 }
 
