@@ -26,7 +26,7 @@
 #include <media/NdkMediaFormat.h>
 #include <media/NdkImageReader.h>
 #include <ImsMediaMutex.h>
-#include <ImsMediaCondition.h>
+#include <pthread.h>
 #include "ImsMediaPauseImageSource.h"
 
 class IVideoSourceCallback
@@ -147,6 +147,7 @@ public:
     void requestIdrFrame();
 
 private:
+    static void* RunPauseImageThread(void* context);
     void EncodePauseImage();
     void processOutputBuffer();
     ANativeWindow* CreateImageReader(int width, int height);
@@ -158,7 +159,8 @@ private:
     ANativeWindow* mImageReaderSurface;
     AImageReader* mImageReader;
     ImsMediaMutex mMutex;
-    ImsMediaCondition mConditionExit;
+    pthread_t mPauseImageThread;
+    bool mPauseImageThreadStarted;
     IVideoSourceCallback* mListener;
     ImsMediaPauseImageSource mPauseImageSource;
     int32_t mCodecType;
@@ -178,5 +180,6 @@ private:
     uint64_t mTimestamp;
     uint64_t mPrevTimestamp;
     bool mStopped;
+    bool mCodecStarted;
 };
 #endif
