@@ -64,13 +64,13 @@ void ImsMediaCondition::wait()
 {
     while (pthread_mutex_lock(mMutex) == EINTR)
         ;
-    if (mSignalFlag & (1 << mWaitCount))
+    if (mSignalFlag & (1U << mWaitCount))
     {  // signal() had been reached before wait()
-        mSignalFlag = mSignalFlag ^ (1 << mWaitCount);
+        mSignalFlag = mSignalFlag ^ (1U << mWaitCount);
     }
     else
     {
-        mWaitFlag = mWaitFlag | (1 << mWaitCount);
+        mWaitFlag = mWaitFlag | (1U << mWaitCount);
         while (pthread_cond_wait(mCondition, mMutex) == EINTR)
             ;
     }
@@ -99,13 +99,13 @@ bool ImsMediaCondition::wait_timeout(int64_t nRelativeTime)
     // wait
     while (pthread_mutex_lock(mMutex) == EINTR)
         ;
-    if (mSignalFlag & (1 << mWaitCount))
+    if (mSignalFlag & (1U << mWaitCount))
     {  // signal() had been reached before wait()
-        mSignalFlag = mSignalFlag ^ (1 << mWaitCount);
+        mSignalFlag = mSignalFlag ^ (1U << mWaitCount);
     }
     else
     {
-        mWaitFlag = mWaitFlag | (1 << mWaitCount);
+        mWaitFlag = mWaitFlag | (1U << mWaitCount);
         while (pthread_cond_timedwait(mCondition, mMutex, &ts) == EINTR)
             ;
     }
@@ -136,13 +136,13 @@ void ImsMediaCondition::signal()
     while (pthread_mutex_lock(mMutex) == EINTR)
         ;
 
-    if (mWaitFlag & (1 << mSignalCount))
+    if (mWaitFlag & (1U << mSignalCount))
     {
-        mWaitFlag = mWaitFlag ^ (1 << mSignalCount);
+        mWaitFlag = mWaitFlag ^ (1U << mSignalCount);
     }
     else
     {
-        mSignalFlag = mSignalFlag | (1 << mSignalCount);
+        mSignalFlag = mSignalFlag | (1U << mSignalCount);
     }
 
     pthread_cond_signal(mCondition);

@@ -88,6 +88,10 @@ public:
                  */
                 raise(SIGTERM);
             }
+
+            // The RAII guard will always unlock on destruction. If a signal handler or timeout
+            // callback returns, wait until ownership is actually acquired before returning.
+            mMutex->lock();
         }
     }
 
