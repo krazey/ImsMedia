@@ -28,6 +28,7 @@
 #define JITTER_BUFFER_SIZE_INIT   3
 #define JITTER_BUFFER_SIZE_MIN    3
 #define JITTER_BUFFER_SIZE_MAX    11
+#define AUDIO_PLAYER_STOP_TIMEOUT 3000
 
 IAudioPlayerNode::IAudioPlayerNode(BaseSessionCallback* callback) :
         JitterBufferControlNode(callback, IMS_MEDIA_AUDIO)
@@ -42,6 +43,7 @@ IAudioPlayerNode::IAudioPlayerNode(BaseSessionCallback* callback) :
 
 IAudioPlayerNode::~IAudioPlayerNode()
 {
+    Stop();
     if (mConfig != nullptr)
     {
         delete mConfig;
@@ -100,17 +102,26 @@ ImsMediaResult IAudioPlayerNode::Start()
         return RESULT_NOT_READY;
     }
 
+    mCondition.reset();
     mNodeState = kNodeStateRunning;
-    StartThread("IAudioPlayerNode");
+    if (!StartThread("IAudioPlayerNode"))
+    {
+        IMLOGE0("[IAudioPlayer] playback thread failed to start");
+        mAudioPlayer->Stop();
+        mNodeState = kNodeStateStopped;
+        return RESULT_NOT_READY;
+    }
     return RESULT_SUCCESS;
 }
 
 void IAudioPlayerNode::Stop()
 {
     IMLOGD0("[Stop]");
-    StopThread();
-    mCondition.reset();
-    mCondition.wait_timeout(AUDIO_STOP_TIMEOUT);
+    if (!IsThreadStopped())
+    {
+        StopThread();
+        mCondition.wait_timeout(AUDIO_PLAYER_STOP_TIMEOUT);
+    }
 
     if (mAudioPlayer)
     {

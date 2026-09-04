@@ -42,7 +42,10 @@ IAudioSourceNode::IAudioSourceNode(BaseSessionCallback* callback) :
     mIsDtxEnabled = false;
 }
 
-IAudioSourceNode::~IAudioSourceNode() {}
+IAudioSourceNode::~IAudioSourceNode()
+{
+    Stop();
+}
 
 kBaseNodeId IAudioSourceNode::GetNodeId()
 {

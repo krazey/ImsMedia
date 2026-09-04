@@ -161,11 +161,14 @@ void AudioRtpPayloadDecoderNode::DecodePayloadAmr(uint8_t* pData, uint32_t nData
         return;
     }
 
+    mListFrameType.clear();
+
     uint32_t timestamp = nTimestamp;
     uint32_t frameTypeIndex;
     uint32_t hasNextFrame;
     uint32_t cmr;
     uint32_t frameQualityIndicator;  // Q_Speech_Sid_Bad
+    std::list<uint32_t> frameQualityIndicators;
 
     IMLOGD_PACKET5(IM_PACKET_LOG_PH,
             "[DecodePayloadAmr] codec type[%d], octetAligned[%d], size[%d], TS[%u], "
@@ -220,11 +223,18 @@ void AudioRtpPayloadDecoderNode::DecodePayloadAmr(uint8_t* pData, uint32_t nData
         frameQualityIndicator = mBitReader.Read(1);  // q(1)
         IMLOGD_PACKET3(IM_PACKET_LOG_PH, "[DecodePayloadAmr] ToC F=%d, FT=%d, Q=%d", hasNextFrame,
                 frameTypeIndex, frameQualityIndicator);
-        mListFrameType.push_back(frameTypeIndex);
         if (mOctetAligned)
         {
             mBitReader.Read(2);  // padding
         }
+
+        if (mBitReader.IsBufferEnd())
+        {
+            mListFrameType.clear();
+            return;
+        }
+        mListFrameType.push_back(frameTypeIndex);
+        frameQualityIndicators.push_back(frameQualityIndicator);
     } while (hasNextFrame == 1);
 
     // read speech frames
@@ -232,6 +242,7 @@ void AudioRtpPayloadDecoderNode::DecodePayloadAmr(uint8_t* pData, uint32_t nData
     {
         uint32_t dataBitSize;
         frameTypeIndex = mListFrameType.front();
+        frameQualityIndicator = frameQualityIndicators.front();
         if (mCodecType == kAudioCodecAmr)
         {
             dataBitSize = ImsMediaAudioUtil::ConvertAmrModeToBitLen(frameTypeIndex);
@@ -242,6 +253,7 @@ void AudioRtpPayloadDecoderNode::DecodePayloadAmr(uint8_t* pData, uint32_t nData
         }
 
         mListFrameType.pop_front();
+        frameQualityIndicators.pop_front();
         mBitWriter.SetBuffer(mPayload, MAX_AUDIO_PAYLOAD_SIZE);
         uint32_t bufferSize = (dataBitSize + 7) >> 3;
 
@@ -253,13 +265,22 @@ void AudioRtpPayloadDecoderNode::DecodePayloadAmr(uint8_t* pData, uint32_t nData
         mBitWriter.Write(frameTypeIndex, 4);
         mBitWriter.Write(frameQualityIndicator, 1);
         mBitWriter.Write(0, 2);
-        mBitReader.ReadByteBuffer(mPayload + 1, dataBitSize);
+        if (!mBitReader.ReadByteBuffer(mPayload + 1, dataBitSize))
+        {
+            mListFrameType.clear();
+            return;
+        }
         bufferSize++;
 
         if (mOctetAligned)
         {
             uint32_t paddingSize = (8 - (dataBitSize & 0x07)) & 0x07;
             mBitReader.Read(paddingSize);
+            if (mBitReader.IsBufferEnd())
+            {
+                mListFrameType.clear();
+                return;
+            }
         }
 
         IMLOGD_PACKET6(IM_PACKET_LOG_PH,
@@ -281,6 +302,15 @@ void AudioRtpPayloadDecoderNode::DecodePayloadEvs(uint8_t* pData, uint32_t nData
     {
         return;
     }
+
+    mListFrameType.clear();
+    struct EvsToc
+    {
+        uint32_t mode;
+        uint32_t quality;
+        uint32_t bitrate;
+    };
+    std::list<EvsToc> frameTocs;
 
     IMLOGD_PACKET4(IM_PACKET_LOG_PH,
             "[DecodePayloadEvs] codec type[%d], size[%d], TS[%u], arrivalTime[%u]", mCodecType,
@@ -369,7 +399,10 @@ void AudioRtpPayloadDecoderNode::DecodePayloadEvs(uint8_t* pData, uint32_t nData
             nDataBitSize =
                     ImsMediaAudioUtil::ConvertEVSAudioModeToBitLen((kImsAudioEvsMode)nFrameType);
 
-            mBitReader.ReadByteBuffer(mPayload, nDataBitSize);
+            if (!mBitReader.ReadByteBuffer(mPayload, nDataBitSize))
+            {
+                return;
+            }
 
             IMLOGD_PACKET6(IM_PACKET_LOG_PH,
                     "[DecodePayloadEvs] Result=%02X %02X %02X %02X, len=%d,nFrameType=%d",
@@ -495,7 +528,10 @@ void AudioRtpPayloadDecoderNode::DecodePayloadEvs(uint8_t* pData, uint32_t nData
                 }
             }
 
-            mBitReader.ReadByteBuffer(mPayload, nDataBitSize);
+            if (!mBitReader.ReadByteBuffer(mPayload, nDataBitSize))
+            {
+                return;
+            }
 
             // last data bit is speech first bit..
             if (nFrameType != kImsAudioAmrWbModeSID)
@@ -549,6 +585,10 @@ void AudioRtpPayloadDecoderNode::DecodePayloadEvs(uint8_t* pData, uint32_t nData
             {
                 cmr_t = mBitReader.Read(3);
                 cmr_d = mBitReader.Read(4);
+                if (mBitReader.IsBufferEnd())
+                {
+                    return;
+                }
                 uint32_t currCmr = (cmr_t << 4) + cmr_d;
 
                 if (currCmr != mPrevCMR)
@@ -665,16 +705,25 @@ void AudioRtpPayloadDecoderNode::DecodePayloadEvs(uint8_t* pData, uint32_t nData
                 toc_ft_q = mBitReader.Read(1);
                 toc_ft_b = mBitReader.Read(4);
 
-                mListFrameType.push_back(toc_ft_b);
+                if (mBitReader.IsBufferEnd())
+                {
+                    return;
+                }
+
+                frameTocs.push_back({toc_ft_m, toc_ft_q, toc_ft_b});
             }
         } while (toc_f == 1);
 
         //
         // read speech frames
         //
-        while (mListFrameType.size() > 0)
+        while (!frameTocs.empty())
         {
-            mListFrameType.pop_front();
+            const EvsToc toc = frameTocs.front();
+            frameTocs.pop_front();
+            toc_ft_m = toc.mode;
+            toc_ft_q = toc.quality;
+            toc_ft_b = toc.bitrate;
 
             if (toc_ft_m == 0)  // EVS Primary mode
             {
@@ -695,7 +744,10 @@ void AudioRtpPayloadDecoderNode::DecodePayloadEvs(uint8_t* pData, uint32_t nData
             mBitWriter.Write(toc_ft_m, 1);
             mBitWriter.Write(toc_ft_q, 1);
             mBitWriter.Write(toc_ft_b, 4);
-            mBitReader.ReadByteBuffer(mPayload + 1, nDataBitSize);
+            if (!mBitReader.ReadByteBuffer(mPayload + 1, nDataBitSize))
+            {
+                return;
+            }
             bufferSize++;
 
             // remove padding bit
@@ -703,6 +755,10 @@ void AudioRtpPayloadDecoderNode::DecodePayloadEvs(uint8_t* pData, uint32_t nData
                 uint32_t nPaddingSize;
                 nPaddingSize = (8 - (nDataBitSize & 0x07)) & 0x07;
                 mBitReader.Read(nPaddingSize);
+                if (mBitReader.IsBufferEnd())
+                {
+                    return;
+                }
             }
 
             IMLOGD_PACKET6(IM_PACKET_LOG_PH,
@@ -710,7 +766,7 @@ void AudioRtpPayloadDecoderNode::DecodePayloadEvs(uint8_t* pData, uint32_t nData
                     mPayload[0], mPayload[1], mPayload[2], mPayload[3], bufferSize, toc_ft_b);
 
             SendDataToRearNode(MEDIASUBTYPE_RTPPAYLOAD, mPayload, bufferSize, timestamp,
-                    mListFrameType.size(), nSeqNum, subType, arrivalTime);
+                    frameTocs.size(), nSeqNum, subType, arrivalTime);
 
             timestamp += 20;
         }
