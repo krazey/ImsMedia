@@ -15,9 +15,11 @@
  */
 
 #include <stdio.h>
+#include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include <android-base/unique_fd.h>
+#include <android/bitmap.h>
 #include <android/imagedecoder.h>
 #include <ImsMediaTrace.h>
 #include "ImsMediaPauseImageSource.h"
@@ -61,12 +63,22 @@ void ImsMediaPauseImageSource::Uninitialize()
         free(mYuvImageBuffer);
         mYuvImageBuffer = nullptr;
     }
+    mBufferSize = 0;
 }
 
 bool ImsMediaPauseImageSource::Initialize(int width, int height, int stride)
 {
     IMLOGD3("[ImsMediaPauseImageSource] Init(width:%d, height:%d, stride:%d)", width, height,
             stride);
+    Uninitialize();
+    if (width <= 0 || height <= 0 || stride < width || width % 2 != 0 || height % 2 != 0 ||
+            stride % 2 != 0)
+    {
+        IMLOGE3("[ImsMediaPauseImageSource] Invalid dimensions[%dx%d], stride[%d]", width,
+                height, stride);
+        return false;
+    }
+
     mWidth = width;
     mHeight = height;
 
@@ -78,11 +90,21 @@ bool ImsMediaPauseImageSource::Initialize(int width, int height, int stride)
         return false;
     }
 
-    AImageDecoder* decoder;
+    AImageDecoder* decoder = nullptr;
     int result = AImageDecoder_createFromAAsset(asset, &decoder);
     if (result != ANDROID_IMAGE_DECODER_SUCCESS)
     {
         IMLOGE0("[ImsMediaPauseImageSource] Failed to decode pause image");
+        AAsset_close(asset);
+        return false;
+    }
+
+    result = AImageDecoder_setAndroidBitmapFormat(decoder, ANDROID_BITMAP_FORMAT_RGBA_8888);
+    if (result != ANDROID_IMAGE_DECODER_SUCCESS)
+    {
+        IMLOGE0("[ImsMediaPauseImageSource] Failed to select RGBA output");
+        AImageDecoder_delete(decoder);
+        AAsset_close(asset);
         return false;
     }
 
@@ -98,39 +120,49 @@ bool ImsMediaPauseImageSource::Initialize(int width, int height, int stride)
         return false;
     }
 
-    /*
-     * TODO: AImageDecoder output should be in ANDROID_BITMAP_FORMAT_RGBA_8888 format.
-     *       If not, configure AImageDecoder accordingly.
-     *
-     * AndroidBitmapFormat format =
-     *      (AndroidBitmapFormat)AImageDecoderHeaderInfo_getAndroidBitmapFormat(info);
-     */
-
     size_t decStride = AImageDecoder_getMinimumStride(decoder);  // Image decoder does not
     // use padding by default
-    size_t size = height * decStride;
+    if (static_cast<size_t>(width) > SIZE_MAX / 4 ||
+            decStride < static_cast<size_t>(width) * 4 ||
+            decStride > SIZE_MAX / static_cast<size_t>(height))
+    {
+        IMLOGE0("[ImsMediaPauseImageSource] Invalid decoder stride");
+        AImageDecoder_delete(decoder);
+        AAsset_close(asset);
+        return false;
+    }
+
+    size_t size = static_cast<size_t>(height) * decStride;
     int8_t* pixels = reinterpret_cast<int8_t*>(malloc(size));
+    if (pixels == nullptr)
+    {
+        IMLOGE0("[ImsMediaPauseImageSource] Failed to allocate RGBA buffer");
+        AImageDecoder_delete(decoder);
+        AAsset_close(asset);
+        return false;
+    }
 
     result = AImageDecoder_decodeImage(decoder, pixels, decStride, size);
     if (result != ANDROID_IMAGE_DECODER_SUCCESS)
     {
         IMLOGE0("[ImsMediaPauseImageSource] error occurred, and the file could not be decoded.");
         AImageDecoder_delete(decoder);
+        free(pixels);
         AAsset_close(asset);
         return false;
     }
 
-    mYuvImageBuffer = ConvertRgbaToYuv(pixels, width, height, stride);
+    mYuvImageBuffer = ConvertRgbaToYuv(pixels, width, height, stride, decStride);
 
     AImageDecoder_delete(decoder);
     free(pixels);
     AAsset_close(asset);
-    return true;
+    return mYuvImageBuffer != nullptr;
 }
 
 size_t ImsMediaPauseImageSource::GetYuvImage(uint8_t* buffer, size_t len)
 {
-    if (buffer == nullptr)
+    if (buffer == nullptr || mYuvImageBuffer == nullptr || mBufferSize == 0)
     {
         IMLOGE0("[ImsMediaPauseImageSource] GetYuvImage. buffer == nullptr");
         return 0;
@@ -142,7 +174,7 @@ size_t ImsMediaPauseImageSource::GetYuvImage(uint8_t* buffer, size_t len)
         return mBufferSize;
     }
 
-    IMLOGE2("[ImsMediaPauseImageSource] buffer size is smaller. Expected Bufsize[%d], passed[%d]",
+    IMLOGE2("[ImsMediaPauseImageSource] buffer size is smaller. Expected Bufsize[%zu], passed[%zu]",
             mBufferSize, len);
     return 0;
 }
@@ -157,6 +189,10 @@ AAsset* ImsMediaPauseImageSource::getImageAsset()
     }
 
     const char* filePath = getImageFilePath();
+    if (filePath == nullptr)
+    {
+        return nullptr;
+    }
     return AAssetManager_open(gpAssetManager, filePath, AASSET_MODE_RANDOM);
 }
 
@@ -203,39 +239,57 @@ const char* ImsMediaPauseImageSource::getImageFilePath()
 }
 
 int8_t* ImsMediaPauseImageSource::ConvertRgbaToYuv(
-        int8_t* pixels, int width, int height, int stride)
+        int8_t* pixels, int width, int height, int stride, size_t sourceStride)
 {
-    // src array must be integer array, data have no padding alignment
-    int32_t* pSrcArray = reinterpret_cast<int32_t*>(pixels);
-    mBufferSize = stride * height * 1.5;
-    int8_t* pDstArray = reinterpret_cast<int8_t*>(malloc(mBufferSize));
-    int32_t nYIndex = 0;
-    int32_t nUVIndex = stride * height;
+    if (pixels == nullptr || width <= 0 || height <= 0 || stride < width)
+    {
+        return nullptr;
+    }
+
+    if (static_cast<size_t>(stride) > SIZE_MAX / static_cast<size_t>(height))
+    {
+        return nullptr;
+    }
+    const size_t yPlaneSize = static_cast<size_t>(stride) * height;
+    if (yPlaneSize > SIZE_MAX - yPlaneSize / 2)
+    {
+        return nullptr;
+    }
+    mBufferSize = yPlaneSize + yPlaneSize / 2;
+    int8_t* pDstArray = reinterpret_cast<int8_t*>(calloc(mBufferSize, 1));
+    if (pDstArray == nullptr)
+    {
+        mBufferSize = 0;
+        return nullptr;
+    }
+
+    size_t nYIndex = 0;
+    size_t nUVIndex = yPlaneSize;
     int32_t r, g, b, padLen = stride - width;
     double y, u, v;
 
     for (int32_t j = 0; j < height; j++)
     {
-        int32_t nIndex = width * j;
+        const uint8_t* sourceRow = reinterpret_cast<uint8_t*>(pixels) + j * sourceStride;
         for (int32_t i = 0; i < width; i++)
         {
-            r = (pSrcArray[nIndex] & 0xff0000) >> 16;
-            g = (pSrcArray[nIndex] & 0xff00) >> 8;
-            b = (pSrcArray[nIndex] & 0xff) >> 0;
-            nIndex++;
+            const uint8_t* pixel = sourceRow + i * 4;
+            r = pixel[0];
+            g = pixel[1];
+            b = pixel[2];
 
             // rgb to yuv
             y = 0.257 * r + 0.504 * g + 0.098 * b + 16;
-            u = 128 + 0.439 * r - 0.368 * g - 0.071 * b;
-            v = 128 - 0.148 * r - 0.291 * g + 0.439 * b;
+            u = 128 - 0.148 * r - 0.291 * g + 0.439 * b;
+            v = 128 + 0.439 * r - 0.368 * g - 0.071 * b;
 
             // clip y
             pDstArray[nYIndex++] = (uint8_t)((y < 0) ? 0 : ((y > 255) ? 255 : y));
 
-            if (j % 2 == 0 && nIndex % 2 == 0)
+            if (j % 2 == 0 && i % 2 == 1)
             {
-                pDstArray[nUVIndex++] = (uint8_t)((v < 0) ? 0 : ((v > 255) ? 255 : v));
                 pDstArray[nUVIndex++] = (uint8_t)((u < 0) ? 0 : ((u > 255) ? 255 : u));
+                pDstArray[nUVIndex++] = (uint8_t)((v < 0) ? 0 : ((v > 255) ? 255 : v));
             }
         }
 
@@ -251,6 +305,5 @@ int8_t* ImsMediaPauseImageSource::ConvertRgbaToYuv(
         }
     }
 
-    mBufferSize -= padLen;
     return pDstArray;
 }

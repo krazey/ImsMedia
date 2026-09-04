@@ -17,6 +17,8 @@
 #ifndef IMSMEDIA_JPEG_SOURCE_H_INCLUDED
 #define IMSMEDIA_JPEG_SOURCE_H_INCLUDED
 
+#include <stddef.h>
+#include <stdint.h>
 #include <android/asset_manager_jni.h>
 
 class ImsMediaPauseImageSource
@@ -59,7 +61,8 @@ private:
 
     AAsset* getImageAsset();
     const char* getImageFilePath();
-    int8_t* ConvertRgbaToYuv(int8_t* pixels, int width, int height, int stride);
+    int8_t* ConvertRgbaToYuv(
+            int8_t* pixels, int width, int height, int stride, size_t sourceStride);
 };
 
 #endif  // IMSMEDIA_JPEG_SOURCE_H_INCLUDED
