@@ -17,8 +17,6 @@
 #include <ImsMediaBinaryFormat.h>
 #include <ImsMediaTrace.h>
 
-// Default value for non-printable characters
-#define NP         0xFF
 // Carriage-Return (\r)
 #define CR         0x0D
 // Line-Feed (\n)
@@ -29,106 +27,76 @@
 // Constant table for Base64 value encoding / decoding
 static const char BASE64_ENCODING_TABLE[] =
         "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-static const uint8_t BASE64_DECODING_TABLE[] = {
-        NP, NP, NP, NP, NP, NP, NP, NP, NP, NP,  // 0 ~ 9
-        NP, NP, NP, NP, NP, NP, NP, NP, NP, NP,  // 10 ~ 19
-        NP, NP, NP, NP, NP, NP, NP, NP, NP, NP,  // 20 ~ 29
-        NP, NP, NP, NP, NP, NP, NP, NP, NP, NP,  // 30 ~ 39
-        NP, NP, NP, 62, NP, NP, NP, 63, 52, 53,  // 40 ~ 49
-        54, 55, 56, 57, 58, 59, 60, 61, NP, NP,  // 50 ~ 59
-        NP, NP, NP, NP, NP, 0, 1, 2, 3, 4,       // 60 ~ 69
-        5, 6, 7, 8, 9, 10, 11, 12, 13, 14,       // 70 ~ 79
-        15, 16, 17, 18, 19, 20, 21, 22, 23, 24,  // 80 ~ 89
-        25, NP, NP, NP, NP, NP, NP, 26, 27, 28,  // 90 ~ 99
-        29, 30, 31, 32, 33, 34, 35, 36, 37, 38,  // 100 ~ 109
-        39, 40, 41, 42, 43, 44, 45, 46, 47, 48,  // 110 ~ 119
-        49, 50, 51, NP, NP, NP, NP, NP, NP, NP,  // 120 ~ 129
-        NP, NP, NP, NP, NP, NP, NP, NP, NP, NP,  // 130 ~ 139
-        NP, NP, NP, NP, NP, NP, NP, NP, NP, NP,  // 140 ~ 149
-        NP, NP, NP, NP, NP, NP, NP, NP, NP, NP,  // 150 ~ 159
-        NP, NP, NP, NP, NP, NP, NP, NP, NP, NP,  // 160 ~ 169
-        NP, NP, NP, NP, NP, NP, NP, NP, NP, NP,  // 170 ~ 179
-        NP, NP, NP, NP, NP, NP, NP, NP, NP, NP,  // 180 ~ 189
-        NP, NP, NP, NP, NP, NP, NP, NP, NP, NP,  // 190 ~ 199
-        NP, NP, NP, NP, NP, NP, NP, NP, NP, NP,  // 200 ~ 209
-        NP, NP, NP, NP, NP, NP, NP, NP, NP, NP,  // 210 ~ 219
-        NP, NP, NP, NP, NP, NP, NP, NP, NP, NP,  // 220 ~ 229
-        NP, NP, NP, NP, NP, NP, NP, NP, NP, NP,  // 230 ~ 239
-        NP, NP, NP, NP, NP, NP, NP, NP, NP, NP,  // 240 ~ 249
-        NP, NP, NP, NP, NP, NP                   // 250 ~ 256
-};
+static int DecodeBase16Char(char value)
+{
+    if (value >= '0' && value <= '9')
+        return value - '0';
+    if (value >= 'a' && value <= 'f')
+        return value - 'a' + 10;
+    if (value >= 'A' && value <= 'F')
+        return value - 'A' + 10;
+    return -1;
+}
+
+static int DecodeBase64Char(char value)
+{
+    if (value >= 'A' && value <= 'Z')
+        return value - 'A';
+    if (value >= 'a' && value <= 'z')
+        return value - 'a' + 26;
+    if (value >= '0' && value <= '9')
+        return value - '0' + 52;
+    if (value == '+')
+        return 62;
+    if (value == '/')
+        return 63;
+    return -1;
+}
 
 static bool BinaryToBase16(char* pszDst, uint32_t nDstBuffSize, uint8_t* pbSrc, uint32_t nSrcSize)
 {
-    if (((nDstBuffSize - 1) >> 1) < nSrcSize)
+    const uint64_t requiredSize = static_cast<uint64_t>(nSrcSize) * 2 + 1;
+    if (pszDst == nullptr || (nSrcSize > 0 && pbSrc == nullptr) || requiredSize > nDstBuffSize)
         return false;
 
-    if (nSrcSize > 0)
+    uint32_t dstPos = 0;
+    for (uint32_t srcPos = 0; srcPos < nSrcSize; ++srcPos)
     {
-        uint32_t m, n;
-
-        for (m = 0, n = 0; m < nSrcSize; m++)
-        {
-            int8_t c, h, l;
-
-            c = (int8_t)pbSrc[m];
-
-            h = (c >> 4) & 0x0F;
-            l = c & 0x0F;
-
-            if (h < 10)
-                h += '0';
-            else
-                h += 'A' - 10;
-            if (l < 10)
-                l += '0';
-            else
-                l += 'A' - 10;
-
-            pszDst[n++] = h;
-            pszDst[n++] = l;
-        }
-        pszDst[n] = 0;
+        const uint8_t value = pbSrc[srcPos];
+        pszDst[dstPos++] = "0123456789ABCDEF"[value >> 4];
+        pszDst[dstPos++] = "0123456789ABCDEF"[value & 0x0F];
     }
+    pszDst[dstPos] = '\0';
 
     return true;
 }
 
 static bool Base16ToBinary(uint8_t* pbDst, uint32_t* pnDstSize, uint32_t nDstBuffSize, char* pszSrc)
 {
-    uint32_t nSrcLen;
-    uint32_t src_pos, dst_pos;
-
-    nSrcLen = strlen(pszSrc);
-    if (nSrcLen & 0x1)
-        nSrcLen++;
-    if (nDstBuffSize < (nSrcLen >> 1))
+    if (pnDstSize == nullptr || pszSrc == nullptr)
         return false;
-    for (src_pos = 0, dst_pos = 0; src_pos < nSrcLen; src_pos += 2, dst_pos++)
+
+    const size_t srcLen = strlen(pszSrc);
+    if ((srcLen & 1) != 0 || srcLen / 2 > nDstBuffSize ||
+            (srcLen > 0 && pbDst == nullptr))
+        return false;
+
+    for (size_t srcPos = 0; srcPos < srcLen; srcPos += 2)
     {
-        char h, l;
-
-        h = pszSrc[src_pos];
-        l = pszSrc[src_pos + 1];
-
-        if (h >= '0' && h <= '9')
-            h = h - '0';
-        else if (h >= 'a' && h <= 'f')
-            h = h - 'a' + 10;
-        else if (h >= 'A' && h <= 'F')
-            h = h - 'A' + 10;
-
-        if (l >= '0' && l <= '9')
-            l = l - '0';
-        else if (l >= 'a' && l <= 'f')
-            l = l - 'a' + 10;
-        else if (l >= 'A' && l <= 'F')
-            l = l - 'A' + 10;
-
-        pbDst[dst_pos] = (h << 4) | l;
+        const int high = DecodeBase16Char(pszSrc[srcPos]);
+        const int low = DecodeBase16Char(pszSrc[srcPos + 1]);
+        if (high < 0 || low < 0)
+            return false;
     }
 
-    *pnDstSize = dst_pos;
+    for (size_t srcPos = 0, dstPos = 0; srcPos < srcLen; srcPos += 2, ++dstPos)
+    {
+        pbDst[dstPos] = static_cast<uint8_t>(
+                DecodeBase16Char(pszSrc[srcPos]) << 4 |
+                DecodeBase16Char(pszSrc[srcPos + 1]));
+    }
+
+    *pnDstSize = static_cast<uint32_t>(srcLen / 2);
 
     return true;
 }
@@ -136,128 +104,99 @@ static bool Base16ToBinary(uint8_t* pbDst, uint32_t* pnDstSize, uint32_t nDstBuf
 static bool BinaryToBase64(
         char* pszDst, uint32_t nDstBuffSize, const uint8_t* pbSrc, uint32_t nSrcSize)
 {
-    char* pEncBuffer = pszDst;
-
-    if ((nDstBuffSize - 1) < ((nSrcSize + 2) / 3 * 4))
+    const uint64_t encodedSize = (static_cast<uint64_t>(nSrcSize) + 2) / 3 * 4;
+    if (pszDst == nullptr || (nSrcSize > 0 && pbSrc == nullptr) ||
+            encodedSize + 1 > nDstBuffSize)
         return false;
 
-    for (int32_t nPos = 0; nPos < nSrcSize; ++nPos)
+    uint32_t srcPos = 0;
+    uint64_t dstPos = 0;
+    while (srcPos < nSrcSize)
     {
-        uint8_t c6bit = (pbSrc[nPos] >> 2) & 0x3F;
-        (*pEncBuffer) = BASE64_ENCODING_TABLE[(uint8_t)c6bit];
-        pEncBuffer++;
+        const uint32_t remaining = nSrcSize - srcPos;
+        const uint8_t first = pbSrc[srcPos++];
+        const uint8_t second = remaining > 1 ? pbSrc[srcPos++] : 0;
+        const uint8_t third = remaining > 2 ? pbSrc[srcPos++] : 0;
 
-        c6bit = (pbSrc[nPos] << 4) & 0x3F;
-
-        if (++nPos < nSrcSize)
-            c6bit |= (pbSrc[nPos] >> 4) & 0x0F;
-
-        (*pEncBuffer) = BASE64_ENCODING_TABLE[(uint8_t)c6bit];
-        pEncBuffer++;
-
-        if (nPos < nSrcSize)
-        {
-            c6bit = (pbSrc[nPos] << 2) & 0x3F;
-
-            if (++nPos < nSrcSize)
-                c6bit |= (pbSrc[nPos] >> 6) & 0x03;
-
-            (*pEncBuffer) = BASE64_ENCODING_TABLE[(uint8_t)c6bit];
-            pEncBuffer++;
-        }
-        else
-        {
-            ++nPos;
-            (*pEncBuffer) = BASE64_PAD;
-            pEncBuffer++;
-        }
-
-        if (nPos < nSrcSize)
-        {
-            c6bit = pbSrc[nPos] & 0x3F;
-            (*pEncBuffer) = BASE64_ENCODING_TABLE[(uint8_t)c6bit];
-            pEncBuffer++;
-        }
-        else
-        {
-            (*pEncBuffer) = BASE64_PAD;
-            pEncBuffer++;
-        }
+        pszDst[dstPos++] = BASE64_ENCODING_TABLE[first >> 2];
+        pszDst[dstPos++] = BASE64_ENCODING_TABLE[(first & 0x03) << 4 | second >> 4];
+        pszDst[dstPos++] = remaining > 1
+                ? BASE64_ENCODING_TABLE[(second & 0x0F) << 2 | third >> 6]
+                : BASE64_PAD;
+        pszDst[dstPos++] = remaining > 2 ? BASE64_ENCODING_TABLE[third & 0x3F] : BASE64_PAD;
     }
 
-    (*pEncBuffer) = 0x00;
+    pszDst[dstPos] = '\0';
 
     return true;
 }
 
 static bool Base64ToBinary(uint8_t* pbDst, uint32_t* pnDstSize, uint32_t nDstBuffSize, char* pszSrc)
 {
-    uint8_t* pDecBuffer = pbDst;
-    uint32_t nSrcLen;
-
-    nSrcLen = strlen(pszSrc);
-
-    if (nDstBuffSize < ((nSrcLen >> 2) * 3 + (nSrcLen & 0x3)))
+    if (pnDstSize == nullptr || pszSrc == nullptr)
         return false;
 
-    for (int32_t nPos = 0; nPos < nSrcLen; ++nPos)
+    size_t encodedSize = 0;
+    uint32_t padding = 0;
+    bool paddingStarted = false;
+    for (const char* source = pszSrc; *source != '\0'; ++source)
     {
-        if (pszSrc[nPos] == LF)
-            nPos += 1;
-        if (pszSrc[nPos] == CR)
-            nPos += 2;
-
-        uint8_t c8bit = BASE64_DECODING_TABLE[(uint8_t)pszSrc[nPos]];
-        ++nPos;
-
-        if (pszSrc[nPos] == LF)
-            nPos += 1;
-        if (pszSrc[nPos] == CR)
-            nPos += 2;
-
-        uint8_t c8bit1 = BASE64_DECODING_TABLE[(uint8_t)pszSrc[nPos]];
-        c8bit = (c8bit << 2) | ((c8bit1 >> 4) & 0x03);
-        (*pDecBuffer) = c8bit;
-        pDecBuffer++;
-
-        if (++nPos < nSrcLen)
+        if (*source == CR || *source == LF)
         {
-            if (pszSrc[nPos] == LF)
-                nPos += 1;
-            if (pszSrc[nPos] == CR)
-                nPos += 2;
-
-            c8bit = pszSrc[nPos];
-
-            if (c8bit == BASE64_PAD)
-                break;
-
-            c8bit = BASE64_DECODING_TABLE[(uint8_t)pszSrc[nPos]];
-            c8bit1 = ((c8bit1 << 4) & 0xF0) | ((c8bit >> 2) & 0x0F);
-            (*pDecBuffer) = c8bit1;
-            pDecBuffer++;
+            continue;
         }
 
-        if (++nPos < nSrcLen)
+        const size_t quartetPosition = encodedSize % 4;
+        if (*source == BASE64_PAD)
         {
-            if (pszSrc[nPos] == LF)
-                nPos += 1;
-            if (pszSrc[nPos] == CR)
-                nPos += 2;
-
-            c8bit1 = pszSrc[nPos];
-
-            if (c8bit1 == BASE64_PAD)
-                break;
-
-            c8bit1 = BASE64_DECODING_TABLE[(uint8_t)pszSrc[nPos]];
-            c8bit = ((c8bit << 6) & 0xC0) | c8bit1;
-            (*pDecBuffer) = c8bit;
-            pDecBuffer++;
+            if (quartetPosition < 2 || ++padding > 2)
+                return false;
+            paddingStarted = true;
         }
+        else if (paddingStarted || DecodeBase64Char(*source) < 0)
+        {
+            return false;
+        }
+        ++encodedSize;
     }
 
-    *pnDstSize = (uint32_t)(pDecBuffer - pbDst);
+    if (encodedSize % 4 != 0)
+        return false;
+
+    const uint64_t decodedSize = encodedSize / 4 * 3 - padding;
+    if (decodedSize > nDstBuffSize || (decodedSize > 0 && pbDst == nullptr))
+        return false;
+
+    char quartet[4];
+    uint32_t quartetSize = 0;
+    uint32_t dstPos = 0;
+    for (const char* source = pszSrc; *source != '\0'; ++source)
+    {
+        if (*source == CR || *source == LF)
+            continue;
+
+        quartet[quartetSize++] = *source;
+        if (quartetSize != 4)
+            continue;
+
+        const uint32_t first = static_cast<uint32_t>(DecodeBase64Char(quartet[0]));
+        const uint32_t second = static_cast<uint32_t>(DecodeBase64Char(quartet[1]));
+        const uint32_t third = quartet[2] == BASE64_PAD
+                ? 0
+                : static_cast<uint32_t>(DecodeBase64Char(quartet[2]));
+        const uint32_t fourth = quartet[3] == BASE64_PAD
+                ? 0
+                : static_cast<uint32_t>(DecodeBase64Char(quartet[3]));
+
+        pbDst[dstPos++] = static_cast<uint8_t>(first << 2 | second >> 4);
+        if (quartet[2] != BASE64_PAD)
+            pbDst[dstPos++] = static_cast<uint8_t>(second << 4 | third >> 2);
+        if (quartet[3] != BASE64_PAD)
+            pbDst[dstPos++] = static_cast<uint8_t>(third << 6 | fourth);
+        quartetSize = 0;
+    }
+
+    *pnDstSize = dstPos;
 
     return true;
 }
