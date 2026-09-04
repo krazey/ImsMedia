@@ -55,7 +55,7 @@ TEST_F(ImsMediaBitReaderTest, SetBufferAndReadByteTest)
 
     for (int32_t i = 0; i < sizeof(testBuffer); i++)
     {
-        reader.ReadByteBuffer(dstBuffer + i, 8);
+        EXPECT_TRUE(reader.ReadByteBuffer(dstBuffer + i, 8));
     }
 
     EXPECT_EQ(memcmp(dstBuffer, testBuffer, sizeof(testBuffer)), 0);
@@ -72,4 +72,42 @@ TEST_F(ImsMediaBitReaderTest, SetBufferAndReadUEModeTest)
     EXPECT_EQ(reader.ReadByUEMode(), 0);
     EXPECT_EQ(reader.ReadByUEMode(), 2);
     EXPECT_EQ(reader.ReadByUEMode(), 1);
+}
+
+TEST_F(ImsMediaBitReaderTest, RejectsReadPastBufferWithoutCorruptingGuardBytes)
+{
+    uint8_t srcBuffer[] = {0x5A};
+    uint8_t guardedBuffer[] = {0xAA, 1, 2, 0xBB};
+    ImsMediaBitReader reader;
+
+    reader.SetBuffer(srcBuffer, sizeof(srcBuffer));
+    EXPECT_FALSE(reader.ReadByteBuffer(guardedBuffer + 1, 16));
+    EXPECT_TRUE(reader.IsBufferEnd());
+
+    EXPECT_EQ(guardedBuffer[0], 0xAA);
+    EXPECT_EQ(guardedBuffer[1], 1);
+    EXPECT_EQ(guardedBuffer[2], 2);
+    EXPECT_EQ(guardedBuffer[3], 0xBB);
+}
+
+TEST_F(ImsMediaBitReaderTest, RejectsReadPastPartiallyConsumedBuffer)
+{
+    uint8_t srcBuffer[] = {0x5A};
+    uint8_t dstBuffer = 0xCC;
+    ImsMediaBitReader reader;
+
+    reader.SetBuffer(srcBuffer, sizeof(srcBuffer));
+    EXPECT_EQ(reader.Read(4), 5);
+    EXPECT_FALSE(reader.ReadByteBuffer(&dstBuffer, 8));
+    EXPECT_EQ(dstBuffer, 0xCC);
+}
+
+TEST_F(ImsMediaBitReaderTest, RejectsTruncatedUEModeValue)
+{
+    uint8_t srcBuffer[] = {0};
+    ImsMediaBitReader reader;
+
+    reader.SetBuffer(srcBuffer, sizeof(srcBuffer));
+    EXPECT_EQ(reader.ReadByUEMode(), 0);
+    EXPECT_TRUE(reader.IsBufferEnd());
 }

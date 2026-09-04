@@ -75,3 +75,80 @@ TEST_F(ImsMediaBitWriterTest, SetBufferAndSeekToWriteTest)
 
     EXPECT_EQ(memcmp(dstBuffer, testBuffer, sizeof(testBuffer)), 0);
 }
+
+TEST_F(ImsMediaBitWriterTest, RejectsWritePastBufferWithoutCorruptingGuardBytes)
+{
+    uint8_t guardedBuffer[] = {0xAA, 0, 0xBB};
+    uint8_t src[] = {1, 2};
+    ImsMediaBitWriter writer;
+
+    writer.SetBuffer(guardedBuffer + 1, 1);
+    EXPECT_FALSE(writer.Write(0xFFFF, 16));
+    EXPECT_EQ(guardedBuffer[0], 0xAA);
+    EXPECT_EQ(guardedBuffer[1], 0);
+    EXPECT_EQ(guardedBuffer[2], 0xBB);
+
+    writer.SetBuffer(guardedBuffer + 1, 1);
+    EXPECT_FALSE(writer.WriteByteBuffer(src, 16));
+    EXPECT_EQ(guardedBuffer[0], 0xAA);
+    EXPECT_EQ(guardedBuffer[1], 0);
+    EXPECT_EQ(guardedBuffer[2], 0xBB);
+}
+
+TEST_F(ImsMediaBitWriterTest, RejectsPartialWriteThatCannotBeFlushed)
+{
+    uint8_t guardedBuffer[] = {0xAA, 0, 0xBB};
+    ImsMediaBitWriter writer;
+
+    writer.SetBuffer(guardedBuffer + 1, 1);
+    EXPECT_TRUE(writer.Write(0x0F, 4));
+    EXPECT_FALSE(writer.Write(0xFF, 8));
+    writer.AddPadding();
+    writer.Flush();
+
+    EXPECT_EQ(guardedBuffer[0], 0xAA);
+    EXPECT_EQ(guardedBuffer[1], 0xF0);
+    EXPECT_EQ(guardedBuffer[2], 0xBB);
+}
+
+TEST_F(ImsMediaBitWriterTest, RejectsSeekPastBuffer)
+{
+    uint8_t guardedBuffer[] = {0xAA, 0, 0xBB};
+    ImsMediaBitWriter writer;
+
+    writer.SetBuffer(guardedBuffer + 1, 1);
+    writer.Seek(16);
+    EXPECT_FALSE(writer.Write(0xFF, 8));
+
+    EXPECT_EQ(guardedBuffer[0], 0xAA);
+    EXPECT_EQ(guardedBuffer[1], 0);
+    EXPECT_EQ(guardedBuffer[2], 0xBB);
+}
+
+TEST_F(ImsMediaBitWriterTest, SeekPreservesPendingBits)
+{
+    uint8_t buffer = 0;
+    ImsMediaBitWriter writer;
+
+    writer.SetBuffer(&buffer, sizeof(buffer));
+    EXPECT_TRUE(writer.Write(0b101, 3));
+    writer.Seek(2);
+    EXPECT_TRUE(writer.Write(0b111, 3));
+    writer.Flush();
+
+    EXPECT_EQ(buffer, 0b10100111);
+}
+
+TEST_F(ImsMediaBitWriterTest, SeekPreservesPendingBitsAcrossByteBoundary)
+{
+    uint8_t buffer[] = {0, 0};
+    ImsMediaBitWriter writer;
+
+    writer.SetBuffer(buffer, sizeof(buffer));
+    EXPECT_TRUE(writer.Write(0b101, 3));
+    writer.Seek(7);
+    EXPECT_TRUE(writer.Write(0b111111, 6));
+
+    EXPECT_EQ(buffer[0], 0b10100000);
+    EXPECT_EQ(buffer[1], 0b00111111);
+}

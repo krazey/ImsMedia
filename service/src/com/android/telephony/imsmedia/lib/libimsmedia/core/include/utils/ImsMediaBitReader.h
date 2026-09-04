@@ -26,8 +26,9 @@ public:
     ~ImsMediaBitReader();
     void SetBuffer(uint8_t* pbBuffer, uint32_t nBufferSize);
     uint32_t Read(uint32_t nSize);
-    void ReadByteBuffer(uint8_t* pbDst, uint32_t nBitSize);
+    bool ReadByteBuffer(uint8_t* pbDst, uint32_t nBitSize);
     uint32_t ReadByUEMode();
+    bool IsBufferEnd() const;
 
 private:
     uint8_t* mBuffer;

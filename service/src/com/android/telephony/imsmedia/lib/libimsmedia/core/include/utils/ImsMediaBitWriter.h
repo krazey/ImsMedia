@@ -34,6 +34,8 @@ public:
     void Flush();
 
 private:
+    bool HasCapacity(uint32_t nBitSize) const;
+
     uint8_t* mBuffer;
     uint32_t mMaxBufferSize;
     uint32_t mBytePos;

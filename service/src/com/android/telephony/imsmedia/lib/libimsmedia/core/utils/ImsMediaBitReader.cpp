@@ -48,6 +48,10 @@ uint32_t ImsMediaBitReader::Read(uint32_t nSize)
     if (mBuffer == nullptr || nSize > 24 || mBufferEOF)
     {
         IMLOGE2("[Read] nSize[%d], bBufferEOF[%d]", nSize, mBufferEOF);
+        if (mBuffer == nullptr || nSize > 24)
+        {
+            mBufferEOF = true;
+        }
         return 0;
     }
 
@@ -73,8 +77,31 @@ uint32_t ImsMediaBitReader::Read(uint32_t nSize)
     return value;
 }
 
-void ImsMediaBitReader::ReadByteBuffer(uint8_t* pbDst, uint32_t nBitSize)
+bool ImsMediaBitReader::ReadByteBuffer(uint8_t* pbDst, uint32_t nBitSize)
 {
+    if (nBitSize == 0)
+    {
+        return true;
+    }
+
+    if (pbDst == nullptr || mBuffer == nullptr || mBufferEOF || mBitPos > 32 ||
+            mBytePos > mMaxBufferSize)
+    {
+        IMLOGE1("[ReadByteBuffer] Invalid nBitSize[%d]", nBitSize);
+        mBufferEOF = true;
+        return false;
+    }
+
+    const uint64_t bufferedBits = 32 - mBitPos;
+    const uint64_t unreadBits = static_cast<uint64_t>(mMaxBufferSize - mBytePos) * 8;
+    if (static_cast<uint64_t>(nBitSize) > bufferedBits + unreadBits)
+    {
+        IMLOGE3("[ReadByteBuffer] nBitSize[%d], BytePos[%d], BufferSize[%d]", nBitSize, mBytePos,
+                mMaxBufferSize);
+        mBufferEOF = true;
+        return false;
+    }
+
     uint32_t dst_pos = 0;
     uint32_t nByteSize;
     uint32_t nRemainBitSize;
@@ -102,21 +129,47 @@ void ImsMediaBitReader::ReadByteBuffer(uint8_t* pbDst, uint32_t nBitSize)
         v <<= (8 - nRemainBitSize);
         pbDst[dst_pos] = (unsigned char)v;
     }
+
+    return true;
 }
 
 uint32_t ImsMediaBitReader::ReadByUEMode()
 {
     uint32_t i = 0;
-    uint32_t j = 0;
-    uint32_t k = 1;
-    uint32_t result = 0;
 
-    while (Read(1) == 0 && mBufferEOF == false)
+    while (!mBufferEOF)
     {
+        const uint32_t bit = Read(1);
+        if (mBufferEOF)
+        {
+            return 0;
+        }
+
+        if (bit != 0)
+        {
+            break;
+        }
+
+        if (i >= 24)
+        {
+            IMLOGE0("[ReadByUEMode] Exp-Golomb value is too large");
+            mBufferEOF = true;
+            return 0;
+        }
+
         i++;
     }
 
-    j = Read(i);
-    result = j - 1 + (k << i);
-    return result;
+    const uint32_t suffix = Read(i);
+    if (mBufferEOF)
+    {
+        return 0;
+    }
+
+    return ((1U << i) - 1) + suffix;
+}
+
+bool ImsMediaBitReader::IsBufferEnd() const
+{
+    return mBufferEOF;
 }
