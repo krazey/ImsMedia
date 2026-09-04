@@ -116,6 +116,12 @@ void TextRtpPayloadDecoderNode::DecodeT140(uint8_t* data, uint32_t size, ImsMedi
             "[DecodeT140] subtype[%u], size[%u], timestamp[%d], mark[%d], seq[%d]", subtype, size,
             timestamp, mark, seq);
 
+    if (data == nullptr && size > 0)
+    {
+        IMLOGE0("[DecodeT140] Null payload");
+        return;
+    }
+
     if (subtype == MEDIASUBTYPE_BITSTREAM_T140 || subtype == MEDIASUBTYPE_BITSTREAM_T140_RED)
     {
         std::list<uint32_t> listTimestampOffset;
@@ -143,8 +149,27 @@ void TextRtpPayloadDecoderNode::DecodeT140(uint8_t* data, uint32_t size, ImsMedi
         }
 
         // Redundant data included
-        while (mBitReader.Read(1) == 1)  // redundant flag bit
+        while (true)
         {
+            if (readByte >= size)
+            {
+                IMLOGE0("[DecodeT140] Missing primary header");
+                return;
+            }
+
+            if (mBitReader.Read(1) == 0)  // primary header flag bit
+            {
+                mBitReader.Read(7);  // T140 payload type (111)
+                readByte += 1;
+                break;
+            }
+
+            if (size - readByte < 4)
+            {
+                IMLOGE0("[DecodeT140] Truncated redundant header");
+                return;
+            }
+
             uint32_t payloadType = mBitReader.Read(7);  // T140 payload type
             uint32_t timestampOffset = mBitReader.Read(14);
             uint32_t length = mBitReader.Read(10);
@@ -158,17 +183,24 @@ void TextRtpPayloadDecoderNode::DecodeT140(uint8_t* data, uint32_t size, ImsMedi
             redundantCount++;
         }
 
-        mBitReader.Read(7);  // T140 payload type (111)
-        readByte += 1;
-
         // redundant data
         while (listTimestampOffset.size() > 0)
         {
             uint32_t redundantTimestamp = listTimestampOffset.front();
             uint32_t redundantLength = listLength.front();
 
+            if (redundantLength > MAX_RTT_LEN || redundantLength > size - readByte)
+            {
+                IMLOGE2("[DecodeT140] Invalid redundant size[%u], remaining[%u]", redundantLength,
+                        size - readByte);
+                return;
+            }
+
             // read redundant payload
-            mBitReader.ReadByteBuffer(mPayload, redundantLength * 8);
+            if (!mBitReader.ReadByteBuffer(mPayload, redundantLength * 8))
+            {
+                return;
+            }
             readByte += redundantLength;
 
             uint16_t redundantSeqNum = seq - redundantCount;
@@ -184,13 +216,20 @@ void TextRtpPayloadDecoderNode::DecodeT140(uint8_t* data, uint32_t size, ImsMedi
         }
 
         // primary data
-        if (size - readByte > 0)
+        const uint32_t primaryLength = size - readByte;
+        if (primaryLength > MAX_RTT_LEN)
         {
-            mBitReader.ReadByteBuffer(mPayload, (size - readByte) * 8);
+            IMLOGE1("[DecodeT140] Invalid primary size[%u]", primaryLength);
+            return;
         }
 
-        SendDataToRearNode(
-                MEDIASUBTYPE_BITSTREAM_T140, mPayload, (size - readByte), timestamp, mark, seq);
+        if (primaryLength > 0 && !mBitReader.ReadByteBuffer(mPayload, primaryLength * 8))
+        {
+            return;
+        }
+
+        SendDataToRearNode(MEDIASUBTYPE_BITSTREAM_T140, mPayload, primaryLength, timestamp, mark,
+                seq);
     }
     else
     {
