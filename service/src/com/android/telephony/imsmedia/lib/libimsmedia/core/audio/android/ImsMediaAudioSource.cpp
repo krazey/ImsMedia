@@ -26,10 +26,12 @@
 #include <ImsMediaAudioSource.h>
 #include <utils/Errors.h>
 
+#include <chrono>
 #define AAUDIO_STATE_TIMEOUT_NANO (100 * 1000000L)
 #define AAUDIO_START_TIMEOUT_NANO (10 * AAUDIO_STATE_TIMEOUT_NANO)
 #define AAUDIO_RESTART_RETRY_DELAY_MS (100)
 #define AAUDIO_RESTART_START_WAIT_ATTEMPTS (3)
+#define AAUDIO_RECOVERY_STOP_TIMEOUT_MS (4000)
 #define NUM_FRAMES_PER_SEC        (50)
 #define DEFAULT_SAMPLING_RATE     (8000)
 #define CODEC_TIMEOUT_NANO        (100000)
@@ -55,9 +57,13 @@ ImsMediaAudioSource::ImsMediaAudioSource()
     mIsDtxEnabled = false;
     mIsOctetAligned = false;
     mDisconnectedAudioStream.store(nullptr);
+    mMutexUplink.setTimeout(std::chrono::milliseconds(AAUDIO_RECOVERY_STOP_TIMEOUT_MS));
 }
 
-ImsMediaAudioSource::~ImsMediaAudioSource() {}
+ImsMediaAudioSource::~ImsMediaAudioSource()
+{
+    Stop();
+}
 
 void ImsMediaAudioSource::SetUplinkCallback(IFrameCallback* callback)
 {
@@ -121,6 +127,19 @@ void ImsMediaAudioSource::SetOctetAligned(bool isOctetAligned)
 
 bool ImsMediaAudioSource::Start()
 {
+    if (!IsThreadStopped() || mAudioStream != nullptr || mCodec != nullptr || mFormat != nullptr)
+    {
+        IMLOGE0("[Start] audio source is already running");
+        return false;
+    }
+
+    if (mPtime == 0 || mSamplingRate <= 0)
+    {
+        IMLOGE2("[Start] invalid packetization interval[%u] or sampling rate[%d]", mPtime,
+                mSamplingRate);
+        return false;
+    }
+
     mDisconnectedAudioStream.store(nullptr);
     openAudioStream();
 
@@ -173,19 +192,23 @@ bool ImsMediaAudioSource::Start()
     IMLOGI1("[Start] start stream state[%s]", AAudio_convertStreamStateToText(nextState));
 
     // start audio read thread
-    StartThread("ImsMediaAudioSource");
+    mConditionExit.reset();
+    if (!StartThread("ImsMediaAudioSource"))
+    {
+        IMLOGE0("[Start] audio read thread failed to start");
+        Stop();
+        return false;
+    }
     return true;
 }
 
 void ImsMediaAudioSource::Stop()
 {
     IMLOGD0("[Stop]");
-    StopThread();
-
-    if (mCodecType == kAudioCodecAmr || mCodecType == kAudioCodecAmrWb)
+    if (!IsThreadStopped())
     {
-        mConditionExit.reset();
-        mConditionExit.wait_timeout(AUDIO_STOP_TIMEOUT);
+        StopThread();
+        mConditionExit.wait_timeout(AAUDIO_RECOVERY_STOP_TIMEOUT_MS);
     }
 
     ImsMediaMutex::Autolock lock(mMutexUplink);
@@ -258,7 +281,7 @@ void* ImsMediaAudioSource::run()
     IMLOGD0("[run] enter");
     uint32_t nNextTime = ImsMediaTimer::GetTimeInMilliSeconds();
     int16_t buffer[PCM_BUFFER_SIZE];
-    int64_t ptsUsec = 0;
+    uint8_t l16Buffer[PCM_BUFFER_SIZE * sizeof(buffer[0])];
     uint32_t evsFlags = 2;
     uint8_t outputBuf[PCM_BUFFER_SIZE];
     int size = 0;
@@ -294,9 +317,11 @@ void* ImsMediaAudioSource::run()
             if (readSize > 0)
             {
                 IMLOGD_PACKET1(IM_PACKET_LOG_AUDIO, "[run] nReadSize[%d]", readSize);
+                const int64_t ptsUsec = ImsMediaTimer::GetTimeInMicroSeconds();
                 if (mCodecType == kAudioCodecAmr || mCodecType == kAudioCodecAmrWb)
                 {
-                    queueInputBuffer(buffer, readSize * sizeof(uint16_t));
+                    queueInputBuffer(buffer,
+                            static_cast<uint32_t>(readSize) * sizeof(buffer[0]));
                     dequeueOutputBuffer();
                 }
                 else if (mCodecType == kAudioCodecEvs)
@@ -305,11 +330,6 @@ void* ImsMediaAudioSource::run()
                     if (!mIsEvsInitialized)
                     {
                         mIsEvsInitialized = true;
-                    }
-
-                    if (ptsUsec == 0)
-                    {
-                        ptsUsec = ImsMediaTimer::GetTimeInMicroSeconds() / 1000;
                     }
 
                     if (mCallback != nullptr && outputBuf[0] != 0)
@@ -321,15 +341,18 @@ void* ImsMediaAudioSource::run()
                 }
                 else if (mCodecType == kAudioCodecL16)
                 {
-                    if (ptsUsec == 0)
+                    for (aaudio_result_t i = 0; i < readSize; ++i)
                     {
-                        ptsUsec = ImsMediaTimer::GetTimeInMicroSeconds() / 1000;
+                        const uint16_t sample = static_cast<uint16_t>(buffer[i]);
+                        l16Buffer[i * 2] = static_cast<uint8_t>(sample >> 8);
+                        l16Buffer[i * 2 + 1] = static_cast<uint8_t>(sample);
                     }
 
                     if (mCallback != nullptr)
                     {
                         mCallback->onDataFrame(
-                                (uint8_t*)buffer, (mBufferSize * 2), ptsUsec, evsFlags);
+                                l16Buffer, static_cast<uint32_t>(readSize) * sizeof(buffer[0]),
+                                ptsUsec, evsFlags);
                     }
                     size = 0;
                 }
@@ -405,7 +428,17 @@ void ImsMediaAudioSource::openAudioStream()
         return;
     }
 
-    mBufferSize = AAudioStream_getFramesPerBurst(mAudioStream);
+    int32_t framesPerBurst = AAudioStream_getFramesPerBurst(mAudioStream);
+    if (framesPerBurst <= 0 || framesPerBurst > PCM_BUFFER_SIZE)
+    {
+        IMLOGE2("[openAudioStream] invalid framesPerBurst[%d], capacity[%d]",
+                framesPerBurst, PCM_BUFFER_SIZE);
+        AAudioStream_close(mAudioStream);
+        mAudioStream = nullptr;
+        mBufferSize = 0;
+        return;
+    }
+    mBufferSize = static_cast<uint32_t>(framesPerBurst);
     IMLOGD3("[openAudioStream] samplingRate[%d], framesPerBurst[%d], "
             "performanceMode[%d]",
             AAudioStream_getSampleRate(mAudioStream), mBufferSize,
@@ -515,8 +548,9 @@ bool ImsMediaAudioSource::startCodec()
             amrBitrate = ImsMediaAudioUtil::ConvertAmrWbModeToBitrate(mMode);
             break;
         case kAudioCodecEvs:
-            // TODO: Integration with libEVS is required.
-            sprintf(kMimeType, "audio/evs");
+            IMLOGE0("[startCodec] EVS encoding is not implemented");
+            return false;
+        case kAudioCodecL16:
             break;
         default:
             return false;
@@ -527,6 +561,11 @@ bool ImsMediaAudioSource::startCodec()
     if (mCodecType == kAudioCodecAmr || mCodecType == kAudioCodecAmrWb)
     {
         mFormat = AMediaFormat_new();
+        if (mFormat == nullptr)
+        {
+            IMLOGE0("[startCodec] unable to create media format");
+            return false;
+        }
         AMediaFormat_setString(mFormat, AMEDIAFORMAT_KEY_MIME, kMimeType);
         AMediaFormat_setInt32(mFormat, AMEDIAFORMAT_KEY_SAMPLE_RATE, mSamplingRate);
         AMediaFormat_setInt32(mFormat, AMEDIAFORMAT_KEY_CHANNEL_COUNT, 1);
@@ -568,12 +607,6 @@ bool ImsMediaAudioSource::startCodec()
             return false;
         }
     }
-    else if (mCodecType == kAudioCodecEvs)
-    {
-        // TODO: Integration with libEVS is required.
-        mIsEvsInitialized = true;
-    }
-
     return true;
 }
 
@@ -607,7 +640,18 @@ void ImsMediaAudioSource::queueInputBuffer(int16_t* buffer, uint32_t size)
         size_t bufferSize = 0;
         uint8_t* inputBuffer = AMediaCodec_getInputBuffer(mCodec, index, &bufferSize);
 
-        if (inputBuffer != nullptr)
+        if (inputBuffer == nullptr || size > bufferSize)
+        {
+            IMLOGE2("[queueInputBuffer] invalid input size[%u], capacity[%zu]", size,
+                    bufferSize);
+            auto err = AMediaCodec_queueInputBuffer(
+                    mCodec, index, 0, 0, ImsMediaTimer::GetTimeInMicroSeconds(), 0);
+            if (err != AMEDIA_OK)
+            {
+                IMLOGE1("[queueInputBuffer] Unable to return input buffer - err[%d]", err);
+            }
+        }
+        else
         {
             memcpy(inputBuffer, buffer, size);
             IMLOGD_PACKET2(IM_PACKET_LOG_AUDIO,
@@ -637,12 +681,24 @@ void ImsMediaAudioSource::dequeueOutputBuffer()
 
         if (info.size > 0)
         {
-            size_t buffCapacity;
+            size_t buffCapacity = 0;
             uint8_t* buf = AMediaCodec_getOutputBuffer(mCodec, index, &buffCapacity);
 
-            if (mCallback != nullptr)
+            if (buf != nullptr && info.offset >= 0 &&
+                    static_cast<size_t>(info.offset) <= buffCapacity &&
+                    static_cast<size_t>(info.size) <=
+                            buffCapacity - static_cast<size_t>(info.offset))
             {
-                mCallback->onDataFrame(buf, info.size, info.presentationTimeUs, info.flags);
+                if (mCallback != nullptr)
+                {
+                    mCallback->onDataFrame(
+                            buf + info.offset, info.size, info.presentationTimeUs, info.flags);
+                }
+            }
+            else
+            {
+                IMLOGE3("[dequeueOutputBuffer] invalid offset[%d], size[%d], capacity[%zu]",
+                        info.offset, info.size, buffCapacity);
             }
         }
 

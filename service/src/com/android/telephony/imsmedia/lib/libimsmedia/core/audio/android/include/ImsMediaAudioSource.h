@@ -160,7 +160,7 @@ private:
     int32_t mCodecType;
     uint32_t mMode;
     uint32_t mPtime;
-    uint32_t mSamplingRate;
+    int32_t mSamplingRate;
     uint32_t mBufferSize;
     kEvsBandwidth mEvsBandwidth;
     char mEvsbandwidthStr[MAX_EVS_BW_STRLEN];

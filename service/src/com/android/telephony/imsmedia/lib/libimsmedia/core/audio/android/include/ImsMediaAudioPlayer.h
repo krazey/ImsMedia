@@ -23,6 +23,8 @@
 #include <media/NdkMediaFormat.h>
 #include <ImsMediaMutex.h>
 
+#include <atomic>
+
 using android::sp;
 
 enum FrameType : uint8_t
@@ -153,7 +155,7 @@ public:
 
 private:
     void openAudioStream();
-    void restartAudioStream();
+    void restartAudioStream(AAudioStream* disconnectedStream);
     static void audioErrorCallback(AAudioStream* stream, void* userData, aaudio_result_t error);
     bool writeAudioFrames(const uint16_t* buffer, int32_t numFrames);
     bool writeSilenceFrame();
@@ -161,6 +163,7 @@ private:
     bool decodeEvs(uint8_t* buffer, uint32_t size);
 
     AAudioStream* mAudioStream;
+    std::atomic<AAudioStream*> mDisconnectedAudioStream;
     AMediaCodec* mCodec;
     AMediaFormat* mFormat;
     int32_t mCodecType;
@@ -172,8 +175,6 @@ private:
     ImsMediaMutex mMutex;
     int32_t mEvsBitRate;
     kRtpPayloadHeaderMode mEvsCodecHeaderMode;
-    bool mIsFirstFrame;
-    bool mIsEvsInitialized;
     bool mIsDtxEnabled;
     bool mIsOctetAligned;
 };

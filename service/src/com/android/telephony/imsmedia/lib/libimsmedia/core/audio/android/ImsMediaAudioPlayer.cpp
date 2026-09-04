@@ -21,7 +21,8 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/types.h>
-#include <thread>
+
+#include <chrono>
 
 #include <cutils/properties.h>
 
@@ -60,13 +61,16 @@ ImsMediaAudioPlayer::ImsMediaAudioPlayer()
     memset(mBuffer, 0, sizeof(mBuffer));
     mEvsBitRate = 0;
     mEvsCodecHeaderMode = kRtpPayloadHeaderModeEvsHeaderFull;
-    mIsFirstFrame = false;
-    mIsEvsInitialized = false;
     mIsOctetAligned = false;
     mIsDtxEnabled = false;
+    mDisconnectedAudioStream.store(nullptr);
+    mMutex.setTimeout(std::chrono::milliseconds(3000));
 }
 
-ImsMediaAudioPlayer::~ImsMediaAudioPlayer() {}
+ImsMediaAudioPlayer::~ImsMediaAudioPlayer()
+{
+    Stop();
+}
 
 void ImsMediaAudioPlayer::SetCodec(int32_t type)
 {
@@ -127,6 +131,14 @@ void ImsMediaAudioPlayer::ProcessCmr(const uint32_t cmr)
 
 bool ImsMediaAudioPlayer::Start()
 {
+    ImsMediaMutex::Autolock lock(mMutex);
+    if (mAudioStream != nullptr || mCodec != nullptr || mFormat != nullptr || mSamplingRate <= 0)
+    {
+        IMLOGE0("[Start] audio player is already running or has invalid configuration");
+        return false;
+    }
+    mDisconnectedAudioStream.store(nullptr);
+
     char kMimeType[128] = {'\0'};
     switch (mCodecType)
     {
@@ -137,9 +149,8 @@ bool ImsMediaAudioPlayer::Start()
             sprintf(kMimeType, "audio/amr-wb");
             break;
         case kAudioCodecEvs:
-            // TODO: Integration with libEVS is required.
-            sprintf(kMimeType, "audio/evs");
-            break;
+            IMLOGE0("[Start] EVS decoding is not implemented");
+            return false;
         case kAudioCodecL16:
             sprintf(kMimeType, "audio/l16");
             break;
@@ -160,6 +171,13 @@ bool ImsMediaAudioPlayer::Start()
     if (mCodecType == kAudioCodecAmr || mCodecType == kAudioCodecAmrWb)
     {
         mFormat = AMediaFormat_new();
+        if (mFormat == nullptr)
+        {
+            IMLOGE0("[Start] unable to create media format");
+            AAudioStream_close(mAudioStream);
+            mAudioStream = nullptr;
+            return false;
+        }
         AMediaFormat_setString(mFormat, AMEDIAFORMAT_KEY_MIME, kMimeType);
         AMediaFormat_setInt32(mFormat, AMEDIAFORMAT_KEY_SAMPLE_RATE, mSamplingRate);
         AMediaFormat_setInt32(mFormat, AMEDIAFORMAT_KEY_CHANNEL_COUNT, 1);
@@ -298,6 +316,8 @@ void ImsMediaAudioPlayer::Stop()
         mAudioStream = nullptr;
     }
 
+    mDisconnectedAudioStream.store(nullptr);
+
     IMLOGD0("[Stop] exit ");
 }
 
@@ -305,6 +325,12 @@ bool ImsMediaAudioPlayer::onDataFrame(uint8_t* buffer, uint32_t size, FrameType 
         bool /*hasNextFrame*/, uint8_t /*nextFrameByte*/)
 {
     ImsMediaMutex::Autolock lock(mMutex);
+
+    AAudioStream* disconnectedStream = mDisconnectedAudioStream.exchange(nullptr);
+    if (disconnectedStream != nullptr)
+    {
+        restartAudioStream(disconnectedStream);
+    }
 
     if (mAudioStream == nullptr ||
             AAudioStream_getState(mAudioStream) != AAUDIO_STREAM_STATE_STARTED)
@@ -354,15 +380,26 @@ bool ImsMediaAudioPlayer::onDataFrame(uint8_t* buffer, uint32_t size, FrameType 
     }
     else if (mCodecType == kAudioCodecL16)
     {
-        memcpy(mBuffer, buffer, (MAX_PCM_SIZE * 2));
-        return writeAudioFrames(mBuffer, MAX_PCM_SIZE);
+        if (size > sizeof(mBuffer) || size % sizeof(mBuffer[0]) != 0)
+        {
+            IMLOGE2("[onDataFrame] invalid L16 size[%u], capacity[%zu]", size,
+                    sizeof(mBuffer));
+            return false;
+        }
+        const uint32_t numFrames = size / sizeof(mBuffer[0]);
+        for (uint32_t i = 0; i < numFrames; ++i)
+        {
+            mBuffer[i] = static_cast<uint16_t>(buffer[i * 2]) << 8 | buffer[i * 2 + 1];
+        }
+        return writeAudioFrames(mBuffer, static_cast<int32_t>(numFrames));
     }
     return false;
 }
 
 bool ImsMediaAudioPlayer::writeAudioFrames(const uint16_t* buffer, int32_t numFrames)
 {
-    if (buffer == nullptr || numFrames <= 0 || mAudioStream == nullptr)
+    if (buffer == nullptr || numFrames <= 0 || numFrames > PCM_BUFFER_SIZE ||
+            mAudioStream == nullptr)
     {
         return false;
     }
@@ -429,7 +466,17 @@ bool ImsMediaAudioPlayer::decodeAmr(uint8_t* buffer, uint32_t size)
     {
         size_t bufferSize = 0;
         uint8_t* inputBuffer = AMediaCodec_getInputBuffer(mCodec, index, &bufferSize);
-        if (inputBuffer != nullptr)
+        if (inputBuffer == nullptr || size > bufferSize)
+        {
+            IMLOGE2("[decodeAmr] invalid input size[%u], capacity[%zu]", size, bufferSize);
+            auto err = AMediaCodec_queueInputBuffer(
+                    mCodec, index, 0, 0, ImsMediaTimer::GetTimeInMicroSeconds(), 0);
+            if (err != AMEDIA_OK)
+            {
+                IMLOGE1("[decodeAmr] Unable to return input buffer - err[%d]", err);
+            }
+        }
+        else
         {
             memcpy(inputBuffer, buffer, size);
             IMLOGD_PACKET2(IM_PACKET_LOG_AUDIO,
@@ -459,14 +506,23 @@ bool ImsMediaAudioPlayer::decodeAmr(uint8_t* buffer, uint32_t size)
 
         if (info.size > 0)
         {
-            size_t buffCapacity;
+            size_t buffCapacity = 0;
             uint8_t* buf = AMediaCodec_getOutputBuffer(mCodec, index, &buffCapacity);
-            if (buf != nullptr && buffCapacity > 0)
+            if (buf != nullptr && info.offset >= 0 &&
+                    static_cast<size_t>(info.offset) <= buffCapacity &&
+                    static_cast<size_t>(info.size) <=
+                            buffCapacity - static_cast<size_t>(info.offset) &&
+                    static_cast<size_t>(info.size) <= sizeof(mBuffer) &&
+                    info.size % sizeof(mBuffer[0]) == 0)
             {
-                memcpy(mBuffer, buf, info.size);
-                audioProduced = true;
-                writeAudioFrames(
+                memcpy(mBuffer, buf + info.offset, info.size);
+                audioProduced = writeAudioFrames(
                         mBuffer, static_cast<int32_t>(info.size / sizeof(mBuffer[0])));
+            }
+            else
+            {
+                IMLOGE3("[decodeAmr] invalid output offset[%d], size[%d], capacity[%zu]",
+                        info.offset, info.size, buffCapacity);
             }
         }
 
@@ -501,29 +557,10 @@ bool ImsMediaAudioPlayer::decodeAmr(uint8_t* buffer, uint32_t size)
 // TODO: Integration with libEVS is required.
 bool ImsMediaAudioPlayer::decodeEvs(uint8_t* buffer, uint32_t size)
 {
-    uint16_t output[PCM_BUFFER_SIZE];
-    int decodeSize = 0;
-
-    // TODO: Integration with libEVS is required to decode buffer data.
     (void)buffer;
     (void)size;
-
-    if (!mIsEvsInitialized)
-    {
-        IMLOGD0("[decodeEvs] Decoder has been initialised");
-        mIsEvsInitialized = true;
-    }
-
-    if (!mIsFirstFrame)
-    {
-        IMLOGD0("[decodeEvs] First frame has been decoded");
-        mIsFirstFrame = true;
-    }
-
-    writeAudioFrames(output, decodeSize / 2);
-    memset(output, 0, PCM_BUFFER_SIZE);
-
-    return true;
+    IMLOGE0("[decodeEvs] EVS decoding is not implemented");
+    return false;
 }
 
 void ImsMediaAudioPlayer::openAudioStream()
@@ -587,12 +624,11 @@ void ImsMediaAudioPlayer::openAudioStream()
             AAudio_convertResultToText(result));
 }
 
-void ImsMediaAudioPlayer::restartAudioStream()
+void ImsMediaAudioPlayer::restartAudioStream(AAudioStream* disconnectedStream)
 {
-    ImsMediaMutex::Autolock lock(mMutex);
-
-    if (mAudioStream == nullptr)
+    if (mAudioStream != disconnectedStream)
     {
+        IMLOGI0("[restartAudioStream] Ignore stale disconnect");
         return;
     }
 
@@ -649,9 +685,7 @@ void ImsMediaAudioPlayer::audioErrorCallback(
 
     if (error == AAUDIO_ERROR_DISCONNECTED)
     {
-        // Handle stream restart on a separate thread
-        std::thread streamRestartThread(&ImsMediaAudioPlayer::restartAudioStream,
-                reinterpret_cast<ImsMediaAudioPlayer*>(userData));
-        streamRestartThread.detach();
+        reinterpret_cast<ImsMediaAudioPlayer*>(userData)
+                ->mDisconnectedAudioStream.store(stream);
     }
 }
