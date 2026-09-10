@@ -398,7 +398,10 @@ void ImsMediaAudioSource::openAudioStream()
         AAudioStreamBuilder_setChannelCount(builder, 1);
         AAudioStreamBuilder_setSampleRate(builder, mSamplingRate);
         AAudioStreamBuilder_setSharingMode(builder, sharingMode);
-        AAudioStreamBuilder_setPerformanceMode(builder, AAUDIO_PERFORMANCE_MODE_LOW_LATENCY);
+        // Call capture needs the voice-communication preprocessing chain. Low latency without
+        // a session requests RAW capture on the legacy backend and also allows MMAP capture.
+        AAudioStreamBuilder_setPerformanceMode(builder, AAUDIO_PERFORMANCE_MODE_NONE);
+        AAudioStreamBuilder_setSessionId(builder, AAUDIO_SESSION_ID_ALLOCATE);
         AAudioStreamBuilder_setUsage(builder, AAUDIO_USAGE_VOICE_COMMUNICATION);
         AAudioStreamBuilder_setErrorCallback(builder, audioErrorCallback, this);
         AAudioStreamBuilder_setPrivacySensitive(builder, true);
