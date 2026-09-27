@@ -104,6 +104,14 @@ public class JNIImsMediaService {
     public static native void setLogMode(int logMode, int debugLogMode);
 
     /**
+     * Reports the current platform audio mode to the native audio implementation.
+     *
+     * @param mode The {@link android.media.AudioManager} mode, for example
+     *        {@link android.media.AudioManager#MODE_IN_COMMUNICATION}.
+     */
+    public static native void setAudioMode(int mode);
+
+    /**
      * Gets intance of JNIImsMediaService for jni interface
      *
      * @return instance of JNIImsMediaService

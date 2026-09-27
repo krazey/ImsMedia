@@ -18,6 +18,7 @@ package com.android.telephony.imsmedia;
 
 import android.app.Service;
 import android.content.Intent;
+import android.media.AudioManager;
 import android.os.IBinder;
 import android.os.Parcel;
 import android.os.ParcelFileDescriptor;
@@ -52,6 +53,9 @@ public class ImsMediaController extends Service {
 
     @GuardedBy("mSessions")
     private final SparseArray<IMediaSession> mSessions = new SparseArray();
+    private AudioManager mAudioManager;
+    private final AudioManager.OnModeChangedListener mAudioModeListener =
+            mode -> JNIImsMediaService.setAudioMode(mode);
 
     private class ImsMediaBinder extends IImsMedia.Stub {
         // TODO add permission checks
@@ -176,11 +180,23 @@ public class ImsMediaController extends Service {
     @Override
     public void onCreate() {
         Log.d(TAG, "onCreate");
+        // Uplink capture must be reopened once the call is in communication mode:
+        // some vendor audio HALs keep the capture configuration chosen for the mode
+        // that was active when the input stream was opened.
+        mAudioManager = getSystemService(AudioManager.class);
+        if (mAudioManager != null) {
+            mAudioManager.addOnModeChangedListener(Runnable::run, mAudioModeListener);
+            JNIImsMediaService.setAudioMode(mAudioManager.getMode());
+        }
     }
 
     @Override
     public void onDestroy() {
         Log.d(TAG, "onDestroy");
+        if (mAudioManager != null) {
+            mAudioManager.removeOnModeChangedListener(mAudioModeListener);
+            mAudioManager = null;
+        }
         // Release all wakelocks (if leaked)
         WakeLockManager.getInstance().cleanup();
     }

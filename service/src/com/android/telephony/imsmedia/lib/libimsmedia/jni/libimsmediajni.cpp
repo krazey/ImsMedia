@@ -25,6 +25,7 @@
 #include <VideoManager.h>
 #include <ImsMediaVideoUtil.h>
 #include <ImsMediaTrace.h>
+#include <ImsMediaAudioSource.h>
 #include <android/native_window_jni.h>
 #include <android/asset_manager_jni.h>
 
@@ -202,6 +203,11 @@ static void JNIImsMediaService_setLogMode(JNIEnv*, jobject, jint logMode, jint d
     ImsMediaTrace::IMSetDebugLogMode(debugLogMode);
 }
 
+static void JNIImsMediaService_setAudioMode(JNIEnv*, jobject, jint mode)
+{
+    ImsMediaAudioSource::SetPlatformAudioMode(mode);
+}
+
 static JNINativeMethod gMethods[] = {
         {"getInterface", "(I)J", (void*)JNIImsMediaService_getInterface},
         {"sendMessage", "(JI[B)V", (void*)JNIImsMediaService_sendMessage},
@@ -212,6 +218,7 @@ static JNINativeMethod gMethods[] = {
         {"generateSprop", "([B)Ljava/lang/String;", (void*)JNIImsMediaUtil_generateSPROP},
         {"setAssetManager", "(Landroid/content/res/AssetManager;)V", (void*)SetAssetManager},
         {"setLogMode", "(II)V", (void*)JNIImsMediaService_setLogMode},
+        {"setAudioMode", "(I)V", (void*)JNIImsMediaService_setAudioMode},
 };
 
 jint ImsMediaServiceJni_OnLoad(JavaVM* vm, JNIEnv* env)

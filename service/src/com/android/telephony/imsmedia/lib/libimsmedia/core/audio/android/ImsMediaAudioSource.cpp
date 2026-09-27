@@ -27,6 +27,8 @@
 #include <utils/Errors.h>
 
 #include <chrono>
+#include <cmath>
+#include <cstdlib>
 #define AAUDIO_STATE_TIMEOUT_NANO (100 * 1000000L)
 #define AAUDIO_START_TIMEOUT_NANO (10 * AAUDIO_STATE_TIMEOUT_NANO)
 #define AAUDIO_RESTART_RETRY_DELAY_MS (100)
@@ -35,8 +37,23 @@
 #define NUM_FRAMES_PER_SEC        (50)
 #define DEFAULT_SAMPLING_RATE     (8000)
 #define CODEC_TIMEOUT_NANO        (100000)
+#define UPLINK_LEVEL_LOG_INTERVAL_MS (2000)
+// AUDIO_MODE_IN_COMMUNICATION / AudioManager.MODE_IN_COMMUNICATION
+#define PLATFORM_AUDIO_MODE_IN_COMMUNICATION (3)
 
 using namespace android;
+
+std::atomic<int32_t> ImsMediaAudioSource::sPlatformAudioMode(-1);
+
+void ImsMediaAudioSource::SetPlatformAudioMode(int32_t mode)
+{
+    const int32_t previous = sPlatformAudioMode.exchange(mode);
+
+    if (previous != mode)
+    {
+        IMLOGI2("[SetPlatformAudioMode] mode[%d] -> [%d]", previous, mode);
+    }
+}
 
 ImsMediaAudioSource::ImsMediaAudioSource()
 {
@@ -56,6 +73,8 @@ ImsMediaAudioSource::ImsMediaAudioSource()
     mMediaDirection = 0;
     mIsDtxEnabled = false;
     mIsOctetAligned = false;
+    resetUplinkLevel(0);
+    mStreamAudioMode.store(-1);
     mDisconnectedAudioStream.store(nullptr);
     mMutexUplink.setTimeout(std::chrono::milliseconds(AAUDIO_RECOVERY_STOP_TIMEOUT_MS));
 }
@@ -277,6 +296,73 @@ void ImsMediaAudioSource::audioErrorCallback(
     }
 }
 
+bool ImsMediaAudioSource::needsReopenForAudioMode()
+{
+    const int32_t streamMode = mStreamAudioMode.load();
+    return sPlatformAudioMode.load() == PLATFORM_AUDIO_MODE_IN_COMMUNICATION && streamMode >= 0 &&
+            streamMode != PLATFORM_AUDIO_MODE_IN_COMMUNICATION;
+}
+
+void ImsMediaAudioSource::resetUplinkLevel(uint32_t now)
+{
+    mLevelStartMs = now;
+    mLevelReads = 0;
+    mLevelEmptyReads = 0;
+    mLevelSilentReads = 0;
+    mLevelFrames = 0;
+    mLevelPeak = 0;
+    mLevelSumSquares = 0;
+}
+
+void ImsMediaAudioSource::updateUplinkLevel(const int16_t* samples, int32_t count, uint32_t now)
+{
+    mLevelReads++;
+
+    if (samples == nullptr || count <= 0)
+    {
+        mLevelEmptyReads++;
+    }
+    else
+    {
+        int32_t peak = 0;
+
+        for (int32_t i = 0; i < count; ++i)
+        {
+            const int32_t value = std::abs(static_cast<int32_t>(samples[i]));
+            peak = value > peak ? value : peak;
+            mLevelSumSquares += static_cast<double>(samples[i]) * samples[i];
+        }
+
+        if (peak == 0)
+        {
+            mLevelSilentReads++;
+        }
+
+        mLevelPeak = peak > mLevelPeak ? peak : mLevelPeak;
+        mLevelFrames += static_cast<uint32_t>(count);
+    }
+
+    if (now - mLevelStartMs < UPLINK_LEVEL_LOG_INTERVAL_MS)
+    {
+        return;
+    }
+
+    // RMS in dBFS; -99 means digital silence or no captured frames.
+    int32_t rmsDbfs = -99;
+
+    if (mLevelFrames > 0 && mLevelSumSquares > 0)
+    {
+        const double rms = std::sqrt(mLevelSumSquares / mLevelFrames);
+        rmsDbfs = static_cast<int32_t>(std::lround(20.0 * std::log10(rms / 32768.0)));
+    }
+
+    IMLOGI6("[run] uplink level: reads[%u], empty[%u], silent[%u], frames[%u], peak[%d], "
+            "rms[%d dBFS]",
+            mLevelReads, mLevelEmptyReads, mLevelSilentReads, mLevelFrames, mLevelPeak,
+            rmsDbfs);
+    resetUplinkLevel(now);
+}
+
 void* ImsMediaAudioSource::run()
 {
     IMLOGD0("[run] enter");
@@ -288,6 +374,7 @@ void* ImsMediaAudioSource::run()
     int size = 0;
 
     outputBuf[0] = 0;
+    resetUplinkLevel(nNextTime);
 
     for (;;)
     {
@@ -308,12 +395,34 @@ void* ImsMediaAudioSource::run()
             nNextTime = ImsMediaTimer::GetTimeInMilliSeconds();
         }
 
+        if (needsReopenForAudioMode())
+        {
+            AAudioStream* currentStream = nullptr;
+            {
+                ImsMediaMutex::Autolock lock(mMutexUplink);
+                currentStream = mAudioStream;
+            }
+
+            if (currentStream != nullptr)
+            {
+                IMLOGI1("[run] reopen capture stream opened in audio mode[%d]",
+                        mStreamAudioMode.load());
+                restartAudioStream(currentStream);
+                if (IsThreadStopped())
+                {
+                    break;
+                }
+                nNextTime = ImsMediaTimer::GetTimeInMilliSeconds();
+            }
+        }
+
         mMutexUplink.lock();
 
         if (mAudioStream != nullptr &&
                 AAudioStream_getState(mAudioStream) == AAUDIO_STREAM_STATE_STARTED)
         {
             aaudio_result_t readSize = AAudioStream_read(mAudioStream, buffer, mBufferSize, 0);
+            updateUplinkLevel(buffer, readSize, ImsMediaTimer::GetTimeInMilliSeconds());
 
             if (readSize > 0)
             {
@@ -431,6 +540,9 @@ void ImsMediaAudioSource::openAudioStream()
                 AAudio_convertResultToText(result));
         return;
     }
+
+    mStreamAudioMode.store(sPlatformAudioMode.load());
+    IMLOGI1("[openAudioStream] platform audio mode[%d]", mStreamAudioMode.load());
 
     int32_t framesPerBurst = AAudioStream_getFramesPerBurst(mAudioStream);
     if (framesPerBurst <= 0 || framesPerBurst > PCM_BUFFER_SIZE)
